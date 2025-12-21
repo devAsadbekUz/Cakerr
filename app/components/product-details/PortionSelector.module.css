@@ -1,0 +1,56 @@
+.container {
+  margin: 24px 0;
+}
+
+.label {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: #111827;
+}
+
+.grid {
+  display: flex;
+  gap: 12px;
+}
+
+.card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: white;
+  border: 2px solid #E5E7EB;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.card.active {
+  border-color: #E91E63;
+  background: #FCE4EC;
+  /* Light Pink tint */
+  box-shadow: 0 4px 12px rgba(233, 30, 99, 0.1);
+}
+
+.value {
+  font-size: 24px;
+  font-weight: 800;
+  color: #1F2937;
+}
+
+.active .value {
+  color: #E91E63;
+}
+
+.sub {
+  font-size: 12px;
+  color: #6B7280;
+  margin-top: 4px;
+}
+
+.active .sub {
+  color: #E91E63;
+}

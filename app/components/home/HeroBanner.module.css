@@ -1,0 +1,59 @@
+.banner {
+    background: linear-gradient(135deg, #D81B60, #FF4081);
+    border-radius: var(--radius-xl);
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    color: white;
+    margin: 16px 0;
+    box-shadow: 0 10px 20px rgba(216, 27, 96, 0.3);
+    min-height: 180px;
+    display: flex;
+    align-items: center;
+}
+
+.content {
+    position: relative;
+    z-index: 2;
+    max-width: 65%;
+}
+
+.badge {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(4px);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.title {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.3;
+    margin-bottom: 12px;
+}
+
+.button {
+    background: white;
+    color: #D81B60;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.decoration {
+    position: absolute;
+    right: -20px;
+    bottom: -20px;
+    width: 150px;
+    height: 150px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+}
