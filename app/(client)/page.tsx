@@ -8,6 +8,7 @@ import CategoryFilter from '@/app/components/home/CategoryFilter';
 import ProductGrid from '@/app/components/products/ProductGrid';
 import { CATEGORIES, MOCK_PRODUCTS } from '@/app/lib/mockData';
 import ContactSheet from '@/app/components/home/ContactSheet';
+import ActiveOrderCard from '@/app/components/home/ActiveOrderCard';
 
 
 
@@ -83,6 +84,10 @@ export default function HomePage() {
       />
 
       <div style={{ padding: '0 20px', marginTop: '10px' }}>
+        <ActiveOrderCard
+          orderId="ORD-4023"
+          status="Tayyorlanmoqda"
+        />
         <HeroBanner />
       </div>
 

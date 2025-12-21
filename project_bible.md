@@ -135,6 +135,7 @@ app/
     *   Vendor clicks [Start Cooking] -> Status: "Cooking".
     *   Vendor clicks [Ready] -> Status: "Ready".
     *   Vendor clicks [On Way] -> Status: "Delivery".
+    *   Vendor clicks [Delivered] -> Status: "Delivered" (Admin-confirmed).
 
 ---
 

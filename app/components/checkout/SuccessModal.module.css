@@ -1,0 +1,120 @@
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+    backdrop-filter: blur(4px);
+}
+
+.modal {
+    background: white;
+    width: 90%;
+    max-width: 400px;
+    border-radius: 32px;
+    padding: 40px 24px;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+    from {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.closeBtn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: #F3F4F6;
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.iconWrapper {
+    width: 80px;
+    height: 80px;
+    background: #FFF0F5;
+    color: #E91E63;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+    position: relative;
+}
+
+.checkmark {
+    width: 40px;
+    height: 40px;
+    stroke-width: 3;
+}
+
+.title {
+    font-size: 20px;
+    font-weight: 800;
+    color: #111827;
+    margin-bottom: 12px;
+}
+
+.message {
+    font-size: 15px;
+    color: #6B7280;
+    line-height: 1.6;
+}
+
+.confettiCanvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 3001;
+}
+
+.progressBar {
+    width: 100%;
+    height: 4px;
+    background: #F3F4F6;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 24px;
+}
+
+.progressFill {
+    height: 100%;
+    background: #E91E63;
+    width: 0%;
+    animation: fill 3s linear forwards;
+}
+
+@keyframes fill {
+    from {
+        width: 0%;
+    }
+
+    to {
+        width: 100%;
+    }
+}

@@ -7,6 +7,7 @@ import styles from './page.module.css';
 import { ChevronLeft, ChevronRight, Calendar, Banknote, CreditCard } from 'lucide-react';
 import CalendarModal from '@/app/components/checkout/CalendarModal';
 import AddressesModal from '@/app/components/checkout/AddressesModal';
+import SuccessModal from '@/app/components/checkout/SuccessModal';
 
 const TIME_SLOTS = [
     '09:00 - 11:00',
@@ -19,9 +20,10 @@ const TIME_SLOTS = [
 
 export default function CheckoutPage() {
     const router = useRouter();
-    const { subtotal, totalItems, deliveryAddress } = useCart();
+    const { subtotal, totalItems, deliveryAddress, clearCart } = useCart();
     const [isAddressesOpen, setIsAddressesOpen] = useState(false);
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+    const [isSuccessOpen, setIsSuccessOpen] = useState(false);
     const [selectedDateObj, setSelectedDateObj] = useState<Date | undefined>(undefined);
     const [selectedDate, setSelectedDate] = useState('');
     const [selectedSlot, setSelectedSlot] = useState('');
@@ -36,9 +38,7 @@ export default function CheckoutPage() {
             alert('Iltimos, yetkazib berish vaqtini tanlang');
             return;
         }
-        // Mock confirmation
-        alert('Buyurtmangiz qabul qilindi!');
-        router.push('/');
+        setIsSuccessOpen(true);
     };
 
     return (
@@ -168,6 +168,15 @@ export default function CheckoutPage() {
                     Buyurtmani tasdiqlash
                 </button>
             </div>
+
+            <SuccessModal
+                isOpen={isSuccessOpen}
+                onClose={() => {
+                    setIsSuccessOpen(false);
+                    clearCart();
+                    router.push('/savat/checkout/success');
+                }}
+            />
         </div>
     );
 }

@@ -54,7 +54,7 @@ export default function SavatPage() {
                                     </div>
                                     <div className={styles.itemBottom}>
                                         <p className={styles.itemPrice}>
-                                            {(item.price || 0).toLocaleString()} so'm
+                                            {(item.price || 0).toLocaleString('en-US')} so'm
                                         </p>
                                         <div className={styles.stepper}>
                                             <button

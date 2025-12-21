@@ -196,7 +196,7 @@ export default function OrderHistoryPage() {
                         ))}
 
                         <div className={styles.orderFooter}>
-                            <div className={styles.totalRow}>
+                            <div className={styles.totalRow} onClick={() => router.push(`/profil/buyurtmalar/${order.id}`)}>
                                 <span className={styles.totalLabel}>Jami</span>
                                 <div className={styles.totalValue}>
                                     {order.total.toLocaleString('uz-UZ')} so'm

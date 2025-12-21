@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCart } from '@/app/context/CartContext';
 import styles from './page.module.css';
 import { ChevronLeft, MapPin, Navigation } from 'lucide-react';
@@ -11,7 +11,9 @@ declare var L: any;
 
 export default function MapPage() {
     const router = useRouter();
-    const { setDeliveryAddress, addSavedAddress } = useCart();
+    const searchParams = useSearchParams();
+    const editId = searchParams.get('edit');
+    const { setDeliveryAddress, addSavedAddress, savedAddresses, updateSavedAddress } = useCart();
     const mapRef = useRef<HTMLDivElement>(null);
     const [map, setMap] = useState<any>(null);
     const [marker, setMarker] = useState<any>(null);
@@ -23,8 +25,20 @@ export default function MapPage() {
             const L = (window as any).L;
             if (!L) return;
 
-            const initialPos: [number, number] = [41.2995, 69.2401]; // Tashkent
-            const leafletMap = L.map(mapRef.current).setView(initialPos, 13);
+            let initialPos: [number, number] = [41.2995, 69.2401]; // Tashkent default
+
+            // If editing, find existing position
+            if (editId) {
+                const addrToEdit = savedAddresses.find(a => a.id === editId);
+                if (addrToEdit) {
+                    if (addrToEdit.lat && addrToEdit.lng) {
+                        initialPos = [addrToEdit.lat, addrToEdit.lng];
+                    }
+                    setAddress(addrToEdit.address);
+                }
+            }
+
+            const leafletMap = L.map(mapRef.current).setView(initialPos, 16);
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors'
@@ -72,11 +86,25 @@ export default function MapPage() {
 
     const handleSave = () => {
         setDeliveryAddress(address);
-        addSavedAddress({
-            address: address,
-            label: address.split(',')[0].trim(),
-            type: 'other'
-        });
+
+        const latlng = marker.getLatLng();
+
+        if (editId) {
+            updateSavedAddress(editId, {
+                address: address,
+                label: address.split(',')[0].trim(),
+                lat: latlng.lat,
+                lng: latlng.lng
+            });
+        } else {
+            addSavedAddress({
+                address: address,
+                label: address.split(',')[0].trim(),
+                type: 'other',
+                lat: latlng.lat,
+                lng: latlng.lng
+            });
+        }
         router.back();
     };
 

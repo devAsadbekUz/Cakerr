@@ -18,10 +18,21 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import AddressesModal from '@/app/components/checkout/AddressesModal';
+import ActiveOrderCard from '@/app/components/home/ActiveOrderCard';
+import ComingSoonModal from '@/app/components/profile/ComingSoonModal';
 
 export default function ProfilPage() {
     const router = useRouter();
     const [isAddressesOpen, setIsAddressesOpen] = useState(false);
+    const [modalState, setModalState] = useState<{
+        isOpen: boolean;
+        type: 'calendar' | 'preferences' | 'general';
+        featureName: string;
+    }>({
+        isOpen: false,
+        type: 'general',
+        featureName: ''
+    });
     // Mock user data
     const user = {
         name: 'Aziz Toshpulatov',
@@ -77,13 +88,22 @@ export default function ProfilPage() {
                         <span className={styles.statLabel}>Buyurtmalar</span>
                     </div>
                     <div className={styles.statItem}>
-                        <span className={styles.statValue}>{user.coins.toLocaleString()}</span>
+                        <span className={styles.statValue}>{user.coins.toLocaleString('en-US')}</span>
                         <span className={styles.statLabel}>Shirin Tangalar</span>
                     </div>
                 </div>
             </div>
 
             <div className={styles.content}>
+                {/* Active Orders */}
+                <div className={styles.section}>
+                    <h3 className={styles.sectionTitle}>Faol buyurtmalar</h3>
+                    <ActiveOrderCard
+                        orderId="ORD-4023"
+                        status="Tayyorlanmoqda"
+                    />
+                </div>
+
                 {/* Quick Reorder */}
                 <div className={styles.section}>
                     <div className={styles.menuHeader}>
@@ -116,6 +136,7 @@ export default function ProfilPage() {
                         icon={Calendar}
                         label="Maxsus sanalar (Tug'ilgan kunlar)"
                         color="#F59E0B"
+                        onClick={() => setModalState({ isOpen: true, type: 'calendar', featureName: 'Maxsus sanalar' })}
                     />
                 </div>
 
@@ -126,21 +147,25 @@ export default function ProfilPage() {
                         icon={Cookie}
                         label="Mening ta'mlarim"
                         color="#EC4899"
+                        onClick={() => setModalState({ isOpen: true, type: 'preferences', featureName: "Mening ta'mlarim" })}
                     />
                     <MenuItem
                         icon={Share2}
                         label="Ilovani ulashish"
                         color="#3B82F6"
+                        onClick={() => router.push('/profil/ulashish')}
                     />
                     <MenuItem
                         icon={HelpCircle}
                         label="Yordam markazi"
                         color="#6B7280"
+                        onClick={() => router.push('/profil/yordam')}
                     />
                     <MenuItem
                         icon={Settings}
                         label="Sozlamalar"
                         color="#374151"
+                        onClick={() => router.push('/profil/sozlamalar')}
                     />
                     <MenuItem
                         icon={LogOut}
@@ -154,6 +179,13 @@ export default function ProfilPage() {
                 isOpen={isAddressesOpen}
                 onClose={() => setIsAddressesOpen(false)}
                 onNewAddress={() => router.push('/savat/checkout/map')}
+            />
+
+            <ComingSoonModal
+                isOpen={modalState.isOpen}
+                onClose={() => setModalState({ ...modalState, isOpen: false })}
+                featureName={modalState.featureName}
+                featureType={modalState.type}
             />
         </div>
     );

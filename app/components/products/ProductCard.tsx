@@ -68,7 +68,7 @@ export default function ProductCard({ id, title, price, image, tag = 'Tayyor', v
                 <div className={styles.bottomRow}>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <p className={styles.price}>
-                            {displayPrice.toLocaleString()} so'm
+                            {displayPrice.toLocaleString('en-US')} so'm
                         </p>
                         <p className={styles.subText}>dan boshlab</p>
                     </div>

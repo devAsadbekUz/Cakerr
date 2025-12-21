@@ -34,6 +34,7 @@ interface CartContextType {
     setDeliveryAddress: (address: string) => void;
     savedAddresses: SavedAddress[];
     addSavedAddress: (address: Omit<SavedAddress, 'id'>) => void;
+    updateSavedAddress: (id: string, updates: Partial<SavedAddress>) => void;
     removeSavedAddress: (id: string) => void;
 }
 
@@ -42,14 +43,8 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: React.ReactNode }) {
     const [cart, setCart] = useState<CartItem[]>([]);
     const [deliveryAddress, setDeliveryAddress] = useState<string>('Kinaiseppskv District');
-    const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([
-        { id: 'm1', label: 'Дом', address: 'Малая кольцевая дорога', type: 'home' },
-        { id: 'm2', label: 'Beruniy 1-dahasi, 4A', address: 'Toshkent', type: 'other' },
-        { id: 'm3', label: 'Дом', address: 'Qiyot dahasi, 100', type: 'home' },
-        { id: 'm4', label: 'Дом', address: 'Kichik halqa yo\'li, 9A', type: 'home' },
-        { id: 'm5', label: 'Uy', address: 'Mingo\'rik mahallasi', type: 'home' },
-        { id: 'm6', label: 'Tallimarjon ko\'chasi, 1A', address: 'Toshkent', type: 'other' }
-    ]);
+    const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+    const [isInitialized, setIsInitialized] = useState(false);
 
     // Load from localStorage on init
     useEffect(() => {
@@ -72,7 +67,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             } catch (e) {
                 console.error('Failed to parse saved addresses', e);
             }
+        } else {
+            // Only set default addresses if localStorage is empty
+            setSavedAddresses([
+                { id: 'm1', label: 'Дом', address: 'Малая кольцевая дорога', type: 'home', lat: 41.3110, lng: 69.2405 },
+                { id: 'm2', label: 'Beruniy 1-dahasi, 4A', address: 'Toshkent', type: 'other', lat: 41.3323, lng: 69.2123 },
+                { id: 'm3', label: 'Дом', address: 'Qiyot dahasi, 100', type: 'home', lat: 41.3523, lng: 69.2823 },
+                { id: 'm4', label: 'Дом', address: 'Kichik halqa yo\'li, 9A', type: 'home', lat: 41.2823, lng: 69.2023 },
+                { id: 'm5', label: 'Uy', address: 'Mingo\'rik mahallasi', type: 'home', lat: 41.3023, lng: 69.2623 },
+                { id: 'm6', label: 'Tallimarjon ko\'chasi, 1A', address: 'Toshkent', type: 'other', lat: 41.2923, lng: 69.3023 }
+            ]);
         }
+        setIsInitialized(true);
     }, []);
 
     // Save to localStorage on change
@@ -85,8 +91,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }, [deliveryAddress]);
 
     useEffect(() => {
-        localStorage.setItem('cakerr_saved_addresses', JSON.stringify(savedAddresses));
-    }, [savedAddresses]);
+        if (isInitialized) {
+            localStorage.setItem('cakerr_saved_addresses', JSON.stringify(savedAddresses));
+        }
+    }, [savedAddresses, isInitialized]);
 
     const addItem = (newItem: Omit<CartItem, 'cartId'>) => {
         setCart((prev) => {
@@ -128,6 +136,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         setSavedAddresses(prev => [...prev, { ...newAddr, id }]);
     };
 
+    const updateSavedAddress = (id: string, updates: Partial<SavedAddress>) => {
+        setSavedAddresses(prev => prev.map(a => a.id === id ? { ...a, ...updates } : a));
+    };
+
     const removeSavedAddress = (id: string) => {
         setSavedAddresses(prev => prev.filter(a => a.id !== id));
     };
@@ -149,6 +161,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                 setDeliveryAddress,
                 savedAddresses,
                 addSavedAddress,
+                updateSavedAddress,
                 removeSavedAddress,
             }}
         >

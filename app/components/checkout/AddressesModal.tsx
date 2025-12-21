@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { X, Home, MapPin, Edit2, Plus } from 'lucide-react';
+import { X, Home, MapPin, Edit2, Plus, Trash2 } from 'lucide-react';
 import styles from './AddressesModal.module.css';
 import { useCart, SavedAddress } from '@/app/context/CartContext';
 import { useRouter } from 'next/navigation';
@@ -11,10 +11,11 @@ interface AddressesModalProps {
     onClose: () => void;
     onSelect?: (address: SavedAddress) => void;
     onNewAddress?: () => void;
+    onEdit?: (address: SavedAddress) => void;
 }
 
-export default function AddressesModal({ isOpen, onClose, onSelect, onNewAddress }: AddressesModalProps) {
-    const { savedAddresses, setDeliveryAddress } = useCart();
+export default function AddressesModal({ isOpen, onClose, onSelect, onNewAddress, onEdit }: AddressesModalProps) {
+    const { savedAddresses, setDeliveryAddress, removeSavedAddress } = useCart();
     const router = useRouter();
 
     if (!isOpen) return null;
@@ -32,6 +33,23 @@ export default function AddressesModal({ isOpen, onClose, onSelect, onNewAddress
             router.push('/savat/checkout/map');
         }
         onClose();
+    };
+
+    const handleEdit = (addr: SavedAddress, e: React.MouseEvent) => {
+        e.stopPropagation(); // Don't select, just edit
+        if (onEdit) {
+            onEdit(addr);
+        } else {
+            router.push(`/savat/checkout/map?edit=${addr.id}`);
+        }
+        onClose();
+    };
+
+    const handleDelete = (addr: SavedAddress, e: React.MouseEvent) => {
+        e.stopPropagation(); // Don't select, just delete
+        if (confirm(`"${addr.label}" manzilini o'chirmoqchimisiz?`)) {
+            removeSavedAddress(addr.id);
+        }
     };
 
     return (
@@ -59,9 +77,14 @@ export default function AddressesModal({ isOpen, onClose, onSelect, onNewAddress
                                     <span className={styles.addressLabel}>{addr.label}</span>
                                     <span className={styles.addressValue}>{addr.address}</span>
                                 </div>
-                                <button className={styles.editBtn}>
-                                    <Edit2 size={18} />
-                                </button>
+                                <div className={styles.actions}>
+                                    <button className={styles.editBtn} onClick={(e) => handleEdit(addr, e)}>
+                                        <Edit2 size={18} />
+                                    </button>
+                                    <button className={styles.deleteBtn} onClick={(e) => handleDelete(addr, e)}>
+                                        <Trash2 size={18} />
+                                    </button>
+                                </div>
                             </div>
                         ))
                     ) : (

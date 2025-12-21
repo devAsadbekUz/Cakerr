@@ -1,0 +1,402 @@
+.container {
+    padding: 16px;
+    background-color: #F9FAFB;
+    min-height: 100vh;
+    padding-bottom: 100px;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.backBtn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background-color: #F3F4F6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #374151;
+}
+
+.headerInfo h1 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.orderId {
+    font-size: 14px;
+    color: #6B7280;
+}
+
+/* Progress Card */
+.progressCard {
+    background: #E91E63;
+    border-radius: 24px;
+    padding: 24px;
+    color: white;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 20px rgba(233, 30, 99, 0.2);
+}
+
+.progressHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+}
+
+.estimatedLabel {
+    font-size: 14px;
+    opacity: 0.9;
+    margin-bottom: 4px;
+    display: block;
+}
+
+.estimatedTime {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.statusIcon {
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.progressBarContainer {
+    margin-top: 20px;
+}
+
+.progressBar {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+    position: relative;
+    margin-bottom: 12px;
+}
+
+.progressFill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: white;
+    border-radius: 3px;
+    transition: width 0.5s ease-out;
+}
+
+.progressText {
+    display: flex;
+    justify-content: flex-end;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+/* Timeline Section */
+.card {
+    background: white;
+    border-radius: 24px;
+    padding: 24px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+}
+
+.sectionTitle {
+    font-size: 16px;
+    font-weight: 700;
+    color: #374151;
+    margin-bottom: 24px;
+}
+
+.timeline {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.timelineItem {
+    display: flex;
+    gap: 16px;
+    position: relative;
+    padding-bottom: 32px;
+}
+
+.timelineItem:last-child {
+    padding-bottom: 0;
+}
+
+.timelineLine {
+    position: absolute;
+    left: 17.5px;
+    top: 36px;
+    bottom: 0;
+    width: 1px;
+    background-color: #E5E7EB;
+}
+
+.timelineBadge {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid #E5E7EB;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    color: #9CA3AF;
+    flex-shrink: 0;
+}
+
+.timelineBadgeActive {
+    background: #E91E63;
+    color: white;
+    border-color: #E91E63;
+    box-shadow: 0 0 0 4px rgba(233, 30, 99, 0.1);
+}
+
+.timelineBadgeCompleted {
+    background: #FFF0F5;
+    color: #E91E63;
+    border-color: #E91E63;
+}
+
+.timelineInfo {
+    flex: 1;
+}
+
+.timelineHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 4px;
+}
+
+.timelineLabel {
+    font-size: 15px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.timelineTime {
+    font-size: 12px;
+    color: #9CA3AF;
+}
+
+.timelineDesc {
+    font-size: 14px;
+    color: #6B7280;
+}
+
+.dimmed .timelineLabel,
+.dimmed .timelineDesc {
+    color: #9CA3AF;
+}
+
+/* Delivery Address */
+.addressCard {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+.iconBox {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background-color: #FFF0F5;
+    color: #E91E63;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.addressDetails {
+    flex: 1;
+}
+
+.addressLabel {
+    display: block;
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 2px;
+}
+
+.addressText {
+    display: block;
+    font-size: 14px;
+    color: #6B7280;
+    line-height: 1.4;
+}
+
+/* Order Items */
+.itemsList {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.productRow {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.productImage {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    object-fit: cover;
+}
+
+.productInfo {
+    flex: 1;
+}
+
+.productName {
+    font-size: 15px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 2px;
+}
+
+.productQty {
+    font-size: 13px;
+    color: #6B7280;
+}
+
+.productPrice {
+    font-size: 15px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.totalRow {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid #F3F4F6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.totalLabel {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.totalValue {
+    font-size: 18px;
+    font-weight: 800;
+    color: #E91E63;
+}
+
+/* Courier Section */
+.courierCard {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.courierInfo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.courierAvatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background-color: #F3F4F6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6B7280;
+}
+
+.courierDetails {
+    display: flex;
+    flex-direction: column;
+}
+
+.courierName {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.courierVehicle {
+    font-size: 14px;
+    color: #6B7280;
+}
+
+.callBtn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #FDF2F8;
+    color: #E91E63;
+    padding: 10px 16px;
+    border-radius: 12px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 700;
+    transition: all 0.2s ease;
+    border: 1px solid #FBCFE8;
+}
+
+.callBtn:active {
+    transform: scale(0.95);
+    background-color: #FCE7F3;
+}
+
+/* Footer */
+.footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid #F3F4F6;
+    z-index: 10;
+}
+
+.browseBtn {
+    width: 100%;
+    background-color: #E91E63;
+    color: white;
+    border: none;
+    border-radius: 16px;
+    padding: 18px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(233, 30, 99, 0.2);
+    transition: all 0.2s ease;
+}
+
+.browseBtn:active {
+    transform: scale(0.98);
+    background-color: #D81B60;
+}

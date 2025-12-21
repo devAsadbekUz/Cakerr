@@ -116,12 +116,46 @@
     color: #6B7280;
 }
 
+.actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
 .editBtn {
     color: #9CA3AF;
     background: none;
     border: none;
     cursor: pointer;
     padding: 8px;
+    transition: color 0.2s, transform 0.2s;
+}
+
+.editBtn:hover {
+    color: #E91E63;
+}
+
+.editBtn:active {
+    transform: scale(1.1);
+    color: #E91E63;
+}
+
+.deleteBtn {
+    color: #9CA3AF;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    transition: color 0.2s, transform 0.2s;
+}
+
+.deleteBtn:hover {
+    color: #EF4444;
+}
+
+.deleteBtn:active {
+    transform: scale(1.1);
+    color: #EF4444;
 }
 
 .newAddressBtn {

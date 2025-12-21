@@ -1,0 +1,247 @@
+.container {
+    min-height: 100vh;
+    background: #F9FAFB;
+    padding-bottom: 100px;
+}
+
+.header {
+    background: linear-gradient(135deg, #E91E63 0%, #F06292 100%);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.backBtn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 12px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: white;
+    transition: all 0.2s;
+}
+
+.backBtn:active {
+    transform: scale(0.95);
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.title {
+    font-size: 20px;
+    font-weight: 700;
+    color: white;
+}
+
+.shareCard {
+    margin: 20px;
+    background: white;
+    border-radius: 24px;
+    padding: 32px 24px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.shareIcon {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    margin: 0 auto 20px;
+    box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
+}
+
+.shareTitle {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1F2937;
+    margin-bottom: 12px;
+}
+
+.shareDesc {
+    font-size: 14px;
+    color: #6B7280;
+    line-height: 1.6;
+    margin-bottom: 24px;
+}
+
+.linkBox {
+    background: #F9FAFB;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.link {
+    display: block;
+    font-size: 16px;
+    font-weight: 600;
+    color: #3B82F6;
+    margin-bottom: 12px;
+    word-break: break-all;
+}
+
+.copyBtn {
+    width: 100%;
+    background: linear-gradient(135deg, #E91E63 0%, #F06292 100%);
+    border: none;
+    border-radius: 12px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(233, 30, 99, 0.3);
+}
+
+.copyBtn:active {
+    transform: scale(0.98);
+}
+
+.hint {
+    font-size: 13px;
+    color: #9CA3AF;
+    margin-top: 8px;
+}
+
+/* Coming Soon Section with Blur */
+.comingSoonSection {
+    position: relative;
+    padding: 0 20px;
+    margin-top: 24px;
+}
+
+.blurOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    background: rgba(249, 250, 251, 0.7);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 24px;
+    margin: 0 20px;
+}
+
+.comingSoonBadge {
+    background: linear-gradient(135deg, #E91E63 0%, #F06292 100%);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    box-shadow: 0 8px 24px rgba(233, 30, 99, 0.4);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+.statsGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.statCard {
+    background: white;
+    border-radius: 20px;
+    padding: 24px 16px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.statIcon {
+    color: #E91E63;
+    margin-bottom: 12px;
+}
+
+.statValue {
+    font-size: 28px;
+    font-weight: 800;
+    color: #1F2937;
+    margin-bottom: 4px;
+}
+
+.statLabel {
+    font-size: 13px;
+    color: #6B7280;
+}
+
+.section {
+    margin-bottom: 24px;
+}
+
+.sectionTitle {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1F2937;
+    margin-bottom: 16px;
+}
+
+.benefits {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.benefit {
+    background: white;
+    border-radius: 20px;
+    padding: 20px;
+    display: flex;
+    gap: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.benefitIcon {
+    font-size: 40px;
+    flex-shrink: 0;
+}
+
+.benefitText h4 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1F2937;
+    margin-bottom: 4px;
+}
+
+.benefitText p {
+    font-size: 14px;
+    color: #6B7280;
+    line-height: 1.5;
+}
