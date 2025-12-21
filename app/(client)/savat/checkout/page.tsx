@@ -1,0 +1,173 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useCart } from '@/app/context/CartContext';
+import styles from './page.module.css';
+import { ChevronLeft, ChevronRight, Calendar, Banknote, CreditCard } from 'lucide-react';
+import CalendarModal from '@/app/components/checkout/CalendarModal';
+import AddressesModal from '@/app/components/checkout/AddressesModal';
+
+const TIME_SLOTS = [
+    '09:00 - 11:00',
+    '11:00 - 13:00',
+    '13:00 - 15:00',
+    '15:00 - 17:00',
+    '17:00 - 19:00',
+    '19:00 - 21:00'
+];
+
+export default function CheckoutPage() {
+    const router = useRouter();
+    const { subtotal, totalItems, deliveryAddress } = useCart();
+    const [isAddressesOpen, setIsAddressesOpen] = useState(false);
+    const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+    const [selectedDateObj, setSelectedDateObj] = useState<Date | undefined>(undefined);
+    const [selectedDate, setSelectedDate] = useState('');
+    const [selectedSlot, setSelectedSlot] = useState('');
+    const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card'>('cash');
+    const [comment, setComment] = useState('');
+
+    const deliveryFee = totalItems > 0 ? 25000 : 0;
+    const total = subtotal + deliveryFee;
+
+    const handleConfirmOrder = () => {
+        if (!selectedSlot) {
+            alert('Iltimos, yetkazib berish vaqtini tanlang');
+            return;
+        }
+        // Mock confirmation
+        alert('Buyurtmangiz qabul qilindi!');
+        router.push('/');
+    };
+
+    return (
+        <div className={styles.container}>
+            <header className={styles.header}>
+                <button className={styles.backBtn} onClick={() => router.back()}>
+                    <ChevronLeft size={28} />
+                </button>
+                <h1 className={styles.title}>Buyurtmani rasmiylashtirish</h1>
+            </header>
+
+            {/* Address Section */}
+            <div
+                className={`${styles.card} ${styles.clickableCard}`}
+                onClick={() => setIsAddressesOpen(true)}
+            >
+                <h2 className={styles.cardTitle}>Yetkazib berish manzili</h2>
+                <div className={styles.addressRow}>
+                    <div className={styles.addressDot} />
+                    <div className={styles.addressText}>
+                        <strong>{deliveryAddress}</strong>
+                    </div>
+                    <ChevronRight className={styles.chevron} size={20} />
+                </div>
+            </div>
+
+            <AddressesModal
+                isOpen={isAddressesOpen}
+                onClose={() => setIsAddressesOpen(false)}
+            />
+
+            {/* Delivery Time Section */}
+            <div className={styles.card}>
+                <h2 className={styles.cardTitle}>Yetkazib berish vaqti</h2>
+
+                <div
+                    className={styles.dateSelector}
+                    onClick={() => setIsCalendarOpen(true)}
+                >
+                    <Calendar size={20} className={styles.calendarIcon} />
+                    <span className={selectedDate ? styles.dateValue : styles.datePlaceholder}>
+                        {selectedDate || 'Kunni tanlang'}
+                    </span>
+                    <ChevronRight size={20} className={styles.chevron} />
+                </div>
+
+                <CalendarModal
+                    isOpen={isCalendarOpen}
+                    onClose={() => setIsCalendarOpen(false)}
+                    selectedDate={selectedDateObj}
+                    onSelect={(date) => {
+                        setSelectedDateObj(date);
+                        const monthNames = [
+                            "January", "February", "March", "April", "May", "June",
+                            "July", "August", "September", "October", "November", "December"
+                        ];
+                        const formattedDate = `${monthNames[date.getMonth()]} ${date.getDate()}`;
+                        setSelectedDate(formattedDate);
+                    }}
+                />
+                <div className={styles.timeGrid}>
+                    {TIME_SLOTS.map((slot) => (
+                        <div
+                            key={slot}
+                            className={`${styles.timeSlot} ${selectedSlot === slot ? styles.timeSlotActive : ''}`}
+                            onClick={() => setSelectedSlot(slot)}
+                        >
+                            {slot}
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Comment Section */}
+            <div className={styles.card}>
+                <h2 className={styles.cardTitle}>Qo'shimcha izoh</h2>
+                <textarea
+                    className={styles.textarea}
+                    placeholder="Bu masalan qo'shimcha telefon yoki eslatma bo'lishi mumkin."
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                />
+            </div>
+
+            {/* Payment Method Section */}
+            <div className={styles.card}>
+                <h2 className={styles.cardTitle}>To'lov usuli</h2>
+                <div className={styles.paymentGrid}>
+                    <div
+                        className={`${styles.paymentCard} ${paymentMethod === 'cash' ? styles.paymentCardActive : ''}`}
+                        onClick={() => setPaymentMethod('cash')}
+                    >
+                        <Banknote size={24} className={styles.paymentIcon} />
+                        <div className={styles.paymentLabel}>
+                            <span className={styles.paymentTitle}>Naqd pul</span>
+                            <span className={styles.paymentSubtext}>Yetkazib berish vaqti to'lash</span>
+                        </div>
+                    </div>
+                    <div
+                        className={`${styles.paymentCard} ${paymentMethod === 'card' ? styles.paymentCardActive : ''}`}
+                        onClick={() => setPaymentMethod('card')}
+                    >
+                        <CreditCard size={24} className={styles.paymentIcon} />
+                        <div className={styles.paymentLabel}>
+                            <span className={styles.paymentTitle}>Kartadan to'lash</span>
+                            <span className={styles.paymentSubtext}>UzCard, Humo</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className={styles.summary}>
+                    <div className={styles.summaryRow}>
+                        <span>Mahsulotlar:</span>
+                        <span>{subtotal.toLocaleString('uz-UZ')} so'm</span>
+                    </div>
+                    <div className={styles.summaryRow}>
+                        <span>Yetkazib berish:</span>
+                        <span>{deliveryFee.toLocaleString('uz-UZ')} so'm</span>
+                    </div>
+                    <div className={styles.totalRow}>
+                        <span>Jami:</span>
+                        <span>{total.toLocaleString('uz-UZ')} so'm</span>
+                    </div>
+                </div>
+
+                <button className={styles.confirmBtn} onClick={handleConfirmOrder}>
+                    Buyurtmani tasdiqlash
+                </button>
+            </div>
+        </div>
+    );
+}

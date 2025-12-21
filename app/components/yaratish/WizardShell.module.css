@@ -1,0 +1,105 @@
+.container {
+    padding: 24px;
+    padding-bottom: 120px;
+    min-height: calc(100vh - 80px);
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    margin-bottom: 32px;
+}
+
+.title {
+    font-size: 28px;
+    font-weight: 800;
+    color: hsl(var(--color-text));
+    margin-bottom: 8px;
+}
+
+.progressContainer {
+    width: 100%;
+    height: 8px;
+    background: hsl(var(--color-primary-light));
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 16px;
+}
+
+.progressBar {
+    height: 100%;
+    background: hsl(var(--color-primary));
+    transition: width 0.3s ease;
+}
+
+.stepContent {
+    flex: 1;
+    animation: fadeIn 0.4s ease;
+}
+
+.footer {
+    position: fixed;
+    bottom: 80px;
+    /* Space for BottomNav if present */
+    left: 0;
+    right: 0;
+    padding: 20px 24px;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    display: flex;
+    gap: 12px;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.footer button {
+    flex: 1;
+    padding: 16px;
+    border-radius: var(--radius-lg);
+    font-weight: 700;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.prevBtn {
+    background: white;
+    border: 2px solid hsl(var(--color-primary));
+    color: hsl(var(--color-primary));
+}
+
+.prevBtn:active {
+    scale: 0.98;
+    background: hsl(var(--color-primary-light));
+}
+
+.nextBtn {
+    background: hsl(var(--color-primary));
+    border: none;
+    color: white;
+    box-shadow: 0 4px 15px hsla(var(--color-primary), 0.3);
+}
+
+.nextBtn:active {
+    scale: 0.98;
+    filter: brightness(0.9);
+}
+
+.nextBtn:disabled {
+    background: hsl(var(--color-text-light));
+    color: white;
+    opacity: 0.5;
+    box-shadow: none;
+    cursor: not-allowed;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

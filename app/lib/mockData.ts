@@ -11,11 +11,21 @@ export const CATEGORIES = [
 export interface Product {
     id: string;
     title: string;
+    subtitle?: string;
     price: number;
     image: string;
     categoryId: string;
     rating: number;
     reviews: number;
+    description?: string;
+    details?: {
+        flavors: string[];
+        coating: string[];
+        innerCoating: string[];
+        decorations: string[];
+        shapes?: string[];
+    };
+    variants?: { id: string; value: string; label: string; price: number }[];
 }
 
 export const MOCK_PRODUCTS: Product[] = [
@@ -23,20 +33,47 @@ export const MOCK_PRODUCTS: Product[] = [
     {
         id: 'b1',
         title: 'Rainbow Splash',
+        subtitle: 'Klassik kamalak rangli tort',
         price: 250000,
         image: 'https://images.unsplash.com/photo-1558301211-0d8c8ddee6ec?auto=format&fit=crop&w=800&q=80',
         categoryId: 'birthday',
         rating: 4.8,
-        reviews: 124
+        reviews: 124,
+        description: 'Bu tayyor tort. Siz faqat porsiya miqdorini tanlaysiz va buyurtma berasiz!',
+        details: {
+            shapes: ['Dumaloq'],
+            flavors: ['Vanilli'],
+            coating: ['Cream Cheese'],
+            innerCoating: ['Meva'],
+            decorations: [' sprinkles', 'Kamalak']
+        },
+        variants: [
+            { id: 'v1', value: '2', label: 'kishilik', price: 250000 },
+            { id: 'v2', value: '4', label: 'kishilik', price: 450000 },
+            { id: 'v3', value: '6', label: 'kishilik', price: 650000 },
+        ]
     },
     {
         id: 'b2',
         title: 'Classic Chocolate Birthday',
+        subtitle: 'Boy shokoladli tort',
         price: 220000,
         image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80',
         categoryId: 'birthday',
         rating: 4.9,
-        reviews: 89
+        reviews: 89,
+        description: 'Shokoladni sevuvchilar uchun maxsus tayyorlangan tort.',
+        details: {
+            shapes: ['Shkvadrat'],
+            flavors: ['Shokoladli'],
+            coating: ['Ganash'],
+            innerCoating: ['Shokolad krem'],
+            decorations: ['Gilos', 'Oltin barg']
+        },
+        variants: [
+            { id: 'v4', value: '2', label: 'kishilik', price: 220000 },
+            { id: 'v5', value: '4', label: 'kishilik', price: 400000 },
+        ]
     },
 
     // To'y (Wedding)

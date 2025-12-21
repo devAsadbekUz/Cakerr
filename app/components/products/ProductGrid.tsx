@@ -17,9 +17,10 @@ export default function ProductGrid({ products }: ProductGridProps) {
                     key={product.id}
                     id={product.id}
                     title={product.title}
-                    price={`${product.price.toLocaleString()} so'm`}
+                    price={product.price}
                     image={product.image}
-                    tag="dan boshlab" // using tag as subText based on previous context, or just 'Tayyor'
+                    tag="Tayyor"
+                    variants={product.variants}
                 />
             ))}
         </div>

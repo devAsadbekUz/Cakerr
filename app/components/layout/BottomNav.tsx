@@ -1,12 +1,15 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Heart, ShoppingCart, User, Plus } from 'lucide-react';
 import styles from './BottomNav.module.css';
+import { useCart } from '@/app/context/CartContext';
 
 export default function BottomNav() {
     const pathname = usePathname();
+    const { totalItems } = useCart();
 
     const isActive = (path: string) => pathname === path;
 
@@ -30,7 +33,10 @@ export default function BottomNav() {
             </div>
 
             <Link href="/savat" className={`${styles.item} ${isActive('/savat') ? styles.active : ''}`}>
-                <ShoppingCart size={24} />
+                <div className={styles.iconWrapper}>
+                    <ShoppingCart size={24} />
+                    {totalItems > 0 && <span className={styles.badge}>{totalItems}</span>}
+                </div>
                 <span>Savat</span>
             </Link>
 

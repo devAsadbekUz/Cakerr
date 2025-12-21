@@ -3,15 +3,39 @@
 import { ShoppingCart, Minus, Plus } from 'lucide-react';
 import styles from './BottomAction.module.css';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
-export default function BottomAction({ price }: { price: string }) {
+export default function BottomAction({
+  price,
+  onAdd,
+  inline = false
+}: {
+  price: number | string;
+  onAdd: (quantity: number) => void;
+  inline?: boolean;
+}) {
+  const router = useRouter();
   const [count, setCount] = useState(1);
+  const [added, setAdded] = useState(false);
+
+  const displayPrice = typeof price === 'number'
+    ? `${price.toLocaleString('uz-UZ')} so'm`
+    : price;
+
+  const handleAdd = () => {
+    if (added) {
+      router.push('/savat');
+    } else {
+      onAdd(count);
+      setAdded(true);
+    }
+  };
 
   return (
-    <div className={styles.bar}>
+    <div className={`${styles.bar} ${inline ? styles.inline : ''}`}>
       <div className={styles.priceInfo}>
         <span className={styles.label}>Jami narx</span>
-        <span className={styles.value}>{price}</span>
+        <span className={styles.value}>{displayPrice}</span>
       </div>
 
       <div className={styles.controls}>
@@ -31,9 +55,21 @@ export default function BottomAction({ price }: { price: string }) {
           </button>
         </div>
 
-        <button className={styles.addButton}>
-          <ShoppingCart size={20} className={styles.cartIcon} />
-          <span>Qo'shish</span>
+        <button
+          className={`${styles.addButton} ${added ? styles.added : ''}`}
+          onClick={handleAdd}
+        >
+          {added ? (
+            <>
+              <ShoppingCart size={20} className={styles.cartIcon} />
+              <span>Savat</span>
+            </>
+          ) : (
+            <>
+              <ShoppingCart size={20} className={styles.cartIcon} />
+              <span>Qo'shish</span>
+            </>
+          )}
         </button>
       </div>
     </div>

@@ -1,0 +1,147 @@
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 2500;
+}
+
+.modal {
+    background: white;
+    width: 100%;
+    max-width: 500px;
+    border-radius: 24px 24px 0 0;
+    padding: 24px;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+    animation: slideUp 0.3s ease-out;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+}
+
+.title {
+    font-size: 24px;
+    font-weight: 800;
+    color: #111827;
+}
+
+.closeBtn {
+    background: #F3F4F6;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.addressList {
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 24px;
+}
+
+.addressItem {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 4px;
+    border-bottom: 1px solid #F3F4F6;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.addressItem:active {
+    background: #F9FAFB;
+}
+
+.iconWrapper {
+    width: 48px;
+    height: 48px;
+    background: #FFF0F5;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #E91E63;
+}
+
+.iconWrapper.home {
+    background: #FFF0F5;
+    color: #E91E63;
+}
+
+.addressDetails {
+    flex: 1;
+}
+
+.addressLabel {
+    display: block;
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 2px;
+}
+
+.addressValue {
+    display: block;
+    font-size: 14px;
+    color: #6B7280;
+}
+
+.editBtn {
+    color: #9CA3AF;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+}
+
+.newAddressBtn {
+    width: 100%;
+    background-color: #E91E63;
+    color: white;
+    border: none;
+    border-radius: 32px;
+    padding: 18px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.newAddressBtn:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+}

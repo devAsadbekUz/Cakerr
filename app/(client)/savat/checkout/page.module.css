@@ -1,0 +1,252 @@
+.container {
+    padding: 16px;
+    background-color: #F9FAFB;
+    min-height: 100vh;
+    padding-bottom: 151px;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.backBtn {
+    background: none;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    color: #E91E63;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1F2937;
+    flex: 1;
+    text-align: center;
+    margin-right: 40px;
+    /* Offset for back button to center text */
+}
+
+.card {
+    background-color: #FFFFFF;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.clickableCard {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.clickableCard:active {
+    transform: scale(0.98);
+    background-color: #F9FAFB;
+}
+
+.cardTitle {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1F2937;
+    margin-bottom: 12px;
+}
+
+.addressRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.addressDot {
+    width: 12px;
+    height: 12px;
+    background-color: #E91E63;
+    border-radius: 50%;
+}
+
+.addressText {
+    font-size: 15px;
+    color: #374151;
+    flex: 1;
+}
+
+.chevron {
+    color: #D1D5DB;
+}
+
+.dateSelector {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border: 1px solid #E5E7EB;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.dateSelector:active {
+    background-color: #F9FAFB;
+}
+
+.calendarIcon {
+    color: #1F2937;
+    margin-right: 12px;
+}
+
+.datePlaceholder {
+    flex: 1;
+    color: #9CA3AF;
+    font-size: 14px;
+}
+
+.dateValue {
+    flex: 1;
+    color: #1F2937;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.timeGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.timeSlot {
+    padding: 12px 8px;
+    border: 1px solid #E5E7EB;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #1F2937;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.timeSlotActive {
+    background-color: #E91E63;
+    color: #FFFFFF;
+    border-color: #E91E63;
+}
+
+.textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 16px;
+    background-color: #F9FAFB;
+    border: 1px solid #E5E7EB;
+    border-radius: 12px;
+    font-size: 14px;
+    color: #1F2937;
+    resize: none;
+    margin-bottom: 16px;
+}
+
+.textarea::placeholder {
+    color: #9CA3AF;
+}
+
+.paymentGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.paymentCard {
+    border: 2px solid #E5E7EB;
+    border-radius: 16px;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background-color: #FFFFFF;
+    min-height: 120px;
+}
+
+.paymentCardActive {
+    border-color: #E91E63;
+    background-color: #FFF0F5;
+}
+
+.paymentIcon {
+    color: #374151;
+    background-color: #F3F4F6;
+    padding: 8px;
+    border-radius: 12px;
+}
+
+.paymentCardActive .paymentIcon {
+    color: #E91E63;
+    background-color: #FFFFFF;
+}
+
+.paymentLabel {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.paymentTitle {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1F2937;
+}
+
+.paymentSubtext {
+    font-size: 12px;
+    color: #6B7280;
+    font-weight: 400;
+}
+
+.summary {
+    margin-top: 16px;
+}
+
+.summaryRow {
+    display: flex;
+    justify-content: space-between;
+    font-size: 15px;
+    color: #374151;
+    margin-bottom: 8px;
+}
+
+.totalRow {
+    display: flex;
+    justify-content: space-between;
+    font-size: 18px;
+    font-weight: 800;
+    color: #1F2937;
+    margin-top: 12px;
+}
+
+.confirmBtn {
+    width: 100%;
+    background-color: #E91E63;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 32px;
+    padding: 18px;
+    font-size: 16px;
+    font-weight: 700;
+    margin-top: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.confirmBtn:active {
+    transform: scale(0.98);
+    filter: brightness(0.9);
+}

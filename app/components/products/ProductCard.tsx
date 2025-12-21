@@ -1,24 +1,63 @@
+'use client';
+
 import Link from 'next/link';
-import { Heart, Plus } from 'lucide-react';
+import { Plus, Heart } from 'lucide-react';
 import styles from './ProductCard.module.css';
+import { useCart } from '@/app/context/CartContext';
+import { useFavorites } from '@/app/context/FavoritesContext';
 
 interface ProductProps {
     id: string;
     title: string;
-    price: string;
-    image: string; // In real app, this would be an Image URL
+    price: string | number;
+    image: string;
     tag?: string;
+    variants?: { id: string; value: string; label: string; price: number }[];
 }
 
-export default function ProductCard({ id, title, price, tag = 'Tayyor' }: ProductProps) {
+export default function ProductCard({ id, title, price, image, tag = 'Tayyor', variants }: ProductProps) {
+    const { addItem } = useCart();
+    const { toggleFavorite, isFavorite } = useFavorites();
+    const favorited = isFavorite(id);
+
+    // If variants exist, show the lowest price
+    const displayPrice = variants && variants.length > 0
+        ? Math.min(...variants.map(v => v.price))
+        : Number(price);
+
+    const handleQuickAdd = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        addItem({
+            id,
+            name: title,
+            price: displayPrice,
+            image,
+            quantity: 1,
+            portion: variants?.[0]?.value || '2',
+            flavor: 'Shokoladli'
+        });
+    };
+
+    const handleToggleFavorite = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleFavorite(id);
+    };
+
     return (
         <Link href={`/mahsulot/${id}`} className={styles.card}>
             <div className={styles.imageContainer}>
-                {/* Placeholder for image */}
-                <div className={styles.placeholderImage} />
+                <div
+                    className={styles.placeholderImage}
+                    style={{ backgroundImage: `url(${image})`, backgroundSize: 'cover' }}
+                />
 
-                <button className={styles.likeButton}>
-                    <Heart size={18} />
+                <button
+                    className={`${styles.favoriteBtn} ${favorited ? styles.favorited : ''}`}
+                    onClick={handleToggleFavorite}
+                >
+                    <Heart size={16} fill={favorited ? "currentColor" : "none"} />
                 </button>
 
                 {tag && <span className={styles.tag}>{tag}</span>}
@@ -28,11 +67,13 @@ export default function ProductCard({ id, title, price, tag = 'Tayyor' }: Produc
                 <h3 className={styles.title}>{title}</h3>
                 <div className={styles.bottomRow}>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <p className={styles.price}>{price}</p>
+                        <p className={styles.price}>
+                            {displayPrice.toLocaleString()} so'm
+                        </p>
                         <p className={styles.subText}>dan boshlab</p>
                     </div>
 
-                    <button className={styles.addButton}>
+                    <button className={styles.addButton} onClick={handleQuickAdd}>
                         <Plus size={20} color="white" />
                     </button>
                 </div>

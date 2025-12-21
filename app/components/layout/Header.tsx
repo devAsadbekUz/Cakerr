@@ -2,20 +2,30 @@
 
 import { Headset } from 'lucide-react';
 import SearchBar from '../home/SearchBar';
+import CategoryFilter from '../home/CategoryFilter';
 
 interface HeaderProps {
     searchTerm: string;
     onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    activeCategory: string;
+    onSelectCategory: (id: string) => void;
+    onContactClick: () => void;
 }
 
-export default function Header({ searchTerm, onSearchChange }: HeaderProps) {
+export default function Header({
+    searchTerm,
+    onSearchChange,
+    activeCategory,
+    onSelectCategory,
+    onContactClick
+}: HeaderProps) {
     return (
         <div style={{
             position: 'sticky',
             top: 0,
             zIndex: 50,
             backgroundColor: '#F9FAFB',
-            paddingBottom: '10px'
+            paddingBottom: '5px'
         }}>
             <div style={{
                 display: 'flex',
@@ -33,15 +43,20 @@ export default function Header({ searchTerm, onSearchChange }: HeaderProps) {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#F57C00'
-                }}>
+                    color: '#F57C00',
+                    cursor: 'pointer'
+                }}
+                    onClick={onContactClick}
+                >
                     <Headset size={20} />
                 </button>
             </div>
 
-            <div style={{ padding: '0 20px' }}>
+            <div style={{ padding: '0 20px', marginBottom: '10px' }}>
                 <SearchBar value={searchTerm} onChange={onSearchChange} />
             </div>
+
+            <CategoryFilter activeCategory={activeCategory} onSelectCategory={onSelectCategory} />
         </div>
     );
 }

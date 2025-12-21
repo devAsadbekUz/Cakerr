@@ -39,6 +39,27 @@
     /* Gray-300 placeholder */
 }
 
+.favoriteBtn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6B7280;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.favoriteBtn.favorited {
+    color: #E91E63;
+}
+
 .likeButton {
     position: absolute;
     top: 8px;

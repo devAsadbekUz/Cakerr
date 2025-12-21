@@ -1,0 +1,39 @@
+.item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background: white;
+    border: none;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    margin-bottom: 8px;
+}
+
+.item:active {
+    background-color: #F9FAFB;
+    transform: scale(0.98);
+}
+
+.left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.iconWrapper {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.label {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1F2937;
+}

@@ -1,8 +1,10 @@
+import { CustomCakeProvider } from '@/app/context/CustomCakeContext';
+import WizardShell from '@/app/components/yaratish/WizardShell';
+
 export default function YaratishPage() {
     return (
-        <div style={{ padding: '20px' }}>
-            <h1>Maxsus tort yaratish</h1>
-            <p>Custom Wizard will go here</p>
-        </div>
+        <CustomCakeProvider>
+            <WizardShell />
+        </CustomCakeProvider>
     );
 }

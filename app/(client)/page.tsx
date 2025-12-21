@@ -7,12 +7,14 @@ import HeroBanner from '@/app/components/home/HeroBanner';
 import CategoryFilter from '@/app/components/home/CategoryFilter';
 import ProductGrid from '@/app/components/products/ProductGrid';
 import { CATEGORIES, MOCK_PRODUCTS } from '@/app/lib/mockData';
+import ContactSheet from '@/app/components/home/ContactSheet';
 
 
 
 export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState('birthday');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isContactOpen, setIsContactOpen] = useState(false);
   const isScrollingRef = useRef(false);
 
   // Filter products based on search
@@ -25,7 +27,7 @@ export default function HomePage() {
     isScrollingRef.current = true;
     const element = document.getElementById(`category-${id}`);
     if (element) {
-      const headerOffset = 180;
+      const headerOffset = 220;
       const elementPosition = element.getBoundingClientRect().top;
       const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
 
@@ -72,21 +74,16 @@ export default function HomePage() {
   return (
     <main style={{ paddingBottom: '100px', backgroundColor: '#F9FAFB', minHeight: '100vh' }}>
 
-      <Header searchTerm={searchTerm} onSearchChange={(e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)} />
+      <Header
+        searchTerm={searchTerm}
+        onSearchChange={(e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+        activeCategory={activeCategory}
+        onSelectCategory={handleCategorySelect}
+        onContactClick={() => setIsContactOpen(true)}
+      />
 
-      <div style={{ padding: '0 20px' }}>
+      <div style={{ padding: '0 20px', marginTop: '10px' }}>
         <HeroBanner />
-      </div>
-
-      <div style={{
-        position: 'sticky',
-        top: '130px', // Aproxx height of header + search
-        zIndex: 40,
-        backgroundColor: '#F9FAFB',
-        paddingTop: '10px',
-        paddingBottom: '10px'
-      }}>
-        <CategoryFilter activeCategory={activeCategory} onSelectCategory={handleCategorySelect} />
       </div>
 
       <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: '40px', marginTop: '20px' }}>
@@ -115,7 +112,8 @@ export default function HomePage() {
           </div>
         )}
       </div>
+
+      <ContactSheet isOpen={isContactOpen} onClose={() => setIsContactOpen(false)} />
     </main>
   );
 }
-

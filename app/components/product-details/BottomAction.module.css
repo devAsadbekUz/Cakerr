@@ -13,6 +13,16 @@
   z-index: 100;
   border-top-left-radius: 24px;
   border-top-right-radius: 24px;
+  transition: all 0.3s ease;
+}
+
+.inline {
+  position: static;
+  padding: 0;
+  box-shadow: none;
+  background: transparent;
+  width: 100%;
+  margin-top: 12px;
 }
 
 .priceInfo {
@@ -26,7 +36,7 @@
 }
 
 .value {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 800;
   color: #E91E63;
 }
@@ -40,9 +50,10 @@
 .stepper {
   display: flex;
   align-items: center;
-  background: #F3F4F6;
-  border-radius: 12px;
+  background: #F9FAFB;
+  border-radius: 16px;
   padding: 4px;
+  border: 1px solid #F3F4F6;
 }
 
 .stepperBtn {
@@ -70,9 +81,9 @@
   background: #E91E63;
   color: white;
   border: none;
-  padding: 0 20px;
-  height: 44px;
-  border-radius: 12px;
+  padding: 0 24px;
+  height: 48px;
+  border-radius: 24px;
   font-weight: 600;
   font-size: 14px;
   display: flex;
@@ -80,8 +91,14 @@
   gap: 8px;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(233, 30, 99, 0.3);
+  transition: all 0.2s ease;
 }
 
 .cartIcon {
   margin-top: -2px;
+}
+
+.addButton.added {
+  background: #059669;
+  box-shadow: 0 6px 16px rgba(5, 150, 105, 0.4);
 }

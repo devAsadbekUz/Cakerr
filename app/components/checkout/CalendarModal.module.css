@@ -1,0 +1,130 @@
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+}
+
+.modal {
+    background: white;
+    width: 100%;
+    max-width: 400px;
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+}
+
+.monthTitle {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.navBtn {
+    background: none;
+    border: none;
+    color: #E91E63;
+    cursor: pointer;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+
+.navBtn:disabled {
+    color: #D1D5DB;
+    cursor: not-allowed;
+}
+
+.navBtn:active {
+    background: #FFF0F5;
+}
+
+.weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    margin-bottom: 12px;
+}
+
+.weekday {
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: #6B7280;
+    text-transform: uppercase;
+}
+
+.daysGrid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+}
+
+.dayBtn {
+    aspect-ratio: 1;
+    border: none;
+    background: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.dayBtn:disabled {
+    color: #E5E7EB;
+    cursor: not-allowed;
+}
+
+.dayBtn:not(:disabled):hover {
+    background: #F3F4F6;
+}
+
+.today {
+    color: #E91E63;
+    font-weight: 700;
+}
+
+.selected {
+    background-color: #E91E63 !important;
+    color: white !important;
+    font-weight: 700;
+    box-shadow: 0 4px 10px rgba(233, 30, 99, 0.3);
+}
+
+.empty {
+    visibility: hidden;
+}

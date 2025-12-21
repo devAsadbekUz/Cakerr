@@ -1,0 +1,238 @@
+.container {
+    min-height: 100vh;
+    background-color: #F9FAFB;
+    padding: 20px;
+    padding-bottom: 120px;
+}
+
+.header {
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.avatar {
+    width: 48px;
+    height: 48px;
+    background-color: #374151;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 18px;
+    border: 3px solid #E5E7EB;
+}
+
+.title {
+    font-size: 28px;
+    font-weight: 800;
+    color: #111827;
+}
+
+.subtitle {
+    font-size: 16px;
+    color: #6B7280;
+    margin-top: 4px;
+}
+
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.item {
+    background: white;
+    border-radius: 24px;
+    padding: 16px;
+    display: flex;
+    gap: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.image {
+    width: 100px;
+    height: 100px;
+    border-radius: 16px;
+    object-fit: cover;
+    background-color: #F3F4F6;
+}
+
+.itemContent {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.itemHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.itemName {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.removeBtn {
+    background: none;
+    border: none;
+    color: #9CA3AF;
+    cursor: pointer;
+    padding: 4px;
+}
+
+.itemSpecs {
+    font-size: 13px;
+    color: #6B7280;
+    margin-top: 4px;
+}
+
+.itemBottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+}
+
+.itemPrice {
+    font-size: 16px;
+    font-weight: 700;
+    color: #E91E63;
+}
+
+.stepper {
+    display: flex;
+    align-items: center;
+    background: #F3F4F6;
+    border-radius: 12px;
+    padding: 4px;
+}
+
+.stepperBtn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+    color: #374151;
+}
+
+.count {
+    width: 30px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.summary {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid #E5E7EB;
+}
+
+.summaryRow {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-size: 15px;
+    color: #374151;
+}
+
+.summaryRow.total {
+    margin-top: 16px;
+    font-weight: 800;
+    font-size: 20px;
+    color: #111827;
+}
+
+.totalValue {
+    color: #E91E63;
+}
+
+.checkoutBtn {
+    position: fixed;
+    bottom: 130px;
+    left: 20px;
+    right: 20px;
+    height: 56px;
+    background: #E91E63;
+    color: white;
+    border: none;
+    border-radius: 16px;
+    font-size: 16px;
+    font-weight: 700;
+    box-shadow: 0 8px 24px rgba(233, 30, 99, 0.3);
+    cursor: pointer;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    transition: transform 0.2s;
+}
+
+.checkoutBtn:active {
+    transform: scale(0.98);
+}
+
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+    text-align: center;
+}
+
+.emptyIconWrapper {
+    width: 120px;
+    height: 120px;
+    background: #FFF0F5;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    color: #E91E63;
+}
+
+.emptyTitle {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 8px;
+}
+
+.emptyDescription {
+    color: #6B7280;
+    font-size: 15px;
+    line-height: 1.5;
+    max-width: 280px;
+    margin-bottom: 32px;
+}
+
+.primaryBtn {
+    background: #E91E63;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: transform 0.2s, background-color 0.2s;
+    box-shadow: 0 4px 14px rgba(233, 30, 99, 0.2);
+}
+
+.primaryBtn:active {
+    transform: scale(0.95);
+}

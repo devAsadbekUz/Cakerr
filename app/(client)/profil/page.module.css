@@ -1,0 +1,131 @@
+.container {
+    min-height: 100vh;
+    background-color: #F9FAFB;
+    padding-bottom: 120px;
+}
+
+.header {
+    background: #E91E63;
+    padding: 40px 20px 80px;
+    color: white;
+}
+
+.userSection {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.avatar {
+    width: 64px;
+    height: 64px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.userInfo h2 {
+    font-size: 22px;
+    font-weight: 800;
+    margin: 0;
+}
+
+.userInfo p {
+    font-size: 14px;
+    opacity: 0.8;
+    margin: 4px 0 0;
+}
+
+.statsOverlay {
+    margin: -40px 20px 0;
+    position: relative;
+    z-index: 5;
+}
+
+.statsCard {
+    background: white;
+    border-radius: 24px;
+    padding: 20px;
+    display: flex;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+.statItem {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.statItem:first-child {
+    border-right: 1px solid #F3F4F6;
+}
+
+.statValue {
+    font-size: 18px;
+    font-weight: 800;
+    color: #111827;
+}
+
+.statLabel {
+    font-size: 12px;
+    color: #6B7280;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.content {
+    padding: 24px 20px;
+}
+
+.section {
+    margin-bottom: 32px;
+}
+
+.reorderList {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    padding: 4px 20px 20px;
+    margin: 0 -20px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    /* Firefox */
+}
+
+.reorderList::-webkit-scrollbar {
+    display: none;
+    /* Safari/Chrome */
+}
+
+.sectionTitle {
+    font-size: 18px;
+    font-weight: 800;
+    color: #111827;
+    margin-bottom: 16px;
+}
+
+.menuHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 16px;
+}
+
+.menuHeader h3 {
+    margin: 0;
+}
+
+.seeAll {
+    font-size: 14px;
+    color: #E91E63;
+    font-weight: 700;
+    text-decoration: none;
+}

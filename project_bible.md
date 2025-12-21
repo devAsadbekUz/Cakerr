@@ -149,10 +149,11 @@ app/
 ### `products`
 *   `id` (uuid, PK)
 *   `title` (text)
-*   `price` (int)
+*   `price` (int) - Base price or default price.
 *   `image_url` (text)
 *   `category` (text)
 *   `is_customizable` (bool)
+*   `variants` (jsonb) - Array of `{ label: string, price: number }` (Admin-managed sizes).
 
 ### `orders`
 *   `id` (uuid, PK)
