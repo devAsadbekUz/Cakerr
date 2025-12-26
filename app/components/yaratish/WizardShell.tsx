@@ -14,6 +14,8 @@ import {
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCart } from '@/app/context/CartContext';
 import { useRouter } from 'next/navigation';
+import BuilderModeSelection from './BuilderModeSelection';
+import PhotoUploadForm from './PhotoUploadForm';
 
 const STEPS = [
     { title: 'Shakl', component: ShapeStep },
@@ -25,9 +27,27 @@ const STEPS = [
 ];
 
 export default function WizardShell() {
-    const { step, nextStep, prevStep, shape, size, sponge, cream, decorations, text } = useCustomCake();
+    const {
+        mode,
+        step,
+        nextStep,
+        prevStep,
+        setMode,
+        shape,
+        size,
+        sponge,
+        cream
+    } = useCustomCake();
     const { addItem } = useCart();
     const router = useRouter();
+
+    if (!mode) {
+        return <BuilderModeSelection />;
+    }
+
+    if (mode === 'upload') {
+        return <PhotoUploadForm />;
+    }
 
     const CurrentStepComponent = STEPS[step - 1].component;
     const progress = (step / STEPS.length) * 100;
@@ -45,7 +65,7 @@ export default function WizardShell() {
         const name = `Maxsus Tort (${shape})`;
 
         addItem({
-            id: 'custom-cake',
+            id: `custom-wizard-${Date.now()}`,
             name: name,
             price: 350000, // Fixed price for custom cake for now
             image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80',
@@ -55,6 +75,14 @@ export default function WizardShell() {
         });
 
         router.push('/savat');
+    };
+
+    const handleBack = () => {
+        if (step === 1) {
+            setMode(null);
+        } else {
+            prevStep();
+        }
     };
 
     return (
@@ -75,12 +103,11 @@ export default function WizardShell() {
             </main>
 
             <footer className={styles.footer}>
-                {step > 1 && (
-                    <button className={styles.prevBtn} onClick={prevStep}>
-                        <ChevronLeft size={20} style={{ verticalAlign: 'middle', marginRight: 4 }} />
-                        Orqaga
-                    </button>
-                )}
+                <button className={styles.prevBtn} onClick={handleBack}>
+                    <ChevronLeft size={20} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+                    Orqaga
+                </button>
+
                 {step < STEPS.length ? (
                     <button
                         className={styles.nextBtn}

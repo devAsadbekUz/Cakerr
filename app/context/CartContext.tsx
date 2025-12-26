@@ -11,6 +11,7 @@ export interface CartItem {
     portion: string;
     flavor: string;
     quantity: number;
+    customNote?: string;
 }
 
 export interface SavedAddress {

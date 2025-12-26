@@ -50,7 +50,12 @@ export default function SavatPage() {
                                     </div>
                                     <div className={styles.itemSpecs}>
                                         <p>Porsiyalar: {item.portion}</p>
-                                        <p>Lazzat: {item.flavor}</p>
+                                        {item.flavor && <p>Lazzat: {item.flavor}</p>}
+                                        {item.customNote && (
+                                            <p className={styles.customNote}>
+                                                <span style={{ fontWeight: 600 }}>Izoh:</span> {item.customNote}
+                                            </p>
+                                        )}
                                     </div>
                                     <div className={styles.itemBottom}>
                                         <p className={styles.itemPrice}>
