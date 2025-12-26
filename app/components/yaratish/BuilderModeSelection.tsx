@@ -13,25 +13,30 @@ export default function BuilderModeSelection() {
             <h2 className={styles.title}>Tortni qanday yaratmoqchisiz?</h2>
             <div className={styles.cards}>
                 <button
-                    className={styles.card}
+                    className={`${styles.card} ${styles.cardWizard}`}
                     onClick={() => setMode('wizard')}
                 >
+                    <div className={styles.badge}>🔥 Eng mashhur</div>
                     <div className={styles.iconWrapper}>
-                        <Wand2 size={48} />
+                        <Wand2 size={40} />
                     </div>
-                    <h3>Bosqichma-bosqich</h3>
-                    <p>Shakl, hajm va bezaklarni o'zingiz tanlang</p>
+                    <div className={styles.textWrapper}>
+                        <h3>Konstruktor</h3>
+                        <p>Ta'bga ko'ra yig'ing</p>
+                    </div>
                 </button>
 
                 <button
-                    className={styles.card}
+                    className={`${styles.card} ${styles.cardUpload}`}
                     onClick={() => setMode('upload')}
                 >
                     <div className={styles.iconWrapper}>
-                        <ImagePlus size={48} />
+                        <ImagePlus size={40} />
                     </div>
-                    <h3>Rasm yuklash</h3>
-                    <p>O'zingiz yoqtirgan tort rasmini yuklang</p>
+                    <div className={styles.textWrapper}>
+                        <h3>Rasm Yuklash</h3>
+                        <p>Rasm orqali buyurtma</p>
+                    </div>
                 </button>
             </div>
         </div>

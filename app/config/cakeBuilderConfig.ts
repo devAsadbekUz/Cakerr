@@ -5,9 +5,9 @@ export const CAKE_OPTIONS = {
         { id: 'heart', label: 'Yurak', image: '/images/shapes/heart.png' },
     ],
     sizes: [
-        { id: 'small', label: 'Kichik (6-8 kishilik)', priceMultiplier: 1 },
-        { id: 'medium', label: 'O\'rtacha (10-12 kishilik)', priceMultiplier: 1.5 },
-        { id: 'large', label: 'Katta (15-20 kishilik)', priceMultiplier: 2 },
+        { id: 'small', label: 'Kichik (6-8 kishilik)', priceMultiplier: 1, diameter: '18-20' },
+        { id: 'medium', label: 'O\'rtacha (10-12 kishilik)', priceMultiplier: 1.5, diameter: '22-24' },
+        { id: 'large', label: 'Katta (15-20 kishilik)', priceMultiplier: 2, diameter: '26-28' },
     ],
     sponges: [
         { id: 'vanilla', label: 'Vanilli', color: '#f3e5ab' },

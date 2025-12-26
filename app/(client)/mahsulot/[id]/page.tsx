@@ -34,7 +34,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
   const { id } = React.use(params);
   const product = MOCK_PRODUCTS.find(p => p.id === id) || MOCK_PRODUCTS[0];
 
-  const [portion, setPortion] = useState<string>('2');
+  const [portion, setPortion] = useState<string>(product.variants?.[0]?.value || '2');
   const { addItem } = useCart();
   const { toggleFavorite, isFavorite } = useFavorites();
   const favorited = isFavorite(product.id);
@@ -50,7 +50,8 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
       image: product.image,
       quantity,
       portion: portion,
-      flavor: product.details?.flavors[0] || 'Klassik'
+      flavor: product.details?.flavors[0] || 'Klassik',
+      diameter: selectedVariant?.diameter
     });
   };
 

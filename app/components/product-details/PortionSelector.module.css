@@ -76,3 +76,15 @@
 .active .sub {
   color: #E91E63;
 }
+
+.diameter {
+  font-size: 13px;
+  color: #6B7280;
+  margin-top: 4px;
+  font-weight: 600;
+  display: block;
+}
+
+.active .diameter {
+  color: #E91E63;
+}

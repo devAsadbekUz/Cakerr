@@ -12,6 +12,7 @@ export interface CartItem {
     flavor: string;
     quantity: number;
     customNote?: string;
+    diameter?: string;
 }
 
 export interface SavedAddress {
@@ -104,7 +105,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                 (item) =>
                     item.id === newItem.id &&
                     item.portion === newItem.portion &&
-                    item.flavor === newItem.flavor
+                    item.flavor === newItem.flavor &&
+                    item.diameter === newItem.diameter
             );
 
             if (existingItemIndex > -1) {
@@ -113,7 +115,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                 return updatedCart;
             }
 
-            const cartId = `${newItem.id}-${newItem.portion}-${newItem.flavor}-${Date.now()}`;
+            const cartId = `${newItem.id}-${newItem.portion}-${newItem.flavor}-${newItem.diameter || ''}-${Date.now()}`;
             return [...prev, { ...newItem, cartId }];
         });
     };

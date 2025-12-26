@@ -70,7 +70,20 @@
 .orderList {
     display: flex;
     flex-direction: column;
+    gap: 24px;
+}
+
+.monthGroup {
+    display: flex;
+    flex-direction: column;
     gap: 16px;
+}
+
+.monthTitle {
+    font-size: 18px;
+    font-weight: 800;
+    color: #111827;
+    margin-left: 8px;
 }
 
 .orderCard {
@@ -200,4 +213,57 @@
 .reorderBtn:active {
     transform: scale(0.98);
     opacity: 0.9;
+}
+
+/* Empty State */
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+}
+
+.emptyIconWrapper {
+    width: 80px;
+    height: 80px;
+    background-color: #F3F4F6;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9CA3AF;
+    margin-bottom: 24px;
+}
+
+.emptyTitle {
+    font-size: 20px;
+    font-weight: 800;
+    color: #111827;
+    margin-bottom: 8px;
+}
+
+.emptyText {
+    font-size: 15px;
+    color: #6B7280;
+    margin-bottom: 32px;
+    max-width: 240px;
+}
+
+.browseBtn {
+    background-color: #E91E63;
+    color: white;
+    border: none;
+    border-radius: 16px;
+    padding: 16px 32px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(233, 30, 99, 0.2);
+    transition: all 0.2s;
+}
+
+.browseBtn:active {
+    transform: scale(0.98);
 }

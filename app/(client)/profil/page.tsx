@@ -20,6 +20,8 @@ import { useState } from 'react';
 import AddressesModal from '@/app/components/checkout/AddressesModal';
 import ActiveOrderCard from '@/app/components/home/ActiveOrderCard';
 import ComingSoonModal from '@/app/components/profile/ComingSoonModal';
+import CartDetailsModal from '@/app/components/cart/CartDetailsModal';
+import { CartItem } from '@/app/context/CartContext';
 
 export default function ProfilPage() {
     const router = useRouter();
@@ -33,6 +35,7 @@ export default function ProfilPage() {
         type: 'general',
         featureName: ''
     });
+    const [selectedOrder, setSelectedOrder] = useState<CartItem | null>(null);
     // Mock user data
     const user = {
         name: 'Aziz Toshpulatov',
@@ -112,7 +115,21 @@ export default function ProfilPage() {
                     </div>
                     <div className={styles.reorderList}>
                         {pastOrders.map(order => (
-                            <OrderCard key={order.id} {...order} />
+                            <OrderCard
+                                key={order.id}
+                                {...order}
+                                onClick={() => setSelectedOrder({
+                                    cartId: order.id,
+                                    id: order.productId,
+                                    name: order.name,
+                                    price: order.price,
+                                    image: order.image,
+                                    portion: order.portion,
+                                    flavor: order.flavor,
+                                    quantity: 1,
+                                    diameter: order.portion === '6' ? '22-24' : '18-20' // Mock diameter
+                                })}
+                            />
                         ))}
                     </div>
                 </div>
@@ -187,6 +204,14 @@ export default function ProfilPage() {
                 featureName={modalState.featureName}
                 featureType={modalState.type}
             />
+
+            {selectedOrder && (
+                <CartDetailsModal
+                    isOpen={!!selectedOrder}
+                    onClose={() => setSelectedOrder(null)}
+                    item={selectedOrder}
+                />
+            )}
         </div>
     );
 }

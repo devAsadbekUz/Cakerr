@@ -4,7 +4,8 @@
     align-items: center;
     justify-content: center;
     padding: 2rem 1rem;
-    min-height: 60vh;
+    padding: 2rem 1rem;
+    min-height: 80vh;
 }
 
 .title {
@@ -16,11 +17,45 @@
 }
 
 .cards {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
     width: 100%;
-    max-width: 500px;
+    max-width: 600px;
+}
+
+.badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: #E91E63;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(233, 30, 99, 0.3);
+    z-index: 10;
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+
+    0%,
+    20%,
+    50%,
+    80%,
+    100% {
+        transform: translateY(0);
+    }
+
+    40% {
+        transform: translateY(-3px);
+    }
+
+    60% {
+        transform: translateY(-2px);
+    }
 }
 
 .card {
@@ -29,55 +64,111 @@
     align-items: center;
     justify-content: center;
     background: white;
-    padding: 2rem;
+    padding: 24px 16px;
     border-radius: 20px;
     border: 2px solid transparent;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     text-align: center;
+    position: relative;
+    overflow: hidden;
+    height: 100%;
+    min-height: 180px;
 }
 
 .card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-    border-color: var(--primary);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+}
+
+.card:active {
+    transform: scale(0.98);
+}
+
+/* Wizard Card Styling */
+.cardWizard {
+    background: linear-gradient(135deg, #FFF0F5 0%, #FFF5F7 100%);
+    border-color: #FCE7F3;
+}
+
+.cardWizard .iconWrapper {
+    background: white;
+    color: #E91E63;
+    box-shadow: 0 4px 12px rgba(233, 30, 99, 0.15);
+}
+
+.cardWizard:hover {
+    border-color: #E91E63;
+    background: linear-gradient(135deg, #FFF0F5 0%, #FFE4E6 100%);
+}
+
+/* Upload Card Styling */
+.cardUpload {
+    background: linear-gradient(135deg, #F0F9FF 0%, #F5F3FF 100%);
+    border-color: #E0F2FE;
+}
+
+.cardUpload .iconWrapper {
+    background: white;
+    color: #0EA5E9;
+    /* Sky blue */
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.15);
+}
+
+.cardUpload:hover {
+    border-color: #0EA5E9;
+    background: linear-gradient(135deg, #E0F2FE 0%, #DBEAFE 100%);
 }
 
 .iconWrapper {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    background: var(--background);
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 1.5rem;
-    color: var(--primary);
+    margin-bottom: 16px;
+    transition: transform 0.3s ease;
+}
+
+.card:hover .iconWrapper {
+    transform: scale(1.1) rotate(6deg);
+}
+
+.textWrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .card h3 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0;
     color: var(--text-primary);
 }
 
 .card p {
-    font-size: 0.95rem;
+    font-size: 13px;
     color: var(--text-secondary);
     line-height: 1.4;
+    font-weight: 500;
 }
 
 /* Desktop styles */
-@media (min-width: 768px) {
+@media (max-width: 480px) {
     .cards {
-        flex-direction: row;
-        max-width: 800px;
+        gap: 12px;
     }
 
     .card {
-        flex: 1;
-        padding: 3rem 2rem;
+        padding: 20px 12px;
+        min-height: 160px;
+    }
+
+    .title {
+        font-size: 24px;
+        margin-bottom: 24px;
     }
 }

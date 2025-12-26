@@ -71,6 +71,13 @@
     color: hsl(var(--color-text-light));
 }
 
+.diameter {
+    font-size: 13px;
+    color: hsl(var(--color-primary));
+    font-weight: 600;
+    margin-top: -4px;
+}
+
 /* For list items like decorations */
 .list {
     display: flex;

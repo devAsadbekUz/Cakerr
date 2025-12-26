@@ -12,7 +12,7 @@ interface ProductProps {
     price: string | number;
     image: string;
     tag?: string;
-    variants?: { id: string; value: string; label: string; price: number }[];
+    variants?: { id: string; value: string; label: string; price: number; diameter?: string }[];
 }
 
 export default function ProductCard({ id, title, price, image, tag = 'Tayyor', variants }: ProductProps) {
@@ -20,10 +20,13 @@ export default function ProductCard({ id, title, price, image, tag = 'Tayyor', v
     const { toggleFavorite, isFavorite } = useFavorites();
     const favorited = isFavorite(id);
 
-    // If variants exist, show the lowest price
-    const displayPrice = variants && variants.length > 0
-        ? Math.min(...variants.map(v => v.price))
+    // If variants exist, show the lowest price and its diameter
+    const sortedVariants = variants?.sort((a, b) => a.price - b.price);
+    const displayPrice = sortedVariants?.length
+        ? sortedVariants[0].price
         : Number(price);
+
+    const displayDiameter = sortedVariants?.length ? sortedVariants[0].diameter : null;
 
     const handleQuickAdd = (e: React.MouseEvent) => {
         e.preventDefault();

@@ -5,6 +5,7 @@ import styles from './PortionSelector.module.css';
 interface PortionOption {
   value: string;
   label: string;
+  diameter?: string;
 }
 
 interface PortionSelectorProps {
@@ -41,6 +42,7 @@ export default function PortionSelector({
             >
               <span className={styles.value}>{opt.value}</span>
               <span className={styles.sub}>{opt.label}</span>
+              {opt.diameter && <span className={styles.diameter}>{opt.diameter} sm</span>}
             </button>
           ))}
         </div>
