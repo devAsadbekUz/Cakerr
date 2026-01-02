@@ -2,24 +2,64 @@
 
 import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import Header from '@/app/components/layout/Header';
-
 import HeroBanner from '@/app/components/home/HeroBanner';
-import CategoryFilter from '@/app/components/home/CategoryFilter';
 import ProductGrid from '@/app/components/products/ProductGrid';
-import { CATEGORIES, MOCK_PRODUCTS } from '@/app/lib/mockData';
+import { CATEGORIES } from '@/app/lib/mockData';
 import ContactSheet from '@/app/components/home/ContactSheet';
 import ActiveOrderCard from '@/app/components/home/ActiveOrderCard';
-
-
+import { createClient } from '@/app/utils/supabase/client';
 
 export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState('birthday');
   const [searchTerm, setSearchTerm] = useState('');
   const [isContactOpen, setIsContactOpen] = useState(false);
+  const [products, setProducts] = useState<any[]>([]);
+  const [activeOrder, setActiveOrder] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const isScrollingRef = useRef(false);
+  const supabase = createClient();
+
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+
+      // 1. Fetch Products
+      const { data: pData } = await supabase
+        .from('products')
+        .select('*')
+        .eq('is_available', true);
+
+      if (pData) {
+        setProducts(pData.map(p => ({
+          ...p,
+          price: p.base_price,
+          image: p.image_url,
+          categoryId: p.category
+        })));
+      }
+
+      // 2. Fetch Active Order
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: oData } = await supabase
+          .from('orders')
+          .select('id, status')
+          .eq('user_id', user.id)
+          .not('status', 'in', '("completed", "cancelled")')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (oData) setActiveOrder(oData);
+      }
+
+      setLoading(false);
+    }
+    fetchData();
+  }, []);
 
   // Filter products based on search
-  const filteredProducts = MOCK_PRODUCTS.filter(p =>
+  const filteredProducts = products.filter(p =>
     p.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -52,10 +92,7 @@ export default function HomePage() {
         element: document.getElementById(`category-${c.id}`)
       }));
 
-      const scrollPosition = window.scrollY + 250; // Increased offset to trigger earlier
-
-      // Check sections from bottom to top or top to bottom? Top to bottom, find the last one that satisfies condition?
-      // Actually standard way: Find the one that covers the viewport top.
+      const scrollPosition = window.scrollY + 250;
 
       for (const section of categoryElements) {
         if (section.element) {
@@ -84,37 +121,48 @@ export default function HomePage() {
       />
 
       <div style={{ padding: '0 20px', marginTop: '10px' }}>
-        <ActiveOrderCard
-          orderId="ORD-4023"
-          status="Tayyorlanmoqda"
-        />
+        {activeOrder && (
+          <ActiveOrderCard
+            orderId={activeOrder.id}
+            status={activeOrder.status === 'new' ? 'Yangi' :
+              activeOrder.status === 'confirmed' ? 'Tasdiqlandi' :
+                activeOrder.status === 'preparing' ? 'Tayyorlanmoqda' :
+                  activeOrder.status === 'delivering' ? 'Yetkazilmoqda' : activeOrder.status}
+          />
+        )}
         <HeroBanner />
       </div>
 
       <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: '40px', marginTop: '20px' }}>
-        {CATEGORIES.filter(c => c.id !== 'custom').map((cat) => {
-          const products = filteredProducts.filter(p => p.categoryId === cat.id);
-
-          if (products.length === 0 && searchTerm) return null;
-
-          // If not searching, we should probably show all sections even if empty? 
-          // Or just show sections with products. Mock data has products for all.
-
-          return (
-            <section key={cat.id} id={`category-${cat.id}`} style={{ scrollMarginTop: '180px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#1F2937' }}>{cat.label}</h2>
-                <span style={{ fontSize: '14px', color: '#9CA3AF' }}>{products.length} tortlar</span>
-              </div>
-              <ProductGrid products={products} />
-            </section>
-          );
-        })}
-
-        {searchTerm && filteredProducts.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '40px', color: '#6B7280' }}>
-            Hech narsa topilmadi 😔
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '100px 0', color: '#9CA3AF' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 600 }}>Yuklanmoqda...</h2>
+            <p style={{ fontSize: '14px', marginTop: '8px' }}>Pishiriqlarimizni tayyorlayapmiz ✨</p>
           </div>
+        ) : (
+          <>
+            {CATEGORIES.filter(c => c.id !== 'custom').map((cat) => {
+              const productsInCategory = filteredProducts.filter(p => p.categoryId === cat.id);
+
+              if (productsInCategory.length === 0) return null;
+
+              return (
+                <section key={cat.id} id={`category-${cat.id}`} style={{ scrollMarginTop: '180px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#1F2937' }}>{cat.label}</h2>
+                    <span style={{ fontSize: '14px', color: '#9CA3AF' }}>{productsInCategory.length} tortlar</span>
+                  </div>
+                  <ProductGrid products={productsInCategory} />
+                </section>
+              );
+            })}
+
+            {searchTerm && filteredProducts.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '40px', color: '#6B7280' }}>
+                Hech narsa topilmadi 😔
+              </div>
+            )}
+          </>
         )}
       </div>
 

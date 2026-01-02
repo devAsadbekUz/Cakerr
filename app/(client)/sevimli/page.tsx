@@ -1,26 +1,65 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import ProductGrid from '@/app/components/products/ProductGrid';
-import { MOCK_PRODUCTS } from '@/app/lib/mockData';
 import { useFavorites } from '@/app/context/FavoritesContext';
 import styles from './page.module.css';
 import { Heart } from 'lucide-react';
 import Link from 'next/link';
+import { createClient } from '@/app/utils/supabase/client';
 
 export default function SevimliPage() {
-    const { favorites } = useFavorites();
-    const favoriteProducts = MOCK_PRODUCTS.filter(p => favorites.includes(p.id));
+    const { favorites, loading: favoritesLoading } = useFavorites();
+    const [products, setProducts] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const supabase = createClient();
+
+    useEffect(() => {
+        async function fetchFavoriteProducts() {
+            if (favorites.length === 0) {
+                setProducts([]);
+                setLoading(false);
+                return;
+            }
+
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('products')
+                .select('*')
+                .in('id', favorites);
+
+            if (data && !error) {
+                // Map to match ProductGrid interface
+                const mappedProducts = data.map(p => ({
+                    id: p.id,
+                    title: p.title,
+                    price: p.base_price,
+                    image: p.image_url,
+                    category: p.category,
+                    variants: p.variants
+                }));
+                setProducts(mappedProducts);
+            }
+            setLoading(false);
+        }
+
+        fetchFavoriteProducts();
+    }, [favorites]);
+
+    if (favoritesLoading || loading) {
+        return <div className={styles.container} style={{ padding: '100px', textAlign: 'center' }}>Yuklanmoqda...</div>;
+    }
 
     return (
         <main style={{ paddingBottom: '100px', backgroundColor: '#F9FAFB', minHeight: '100vh' }}>
             <div className={styles.header}>
                 <h1 className={styles.title}>Sevimlilar</h1>
-                <p className={styles.subtitle}>{favoriteProducts.length} mahsulot</p>
+                <p className={styles.subtitle}>{products.length} mahsulot</p>
             </div>
 
             <div style={{ padding: '20px' }}>
-                {favoriteProducts.length > 0 ? (
-                    <ProductGrid products={favoriteProducts} />
+                {products.length > 0 ? (
+                    <ProductGrid products={products} />
                 ) : (
                     <div className={styles.emptyState}>
                         <div className={styles.emptyIconWrapper}>

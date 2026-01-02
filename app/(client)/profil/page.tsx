@@ -16,16 +16,25 @@ import MenuItem from '@/app/components/profile/MenuItem';
 import OrderCard from '@/app/components/profile/OrderCard';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AddressesModal from '@/app/components/checkout/AddressesModal';
 import ActiveOrderCard from '@/app/components/home/ActiveOrderCard';
 import ComingSoonModal from '@/app/components/profile/ComingSoonModal';
-import CartDetailsModal from '@/app/components/cart/CartDetailsModal';
-import { CartItem } from '@/app/context/CartContext';
+import EditProfileModal from '@/app/components/profile/EditProfileModal';
+
+import { useSupabase } from '@/app/context/SupabaseContext';
+import { createClient } from '@/app/utils/supabase/client';
 
 export default function ProfilPage() {
     const router = useRouter();
+    const { user, loading: authLoading } = useSupabase();
+    const supabase = createClient();
+    const [orders, setOrders] = useState<any[]>([]);
+    const [stats, setStats] = useState({ orderCount: 0, coins: 0 });
+    const [activeOrder, setActiveOrder] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
     const [isAddressesOpen, setIsAddressesOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [modalState, setModalState] = useState<{
         isOpen: boolean;
         type: 'calendar' | 'preferences' | 'general';
@@ -35,104 +44,149 @@ export default function ProfilPage() {
         type: 'general',
         featureName: ''
     });
-    const [selectedOrder, setSelectedOrder] = useState<CartItem | null>(null);
-    // Mock user data
-    const user = {
-        name: 'Aziz Toshpulatov',
-        phone: '+998 90 123 45 67',
-        orders: 12,
-        coins: 45000
-    };
 
-    // Past orders mock
-    const pastOrders = [
-        {
-            id: '12345',
-            date: '18 Dekabr, 2025',
-            items: 'Rainbow Splash (6 kishilik)',
-            price: 650000,
-            image: 'https://images.unsplash.com/photo-1558301211-0d8c8ddee6ec?auto=format&fit=crop&w=800&q=80',
-            productId: 'b1',
-            name: 'Rainbow Splash',
-            portion: '6',
-            flavor: 'Vanilli'
-        },
-        {
-            id: '12346',
-            date: '12 Dekabr, 2025',
-            items: 'Chocolate Delight (4 kishilik)',
-            price: 420000,
-            image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80',
-            productId: 'b2',
-            name: 'Chocolate Delight',
-            portion: '4',
-            flavor: 'Shokoladli'
+    useEffect(() => {
+        if (!user) return;
+
+        async function fetchProfileData() {
+            setLoading(true);
+
+            // 1. Fetch Orders and Items
+            const { data: ordersData } = await supabase
+                .from('orders')
+                .select(`
+                    *,
+                    order_items (*)
+                `)
+                .eq('user_id', user?.id)
+                .order('created_at', { ascending: false });
+
+            if (ordersData) {
+                // Set stats
+                setStats({
+                    orderCount: ordersData.length,
+                    coins: 0
+                });
+
+                // Find active order
+                const active = ordersData.find(o => !['completed', 'cancelled'].includes(o.status));
+                setActiveOrder(active);
+
+                // Map past orders for "Tez buyurtma" (completed ones)
+                const completed = ordersData
+                    .filter(o => o.status === 'completed')
+                    .map(o => {
+                        const item = o.order_items?.[0];
+                        return {
+                            id: o.id,
+                            date: new Date(o.created_at).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' }),
+                            items: `${item?.name || 'Mahsulot'} (${item?.configuration?.portion || ''})`,
+                            price: o.total_price,
+                            image: item?.configuration?.uploaded_photo_url || 'https://images.unsplash.com/photo-1558301211-0d8c8ddee6ec?auto=format&fit=crop&w=800&q=80',
+                            productId: item?.product_id,
+                            name: item?.name,
+                            portion: item?.configuration?.portion,
+                            flavor: item?.configuration?.flavor
+                        };
+                    });
+                setOrders(completed);
+            }
+            setLoading(false);
         }
-    ];
+
+        fetchProfileData();
+    }, [user]);
+
+    if (authLoading || (user && loading)) {
+        return <div className={styles.container} style={{ padding: '40px', textAlign: 'center' }}>Yuklanmoqda...</div>;
+    }
+
+    if (!user) {
+        return (
+            <div className={styles.container}>
+                <div className={styles.header}>
+                    <h1 className={styles.title}>Profil</h1>
+                    <p className={styles.subtitle}>Buyurtmalaringizni kuzatish uchun tizimga kiring</p>
+                </div>
+                <button
+                    className={styles.loginBtn}
+                    onClick={() => router.push('/profil/login')}
+                >
+                    Tizimga kirish
+                </button>
+            </div>
+        );
+    }
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        router.refresh();
+    };
 
     return (
         <div className={styles.container}>
             {/* Header Identity */}
             <div className={styles.header}>
                 <div className={styles.userSection}>
-                    <div className={styles.avatar}>A</div>
+                    <div
+                        className={styles.avatar}
+                        onClick={() => setIsEditModalOpen(true)}
+                    >
+                        {user.user_metadata?.avatar_url ? (
+                            <img src={user.user_metadata.avatar_url} alt="Profile" />
+                        ) : (
+                            user.user_metadata?.full_name?.charAt(0) || user.email?.charAt(0) || user.phone?.charAt(4) || 'U'
+                        )}
+                    </div>
                     <div className={styles.userInfo}>
-                        <h2>{user.name}</h2>
-                        <p>{user.phone}</p>
+                        <h2>{user.user_metadata?.full_name || 'Mijoz'}</h2>
+                        <p>{user.email || user.phone}</p>
                     </div>
                 </div>
             </div>
 
-            {/* Stats Overlay */}
+            {/* stats */}
             <div className={styles.statsOverlay}>
                 <div className={styles.statsCard}>
                     <div className={styles.statItem}>
-                        <span className={styles.statValue}>{user.orders}</span>
+                        <span className={styles.statValue}>{stats.orderCount}</span>
                         <span className={styles.statLabel}>Buyurtmalar</span>
                     </div>
                     <div className={styles.statItem}>
-                        <span className={styles.statValue}>{user.coins.toLocaleString('en-US')}</span>
+                        <span className={styles.statValue}>{stats.coins}</span>
                         <span className={styles.statLabel}>Shirin Tangalar</span>
                     </div>
                 </div>
             </div>
 
             <div className={styles.content}>
-                {/* Active Orders */}
-                <div className={styles.section}>
-                    <h3 className={styles.sectionTitle}>Faol buyurtmalar</h3>
-                    <ActiveOrderCard
-                        orderId="ORD-4023"
-                        status="Tayyorlanmoqda"
-                    />
-                </div>
+                {activeOrder && (
+                    <div className={styles.section}>
+                        <h3 className={styles.sectionTitle}>Faol buyurtmalar</h3>
+                        <ActiveOrderCard
+                            orderId={activeOrder.id}
+                            status={activeOrder.status === 'new' ? 'Yangi' :
+                                activeOrder.status === 'confirmed' ? 'Tasdiqlandi' :
+                                    activeOrder.status === 'preparing' ? 'Tayyorlanmoqda' :
+                                        activeOrder.status === 'delivering' ? 'Yetkazilmoqda' : activeOrder.status}
+                        />
+                    </div>
+                )}
 
                 {/* Quick Reorder */}
-                <div className={styles.section}>
-                    <div className={styles.menuHeader}>
-                        <h3 className={styles.sectionTitle}>Tez buyurtma</h3>
-                        <Link href="/profil/buyurtmalar" className={styles.seeAll}>Barchasi</Link>
+                {orders.length > 0 && (
+                    <div className={styles.section}>
+                        <div className={styles.menuHeader}>
+                            <h3 className={styles.sectionTitle}>Tez buyurtma</h3>
+                            <Link href="/profil/buyurtmalar" className={styles.seeAll}>Barchasi</Link>
+                        </div>
+                        <div className={styles.reorderList}>
+                            {orders.map(order => (
+                                <OrderCard key={order.id} {...order} />
+                            ))}
+                        </div>
                     </div>
-                    <div className={styles.reorderList}>
-                        {pastOrders.map(order => (
-                            <OrderCard
-                                key={order.id}
-                                {...order}
-                                onClick={() => setSelectedOrder({
-                                    cartId: order.id,
-                                    id: order.productId,
-                                    name: order.name,
-                                    price: order.price,
-                                    image: order.image,
-                                    portion: order.portion,
-                                    flavor: order.flavor,
-                                    quantity: 1,
-                                    diameter: order.portion === '6' ? '22-24' : '18-20' // Mock diameter
-                                })}
-                            />
-                        ))}
-                    </div>
-                </div>
+                )}
 
                 {/* Main Menu */}
                 <div className={styles.section}>
@@ -188,6 +242,7 @@ export default function ProfilPage() {
                         icon={LogOut}
                         label="Chiqish"
                         color="#EF4444"
+                        onClick={handleLogout}
                     />
                 </div>
             </div>
@@ -205,13 +260,12 @@ export default function ProfilPage() {
                 featureType={modalState.type}
             />
 
-            {selectedOrder && (
-                <CartDetailsModal
-                    isOpen={!!selectedOrder}
-                    onClose={() => setSelectedOrder(null)}
-                    item={selectedOrder}
-                />
-            )}
+            <EditProfileModal
+                isOpen={isEditModalOpen}
+                onClose={() => setIsEditModalOpen(false)}
+                user={user}
+                onUpdate={() => router.refresh()}
+            />
         </div>
     );
 }

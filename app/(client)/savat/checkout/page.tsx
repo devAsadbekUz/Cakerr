@@ -8,6 +8,8 @@ import { ChevronLeft, ChevronRight, Calendar, Banknote, CreditCard } from 'lucid
 import CalendarModal from '@/app/components/checkout/CalendarModal';
 import AddressesModal from '@/app/components/checkout/AddressesModal';
 import SuccessModal from '@/app/components/checkout/SuccessModal';
+import { useSupabase } from '@/app/context/SupabaseContext';
+import { createClient } from '@/app/utils/supabase/client';
 
 const TIME_SLOTS = [
     '09:00 - 11:00',
@@ -20,7 +22,10 @@ const TIME_SLOTS = [
 
 export default function CheckoutPage() {
     const router = useRouter();
-    const { subtotal, totalItems, deliveryAddress, clearCart } = useCart();
+    const { cart, subtotal, totalItems, deliveryAddress, clearCart } = useCart();
+    const { user } = useSupabase();
+    const supabase = createClient();
+
     const [isAddressesOpen, setIsAddressesOpen] = useState(false);
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
     const [isSuccessOpen, setIsSuccessOpen] = useState(false);
@@ -29,16 +34,74 @@ export default function CheckoutPage() {
     const [selectedSlot, setSelectedSlot] = useState('');
     const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card'>('cash');
     const [comment, setComment] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [newOrderId, setNewOrderId] = useState<string | null>(null);
 
     const deliveryFee = totalItems > 0 ? 25000 : 0;
     const total = subtotal + deliveryFee;
 
-    const handleConfirmOrder = () => {
+    const handleConfirmOrder = async () => {
+        if (!user) {
+            router.push('/profil/login');
+            return;
+        }
+
         if (!selectedSlot) {
             alert('Iltimos, yetkazib berish vaqtini tanlang');
             return;
         }
-        setIsSuccessOpen(true);
+
+        setIsSubmitting(true);
+
+        try {
+            // 1. Create Order
+            const { data: orderData, error: orderError } = await supabase
+                .from('orders')
+                .insert({
+                    user_id: user.id,
+                    total_price: total,
+                    status: 'new',
+                    delivery_address: {
+                        label: 'Address', // Could be dynamic if we had label
+                        street: deliveryAddress,
+                    },
+                    delivery_time: selectedDateObj ? selectedDateObj.toISOString() : new Date().toISOString(),
+                    delivery_slot: selectedSlot,
+                    comment: comment
+                })
+                .select()
+                .single();
+
+            if (orderError) throw orderError;
+
+            // 2. Create Order Items
+            const orderItems = cart.map(item => ({
+                order_id: orderData.id,
+                product_id: item.id.length > 5 ? item.id : null, // Handle mock IDs vs real UUIDs
+                name: item.name,
+                quantity: item.quantity,
+                unit_price: item.price,
+                configuration: {
+                    portion: item.portion,
+                    flavor: item.flavor,
+                    custom_note: item.customNote
+                }
+            }));
+
+            const { error: itemsError } = await supabase
+                .from('order_items')
+                .insert(orderItems);
+
+            if (itemsError) throw itemsError;
+
+            setNewOrderId(orderData.id);
+            setIsSuccessOpen(true);
+        } catch (error) {
+            console.error('Error creating order:', error);
+            alert(`Xatolik: ${(error as any).message || JSON.stringify(error)}`);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -164,8 +227,12 @@ export default function CheckoutPage() {
                     </div>
                 </div>
 
-                <button className={styles.confirmBtn} onClick={handleConfirmOrder}>
-                    Buyurtmani tasdiqlash
+                <button
+                    className={styles.confirmBtn}
+                    onClick={handleConfirmOrder}
+                    disabled={isSubmitting || totalItems === 0}
+                >
+                    {isSubmitting ? 'Kutilmoqda...' : 'Buyurtmani tasdiqlash'}
                 </button>
             </div>
 
@@ -174,7 +241,7 @@ export default function CheckoutPage() {
                 onClose={() => {
                     setIsSuccessOpen(false);
                     clearCart();
-                    router.push('/savat/checkout/success');
+                    router.push(`/savat/checkout/success?orderId=${newOrderId}`);
                 }}
             />
         </div>

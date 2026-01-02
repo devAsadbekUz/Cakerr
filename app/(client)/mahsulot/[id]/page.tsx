@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Heart, Share2, CircleAlert } from 'lucide-react';
 import PortionSelector from '@/app/components/product-details/PortionSelector';
@@ -8,7 +8,7 @@ import BottomAction from '@/app/components/product-details/BottomAction';
 import styles from './page.module.css';
 import { useCart } from '@/app/context/CartContext';
 import { useFavorites } from '@/app/context/FavoritesContext';
-import { MOCK_PRODUCTS } from '@/app/lib/mockData';
+import { createClient } from '@/app/utils/supabase/client';
 import React from 'react';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -32,14 +32,50 @@ function Chip({ label, color }: { label: string; color: string }) {
 
 export default function ProductDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = React.use(params);
-  const product = MOCK_PRODUCTS.find(p => p.id === id) || MOCK_PRODUCTS[0];
+  const [product, setProduct] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [portion, setPortion] = useState<string>('');
+  const supabase = createClient();
 
-  const [portion, setPortion] = useState<string>(product.variants?.[0]?.value || '2');
+  useEffect(() => {
+    async function fetchProduct() {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (data && !error) {
+        const mappedProduct = {
+          ...data,
+          image: data.image_url,
+          price: data.base_price,
+          variants: data.variants || [],
+          details: data.details || {
+            shapes: ['Dumaloq'],
+            flavors: ['Shokoladli', 'Vanilli'],
+            coating: ['Krem-chiz'],
+          }
+        };
+        setProduct(mappedProduct);
+        if (mappedProduct.variants.length > 0) {
+          setPortion(mappedProduct.variants[0].value);
+        }
+      }
+      setLoading(false);
+    }
+    fetchProduct();
+  }, [id]);
+
   const { addItem } = useCart();
   const { toggleFavorite, isFavorite } = useFavorites();
-  const favorited = isFavorite(product.id);
 
-  const selectedVariant = product.variants?.find(v => v.value === portion) || product.variants?.[0];
+  if (loading) return <div className={styles.container} style={{ padding: '100px', textAlign: 'center' }}>Yuklanmoqda...</div>;
+  if (!product) return <div className={styles.container} style={{ padding: '100px', textAlign: 'center' }}>Mahsulot topilmadi</div>;
+
+  const favorited = isFavorite(product.id);
+  const selectedVariant = product.variants?.find((v: any) => v.value === portion) || product.variants?.[0];
   const currentPrice = selectedVariant?.price || product.price;
 
   const handleAddToCart = (quantity: number) => {
@@ -50,8 +86,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
       image: product.image,
       quantity,
       portion: portion,
-      flavor: product.details?.flavors[0] || 'Klassik',
-      diameter: selectedVariant?.diameter
+      flavor: product.details?.flavors[0] || 'Klassik'
     });
   };
 
@@ -70,7 +105,12 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
 
       {/* Main Image */}
       <div className={styles.imageSection}>
-        <div className={styles.placeholderImage} style={{ backgroundImage: `url(${product.image})`, backgroundSize: 'cover' }} />
+        <img
+          src={product.image}
+          alt={product.title}
+          className={styles.productImage}
+          loading="eager"
+        />
 
         <span className={styles.tag}>
           <span style={{ marginRight: '6px' }}>✓</span> Tayyor
@@ -111,31 +151,31 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
         {/* Details Sections */}
         {product.details?.shapes && (
           <Section title="Shakl">
-            {product.details.shapes.map(t => <Chip key={t} label={t} color="green" />)}
+            {product.details.shapes.map((t: string) => <Chip key={t} label={t} color="green" />)}
           </Section>
         )}
 
         {product.details?.flavors && (
           <Section title="Ichki ta'mlar">
-            {product.details.flavors.map(t => <Chip key={t} label={t} color="pink" />)}
+            {product.details.flavors.map((t: string) => <Chip key={t} label={t} color="pink" />)}
           </Section>
         )}
 
         {product.details?.coating && (
           <Section title="Qoplama turi">
-            {product.details.coating.map(t => <Chip key={t} label={t} color="blue" />)}
+            {product.details.coating.map((t: string) => <Chip key={t} label={t} color="blue" />)}
           </Section>
         )}
 
         {product.details?.innerCoating && (
           <Section title="Ichki qoplama">
-            {product.details.innerCoating.map(t => <Chip key={t} label={t} color="orange" />)}
+            {product.details.innerCoating.map((t: string) => <Chip key={t} label={t} color="orange" />)}
           </Section>
         )}
 
         {product.details?.decorations && (
           <Section title="Bezaklar">
-            {product.details.decorations.map(t => <Chip key={t} label={t} color="purple" />)}
+            {product.details.decorations.map((t: string) => <Chip key={t} label={t} color="purple" />)}
           </Section>
         )}
 

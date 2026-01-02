@@ -25,7 +25,7 @@ export interface Product {
         decorations: string[];
         shapes?: string[];
     };
-    variants?: { id: string; value: string; label: string; price: number; diameter?: string }[];
+    variants?: { id: string; value: string; label: string; price: number }[];
 }
 
 export const MOCK_PRODUCTS: Product[] = [
@@ -48,9 +48,9 @@ export const MOCK_PRODUCTS: Product[] = [
             decorations: [' sprinkles', 'Kamalak']
         },
         variants: [
-            { id: 'v1', value: '2', label: 'kishilik', price: 250000, diameter: '12-14' },
-            { id: 'v2', value: '4', label: 'kishilik', price: 450000, diameter: '16-18' },
-            { id: 'v3', value: '6', label: 'kishilik', price: 650000, diameter: '20-22' },
+            { id: 'v1', value: '2', label: 'kishilik', price: 250000 },
+            { id: 'v2', value: '4', label: 'kishilik', price: 450000 },
+            { id: 'v3', value: '6', label: 'kishilik', price: 650000 },
         ]
     },
     {
@@ -71,8 +71,8 @@ export const MOCK_PRODUCTS: Product[] = [
             decorations: ['Gilos', 'Oltin barg']
         },
         variants: [
-            { id: 'v4', value: '2', label: 'kishilik', price: 220000, diameter: '12-14' },
-            { id: 'v5', value: '4', label: 'kishilik', price: 400000, diameter: '16-18' },
+            { id: 'v4', value: '2', label: 'kishilik', price: 220000 },
+            { id: 'v5', value: '4', label: 'kishilik', price: 400000 },
         ]
     },
 
@@ -84,11 +84,7 @@ export const MOCK_PRODUCTS: Product[] = [
         image: 'https://images.unsplash.com/photo-1535254973040-607b474cb50d?auto=format&fit=crop&w=800&q=80',
         categoryId: 'wedding',
         rating: 5.0,
-        reviews: 45,
-        variants: [
-            { id: 'w1-v1', value: '10', label: 'kishilik', price: 850000, diameter: '24-26' },
-            { id: 'w1-v2', value: '20', label: 'kishilik', price: 1500000, diameter: '30-32' }
-        ]
+        reviews: 45
     },
     {
         id: 'w2',
@@ -97,11 +93,7 @@ export const MOCK_PRODUCTS: Product[] = [
         image: 'https://images.unsplash.com/photo-1546815670-6927d2c3df31?auto=format&fit=crop&w=800&q=80',
         categoryId: 'wedding',
         rating: 4.7,
-        reviews: 32,
-        variants: [
-            { id: 'w2-v1', value: '10', label: 'kishilik', price: 920000, diameter: '24-26' },
-            { id: 'w2-v2', value: '15', label: 'kishilik', price: 1300000, diameter: '28-30' }
-        ]
+        reviews: 32
     },
 
     // Yilliklar (Anniversary)
@@ -112,11 +104,7 @@ export const MOCK_PRODUCTS: Product[] = [
         image: 'https://images.unsplash.com/photo-1562777717-dc698ae415bd?auto=format&fit=crop&w=800&q=80',
         categoryId: 'anniversary',
         rating: 4.8,
-        reviews: 56,
-        variants: [
-            { id: 'a1-v1', value: '6', label: 'kishilik', price: 450000, diameter: '20-22' },
-            { id: 'a1-v2', value: '10', label: 'kishilik', price: 650000, diameter: '24-26' }
-        ]
+        reviews: 56
     },
     {
         id: 'a2',
@@ -125,11 +113,7 @@ export const MOCK_PRODUCTS: Product[] = [
         image: 'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?auto=format&fit=crop&w=800&q=80',
         categoryId: 'anniversary',
         rating: 4.9,
-        reviews: 78,
-        variants: [
-            { id: 'a2-v1', value: '4', label: 'kishilik', price: 380000, diameter: '18-20' },
-            { id: 'a2-v2', value: '8', label: 'kishilik', price: 550000, diameter: '22-24' }
-        ]
+        reviews: 78
     },
 
     // Bolajon (Kids)
@@ -140,11 +124,7 @@ export const MOCK_PRODUCTS: Product[] = [
         image: 'https://images.unsplash.com/photo-1559553156-2e97137af16f?auto=format&fit=crop&w=800&q=80',
         categoryId: 'kids',
         rating: 4.8,
-        reviews: 112,
-        variants: [
-            { id: 'k1-v1', value: '4', label: 'kishilik', price: 300000, diameter: '16-18' },
-            { id: 'k1-v2', value: '8', label: 'kishilik', price: 500000, diameter: '20-22' }
-        ]
+        reviews: 112
     },
     {
         id: 'k2',
@@ -153,11 +133,7 @@ export const MOCK_PRODUCTS: Product[] = [
         image: 'https://images.unsplash.com/photo-1517456209581-2c06637d7c65?auto=format&fit=crop&w=800&q=80',
         categoryId: 'kids',
         rating: 4.9,
-        reviews: 156,
-        variants: [
-            { id: 'k2-v1', value: '4', label: 'kishilik', price: 320000, diameter: '16-18' },
-            { id: 'k2-v2', value: '8', label: 'kishilik', price: 520000, diameter: '20-22' }
-        ]
+        reviews: 156
     },
 
     // Shodlik (Joy)
@@ -168,11 +144,7 @@ export const MOCK_PRODUCTS: Product[] = [
         image: 'https://images.unsplash.com/photo-1565958011703-44f9829ba187?auto=format&fit=crop&w=800&q=80',
         categoryId: 'joy',
         rating: 4.7,
-        reviews: 90,
-        variants: [
-            { id: 'j1-v1', value: '2', label: 'kishilik', price: 180000, diameter: '12-14' },
-            { id: 'j1-v2', value: '4', label: 'kishilik', price: 300000, diameter: '16-18' }
-        ]
+        reviews: 90
     },
     {
         id: 'j2',
@@ -181,11 +153,7 @@ export const MOCK_PRODUCTS: Product[] = [
         image: 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?auto=format&fit=crop&w=800&q=80',
         categoryId: 'joy',
         rating: 4.6,
-        reviews: 45,
-        variants: [
-            { id: 'j2-v1', value: '2', label: 'kishilik', price: 195000, diameter: '12-14' },
-            { id: 'j2-v2', value: '4', label: 'kishilik', price: 320000, diameter: '16-18' }
-        ]
+        reviews: 45
     },
 
     // Muhabbat (Love)
@@ -196,11 +164,7 @@ export const MOCK_PRODUCTS: Product[] = [
         image: 'https://images.unsplash.com/photo-1606983340126-99ab4feaa64a?auto=format&fit=crop&w=800&q=80',
         categoryId: 'love',
         rating: 4.9,
-        reviews: 200,
-        variants: [
-            { id: 'l1-v1', value: '2', label: 'kishilik', price: 280000, diameter: '12-14' },
-            { id: 'l1-v2', value: '4', label: 'kishilik', price: 450000, diameter: '16-18' }
-        ]
+        reviews: 200
     },
     {
         id: 'l2',
@@ -209,10 +173,6 @@ export const MOCK_PRODUCTS: Product[] = [
         image: 'https://images.unsplash.com/photo-1588195538326-c5f1f9fa4a5f?auto=format&fit=crop&w=800&q=80',
         categoryId: 'love',
         rating: 5.0,
-        reviews: 67,
-        variants: [
-            { id: 'l2-v1', value: '2', label: 'kishilik', price: 350000, diameter: '12-14' },
-            { id: 'l2-v2', value: '4', label: 'kishilik', price: 550000, diameter: '16-18' }
-        ]
+        reviews: 67
     }
 ];

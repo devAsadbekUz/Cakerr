@@ -4,8 +4,7 @@ import styles from './PortionSelector.module.css';
 
 interface PortionOption {
   value: string;
-  label: string;
-  diameter?: string;
+  label?: string;
 }
 
 interface PortionSelectorProps {
@@ -41,8 +40,7 @@ export default function PortionSelector({
               onClick={() => onSelect(opt.value)}
             >
               <span className={styles.value}>{opt.value}</span>
-              <span className={styles.sub}>{opt.label}</span>
-              {opt.diameter && <span className={styles.diameter}>{opt.diameter} sm</span>}
+              <span className={styles.sub}>{opt.label || 'kishilik'}</span>
             </button>
           ))}
         </div>

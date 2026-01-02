@@ -14,10 +14,9 @@ interface OrderCardProps {
     name?: string;
     portion?: string;
     flavor?: string;
-    onClick?: () => void;
 }
 
-export default function OrderCard({ id, date, items, price, image, productId, name, portion, flavor, onClick }: OrderCardProps) {
+export default function OrderCard({ date, items, price, image, productId, name, portion, flavor }: OrderCardProps) {
     const { addItem } = useCart();
     const router = useRouter();
 
@@ -33,18 +32,8 @@ export default function OrderCard({ id, date, items, price, image, productId, na
         });
         router.push('/savat');
     };
-
-    const handleCardClick = () => {
-        if (onClick) {
-            onClick();
-        } else {
-            // Navigate to order details
-            router.push(`/profil/buyurtmalar/ORD-${id}`);
-        }
-    };
-
     return (
-        <div className={styles.card} onClick={handleCardClick} style={{ cursor: 'pointer' }}>
+        <div className={styles.card}>
             <div className={styles.content}>
                 <img src={image} alt="Order item" className={styles.image} />
                 <div className={styles.info}>
@@ -53,13 +42,7 @@ export default function OrderCard({ id, date, items, price, image, productId, na
                     <p className={styles.price}>{price.toLocaleString('uz-UZ')} so'm</p>
                 </div>
             </div>
-            <button
-                className={styles.reorderBtn}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    handleReorder();
-                }}
-            >
+            <button className={styles.reorderBtn} onClick={handleReorder}>
                 <RotateCw size={16} />
                 <span>Qayta buyurtma</span>
             </button>

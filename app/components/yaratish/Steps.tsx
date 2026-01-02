@@ -82,7 +82,6 @@ export function SizeStep() {
                                 <Icon size={32} />
                             </div>
                             <span className={styles.label}>{s.label}</span>
-                            <span className={styles.diameter}>{s.diameter} sm</span>
                             <span className={styles.price}>x{s.priceMultiplier}</span>
                         </div>
                     );

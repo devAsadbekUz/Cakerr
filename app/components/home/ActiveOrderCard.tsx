@@ -21,9 +21,6 @@ export default function ActiveOrderCard({ orderId, status }: ActiveOrderCardProp
                     <span className={styles.label}>Faol buyurtma</span>
                     <span className={styles.status}>{status}</span>
                 </div>
-                <div className={styles.miniProgress}>
-                    <div className={styles.activeBar} style={{ width: '60%' }}></div>
-                </div>
                 <span className={styles.orderId}>{orderId}</span>
             </div>
             <Link href={`/profil/buyurtmalar/${orderId}`} className={styles.link}>

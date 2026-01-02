@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, RotateCcw, Check, Package } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RotateCcw, Check } from 'lucide-react';
 import styles from './page.module.css';
 import { useCart } from '@/app/context/CartContext';
-import { format } from 'date-fns';
-import { uz } from 'date-fns/locale';
+import { useSupabase } from '@/app/context/SupabaseContext';
+import { createClient } from '@/app/utils/supabase/client';
 
 interface OrderItem {
     id: string;
@@ -16,101 +16,75 @@ interface OrderItem {
     price: number;
     image: string;
     quantity: number;
+    productId: string;
 }
 
 interface Order {
     id: string;
     date: string;
     total: number;
-    status: 'delivered' | 'pending' | 'confirmed' | 'cancelled';
+    status: 'new' | 'confirmed' | 'preparing' | 'delivering' | 'completed' | 'cancelled';
     statusLabel: string;
     items: OrderItem[];
 }
 
-const MOCK_ORDERS: Order[] = [
-    {
-        id: 'ORD-1096',
-        date: 'Dec 19, 2025',
-        total: 395500,
-        status: 'delivered',
-        statusLabel: 'Yetkazilgan',
-        items: [
-            {
-                id: 'b2',
-                name: 'Chocolate Delight',
-                portion: '4',
-                flavor: 'Shokoladli',
-                price: 350000,
-                image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80',
-                quantity: 1
-            }
-        ]
-    },
-    {
-        id: 'ORD-5137',
-        date: 'Dec 18, 2025',
-        total: 508500,
-        status: 'delivered',
-        statusLabel: 'Yetkazilgan',
-        items: [
-            {
-                id: 'b2',
-                name: 'Chocolate Delight',
-                portion: '4',
-                flavor: 'Shokoladli',
-                price: 450000,
-                image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80',
-                quantity: 1
-            }
-        ]
-    },
-    {
-        id: 'ORD-0746',
-        date: 'Dec 18, 2025',
-        total: 450000,
-        status: 'delivered',
-        statusLabel: 'Yetkazilgan',
-        items: [
-            {
-                id: 'b2',
-                name: 'Chocolate Delight',
-                portion: '4',
-                flavor: 'Shokoladli',
-                price: 450000,
-                image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80',
-                quantity: 1
-            }
-        ]
-    },
-    {
-        id: 'ORD-2241',
-        date: 'Dec 15, 2025',
-        total: 120000,
-        status: 'cancelled',
-        statusLabel: 'Bekor qilingan',
-        items: [
-            {
-                id: 'b1',
-                name: 'Rainbow Splash',
-                portion: '2',
-                flavor: 'Vanilli',
-                price: 120000,
-                image: 'https://images.unsplash.com/photo-1558301211-0d8c8ddee6ec?auto=format&fit=crop&w=800&q=80',
-                quantity: 1
-            }
-        ]
-    }
-];
-
 export default function OrderHistoryPage() {
     const router = useRouter();
     const { addItem } = useCart();
-    const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'delivered' | 'cancelled'>('all');
+    const { user, loading: authLoading } = useSupabase();
+    const supabase = createClient();
+    const [orders, setOrders] = useState<Order[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [filter, setFilter] = useState<'all' | 'pending' | 'completed' | 'cancelled'>('all');
+
+    useEffect(() => {
+        if (!user) return;
+
+        async function fetchOrders() {
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('orders')
+                .select(`
+                    *,
+                    order_items (*)
+                `)
+                .eq('user_id', user?.id)
+                .order('created_at', { ascending: false });
+
+            if (!error && data) {
+                const mappedOrders: Order[] = data.map(o => ({
+                    id: o.id,
+                    date: new Date(o.created_at).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' }),
+                    total: o.total_price,
+                    status: o.status,
+                    statusLabel: o.status === 'new' ? 'Yangi' :
+                        o.status === 'confirmed' ? 'Tasdiqlandi' :
+                            o.status === 'preparing' ? 'Tayyorlanmoqda' :
+                                o.status === 'delivering' ? 'Yetkazilmoqda' :
+                                    o.status === 'completed' ? 'Yetkazilgan' : 'Bekor qilingan',
+                    items: o.order_items.map((item: any) => ({
+                        id: item.id,
+                        productId: item.product_id,
+                        name: item.name,
+                        portion: item.configuration?.portion || '',
+                        flavor: item.configuration?.flavor || '',
+                        price: item.unit_price,
+                        image: item.configuration?.uploaded_photo_url || 'https://images.unsplash.com/photo-1558301211-0d8c8ddee6ec?auto=format&fit=crop&w=800&q=80',
+                        quantity: item.quantity
+                    }))
+                }));
+                setOrders(mappedOrders);
+            }
+            setLoading(false);
+        }
+
+        fetchOrders();
+    }, [user]);
 
     const handleReorder = (order: Order) => {
         order.items.forEach(item => {
             addItem({
-                id: item.id,
+                id: item.productId,
                 name: item.name,
                 price: item.price,
                 image: item.image,
@@ -122,10 +96,20 @@ export default function OrderHistoryPage() {
         router.push('/savat');
     };
 
-    const filteredOrders = MOCK_ORDERS.filter(order => {
+    const filteredOrders = orders.filter(order => {
         if (filter === 'all') return true;
+        if (filter === 'pending') return ['new', 'confirmed', 'preparing', 'delivering'].includes(order.status);
         return order.status === filter;
     });
+
+    if (authLoading || (user && loading)) {
+        return <div className={styles.container} style={{ padding: '40px', textAlign: 'center' }}>Yuklanmoqda...</div>;
+    }
+
+    if (!user) {
+        router.push('/profil/login');
+        return null;
+    }
 
     return (
         <div className={styles.container}>
@@ -150,14 +134,8 @@ export default function OrderHistoryPage() {
                     Kutilmoqda
                 </button>
                 <button
-                    className={`${styles.filterBtn} ${filter === 'confirmed' ? styles.filterBtnActive : ''}`}
-                    onClick={() => setFilter('confirmed')}
-                >
-                    Tasdiqlangan
-                </button>
-                <button
-                    className={`${styles.filterBtn} ${filter === 'delivered' ? styles.filterBtnActive : ''}`}
-                    onClick={() => setFilter('delivered')}
+                    className={`${styles.filterBtn} ${filter === 'completed' ? styles.filterBtnActive : ''}`}
+                    onClick={() => setFilter('completed')}
                 >
                     Yetkazilgan
                 </button>
@@ -170,91 +148,53 @@ export default function OrderHistoryPage() {
             </div>
 
             <div className={styles.orderList}>
-                {filteredOrders.length === 0 ? (
+                {filteredOrders.length === 0 && (
                     <div className={styles.emptyState}>
-                        <div className={styles.emptyIconWrapper}>
-                            <Package size={48} strokeWidth={1.5} />
-                        </div>
-                        <h3 className={styles.emptyTitle}>Buyurtmalar yo'q</h3>
-                        <p className={styles.emptyText}>
-                            Sizda ushbu toifadagi buyurtmalar mavjud emas
-                        </p>
-                        <button className={styles.browseBtn} onClick={() => router.push('/')}>
-                            Menyuga o'tish
-                        </button>
+                        <p>Buyurtmalar topilmadi</p>
                     </div>
-                ) : (
-                    Object.entries(
-                        filteredOrders.reduce((groups, order) => {
-                            // Assuming order.date is parsable, for mock data it's "Dec 19, 2025"
-                            // For proper date parsing in real app: new Date(order.date)
-                            // Here we just extract month/year string for simplicity or keep using mock format
-                            // Let's create a rough grouping key. 
-                            // Since mock date is "Dec 19, 2025", we can just take the Month + Year part.
-
-                            // Parse mock date "Dec 19, 2025"
-                            const dateObj = new Date(order.date);
-                            // Safely handle invalid dates if any
-                            if (isNaN(dateObj.getTime())) return groups;
-
-                            const monthKey = format(dateObj, 'LLLL yyyy', { locale: uz });
-                            // Capitalize first letter
-                            const displayKey = monthKey.charAt(0).toUpperCase() + monthKey.slice(1);
-
-                            if (!groups[displayKey]) {
-                                groups[displayKey] = [];
-                            }
-                            groups[displayKey].push(order);
-                            return groups;
-                        }, {} as Record<string, Order[]>)
-                    ).map(([month, orders]) => (
-                        <div key={month} className={styles.monthGroup}>
-                            <h2 className={styles.monthTitle}>{month}</h2>
-                            {orders.map((order) => (
-                                <div key={order.id} className={styles.orderCard}>
-                                    <div className={styles.orderCardHeader}>
-                                        <div>
-                                            <h3 className={styles.orderId}>{order.id}</h3>
-                                            <p className={styles.orderDate}>{order.date}</p>
-                                        </div>
-                                        <div className={`${styles.statusBadge} ${order.status === 'pending' ? styles.statusBadgePending : ''}`}>
-                                            <Check size={12} />
-                                            <span>{order.statusLabel}</span>
-                                        </div>
-                                    </div>
-
-                                    {order.items.map((item, idx) => (
-                                        <div key={idx} className={styles.orderContent}>
-                                            <img src={item.image} alt={item.name} className={styles.productImage} />
-                                            <div className={styles.productInfo}>
-                                                <h4 className={styles.productName}>{item.name}</h4>
-                                                <p className={styles.productMeta}>Soni: {item.quantity}</p>
-                                                <p className={styles.productMeta}>Porsiya: {item.portion}</p>
-                                            </div>
-                                            <div className={styles.productPrice}>
-                                                {item.price.toLocaleString('uz-UZ')} so'm
-                                            </div>
-                                        </div>
-                                    ))}
-
-                                    <div className={styles.orderFooter}>
-                                        <div className={styles.totalRow} onClick={() => router.push(`/profil/buyurtmalar/${order.id}`)}>
-                                            <span className={styles.totalLabel}>Jami</span>
-                                            <div className={styles.totalValue}>
-                                                {order.total.toLocaleString('uz-UZ')} so'm
-                                                <ChevronRight size={18} color="#D1D5DB" />
-                                            </div>
-                                        </div>
-                                        <button className={styles.reorderBtn} onClick={() => handleReorder(order)}>
-                                            <RotateCcw size={18} />
-                                            Qayta buyurtma qilish
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ))
                 )}
+                {filteredOrders.map((order) => (
+                    <div key={order.id} className={styles.orderCard}>
+                        <div className={styles.orderCardHeader}>
+                            <div>
+                                <h3 className={styles.orderId}>{order.id}</h3>
+                                <p className={styles.orderDate}>{order.date}</p>
+                            </div>
+                            <div className={`${styles.statusBadge} ${['new', 'confirmed', 'preparing', 'delivering'].includes(order.status) ? styles.statusBadgePending : ''}`}>
+                                <Check size={12} />
+                                <span>{order.statusLabel}</span>
+                            </div>
+                        </div>
+
+                        {order.items.map((item, idx) => (
+                            <div key={idx} className={styles.orderContent}>
+                                <img src={item.image} alt={item.name} className={styles.productImage} />
+                                <div className={styles.productInfo}>
+                                    <h4 className={styles.productName}>{item.name}</h4>
+                                    <p className={styles.productMeta}>Soni: {item.quantity}</p>
+                                    <p className={styles.productMeta}>Porsiya: {item.portion}</p>
+                                </div>
+                                <div className={styles.productPrice}>
+                                    {item.price.toLocaleString('uz-UZ')} so'm
+                                </div>
+                            </div>
+                        ))}
+
+                        <div className={styles.orderFooter}>
+                            <div className={styles.totalRow} onClick={() => router.push(`/profil/buyurtmalar/${order.id}`)}>
+                                <span className={styles.totalLabel}>Jami</span>
+                                <div className={styles.totalValue}>
+                                    {order.total.toLocaleString('uz-UZ')} so'm
+                                    <ChevronRight size={18} color="#D1D5DB" />
+                                </div>
+                            </div>
+                            <button className={styles.reorderBtn} onClick={() => handleReorder(order)}>
+                                <RotateCcw size={18} />
+                                Qayta buyurtma qilish
+                            </button>
+                        </div>
+                    </div>
+                ))}
             </div>
         </div>
     );

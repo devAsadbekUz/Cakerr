@@ -29,14 +29,23 @@
     overflow: hidden;
 }
 
-.placeholderImage {
+.productImage {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: #d1d5db;
-    /* Gray-300 placeholder */
+    object-fit: cover;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card:hover .productImage {
+    transform: scale(1.1);
+}
+
+.placeholderImage {
+    display: none;
+    /* Replaced by img tag but kept for structural safety if needed */
 }
 
 .favoriteBtn {

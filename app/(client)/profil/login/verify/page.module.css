@@ -1,0 +1,122 @@
+.container {
+    padding: 24px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: white;
+}
+
+.header {
+    margin-top: 40px;
+    margin-bottom: 40px;
+}
+
+.backBtn {
+    background: none;
+    border: none;
+    padding: 0;
+    margin-bottom: 24px;
+    color: #111827;
+    cursor: pointer;
+}
+
+.title {
+    font-size: 28px;
+    font-weight: 800;
+    color: #111827;
+    margin-bottom: 8px;
+}
+
+.subtitle {
+    font-size: 15px;
+    color: #6B7280;
+    line-height: 1.5;
+}
+
+.subtitle b {
+    color: #111827;
+}
+
+.otpGrid {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 32px;
+}
+
+.otpInput {
+    flex: 1;
+    height: 56px;
+    background-color: #F3F4F6;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    text-align: center;
+    font-size: 24px;
+    font-weight: 700;
+    color: #111827;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.otpInput:focus {
+    border-color: #E91E63;
+    background-color: white;
+    box-shadow: 0 4px 12px rgba(233, 30, 99, 0.1);
+}
+
+.errorText {
+    color: #EF4444;
+    font-size: 13px;
+    margin-bottom: 24px;
+    text-align: center;
+    font-weight: 500;
+}
+
+.resendWrapper {
+    margin-bottom: 40px;
+    text-align: center;
+}
+
+.timer {
+    font-size: 14px;
+    color: #6B7280;
+}
+
+.timer span {
+    color: #E91E63;
+    font-weight: 700;
+}
+
+.resendBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    color: #E91E63;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.verifyBtn {
+    width: 100%;
+    background-color: #E91E63;
+    color: white;
+    border: none;
+    border-radius: 16px;
+    padding: 18px;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(233, 30, 99, 0.25);
+    transition: all 0.2s;
+}
+
+.verifyBtn:disabled {
+    background-color: #F3F4F6;
+    color: #9CA3AF;
+    box-shadow: none;
+    cursor: not-allowed;
+}

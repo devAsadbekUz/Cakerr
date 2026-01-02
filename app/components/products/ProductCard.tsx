@@ -12,7 +12,7 @@ interface ProductProps {
     price: string | number;
     image: string;
     tag?: string;
-    variants?: { id: string; value: string; label: string; price: number; diameter?: string }[];
+    variants?: { id: string; value: string; label?: string; price: number }[];
 }
 
 export default function ProductCard({ id, title, price, image, tag = 'Tayyor', variants }: ProductProps) {
@@ -20,13 +20,10 @@ export default function ProductCard({ id, title, price, image, tag = 'Tayyor', v
     const { toggleFavorite, isFavorite } = useFavorites();
     const favorited = isFavorite(id);
 
-    // If variants exist, show the lowest price and its diameter
-    const sortedVariants = variants?.sort((a, b) => a.price - b.price);
-    const displayPrice = sortedVariants?.length
-        ? sortedVariants[0].price
+    // If variants exist, show the lowest price (fallback to base price if variant price is 0)
+    const displayPrice = variants && variants.length > 0
+        ? Math.min(...variants.map(v => v.price > 0 ? v.price : Number(price)))
         : Number(price);
-
-    const displayDiameter = sortedVariants?.length ? sortedVariants[0].diameter : null;
 
     const handleQuickAdd = (e: React.MouseEvent) => {
         e.preventDefault();
@@ -51,9 +48,11 @@ export default function ProductCard({ id, title, price, image, tag = 'Tayyor', v
     return (
         <Link href={`/mahsulot/${id}`} className={styles.card}>
             <div className={styles.imageContainer}>
-                <div
-                    className={styles.placeholderImage}
-                    style={{ backgroundImage: `url(${image})`, backgroundSize: 'cover' }}
+                <img
+                    src={image}
+                    alt={title}
+                    className={styles.productImage}
+                    loading="lazy"
                 />
 
                 <button

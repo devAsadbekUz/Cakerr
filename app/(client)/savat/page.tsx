@@ -4,15 +4,11 @@ import { useCart } from '@/app/context/CartContext';
 import styles from './page.module.css';
 import { Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
-import CartDetailsModal from '@/app/components/cart/CartDetailsModal';
 
 export default function SavatPage() {
     const { cart, removeItem, updateQuantity, totalItems, subtotal } = useCart();
     const deliveryFee = totalItems > 0 ? 25000 : 0;
     const total = subtotal + deliveryFee;
-
-    const [selectedItem, setSelectedItem] = useState<any>(null);
 
     return (
         <div className={styles.container}>
@@ -43,23 +39,12 @@ export default function SavatPage() {
                 <>
                     <div className={styles.list}>
                         {cart.map((item) => (
-                            <div
-                                key={item.cartId}
-                                className={styles.item}
-                                onClick={() => setSelectedItem(item)}
-                                style={{ cursor: 'pointer' }}
-                            >
+                            <div key={item.cartId} className={styles.item}>
                                 <img src={item.image} alt={item.name} className={styles.image} />
                                 <div className={styles.itemContent}>
                                     <div className={styles.itemHeader}>
                                         <h3 className={styles.itemName}>{item.name}</h3>
-                                        <button
-                                            className={styles.removeBtn}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                removeItem(item.cartId);
-                                            }}
-                                        >
+                                        <button className={styles.removeBtn} onClick={() => removeItem(item.cartId)}>
                                             <Trash2 size={18} />
                                         </button>
                                     </div>
@@ -76,7 +61,7 @@ export default function SavatPage() {
                                         <p className={styles.itemPrice}>
                                             {(item.price || 0).toLocaleString('en-US')} so'm
                                         </p>
-                                        <div className={styles.stepper} onClick={e => e.stopPropagation()}>
+                                        <div className={styles.stepper}>
                                             <button
                                                 className={styles.stepperBtn}
                                                 onClick={() => updateQuantity(item.cartId, item.quantity - 1)}
@@ -116,14 +101,6 @@ export default function SavatPage() {
                         Buyurtma berish
                     </Link>
                 </>
-            )}
-
-            {selectedItem && (
-                <CartDetailsModal
-                    isOpen={!!selectedItem}
-                    onClose={() => setSelectedItem(null)}
-                    item={selectedItem}
-                />
             )}
         </div>
     );

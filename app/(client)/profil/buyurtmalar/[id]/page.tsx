@@ -1,74 +1,105 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ChevronLeft, Package, Check, Clock, Truck, MapPin, Phone, User } from 'lucide-react';
 import styles from './page.module.css';
+import { createClient } from '@/app/utils/supabase/client';
 
 // This matches the status structure for future backend integration
 const ORDER_STATUSES = [
     {
-        id: 'confirmed',
-        label: 'Order Confirmed',
-        desc: 'Your order has been received',
+        id: 'new',
+        label: 'Buyurtma qabul qilindi',
+        desc: 'Sizning buyurtmangiz tizimga tushdi',
         icon: Check,
-        time: '2025-10-23 10:30 AM'
+    },
+    {
+        id: 'confirmed',
+        label: 'Tasdiqlandi',
+        desc: 'Buyurtmangiz menejer tomonidan tasdiqlandi',
+        icon: Clock,
     },
     {
         id: 'preparing',
-        label: 'Preparing',
-        desc: 'Your cake is being prepared',
+        label: 'Tayyorlanmoqda',
+        desc: 'Sizning shirinligingiz pishirilmoqda',
         icon: Package,
-        time: '2025-10-23 11:00 AM'
     },
     {
-        id: 'delivery',
-        label: 'Out for Delivery',
-        desc: 'Your order is on the way',
+        id: 'delivering',
+        label: 'Yo\'lda',
+        desc: 'Buyurtmangiz kuryerga topshirildi',
         icon: Truck,
-        time: null
     },
     {
-        id: 'delivered',
-        label: 'Delivered',
-        desc: 'Order delivered successfully',
+        id: 'completed',
+        label: 'Yetkazildi',
+        desc: 'Buyurtmangiz muvaffaqiyatli yetkazildi',
         icon: MapPin,
-        time: null
     }
 ];
+
+const getStatusStep = (status: string) => {
+    switch (status) {
+        case 'new': return 0;
+        case 'confirmed': return 1;
+        case 'preparing': return 2;
+        case 'delivering': return 3;
+        case 'completed': return 4;
+        case 'cancelled': return -1;
+        default: return 0;
+    }
+};
 
 export default function TrackingPage() {
     const router = useRouter();
     const params = useParams();
-    const orderId = params.id as string || 'ORD-8304';
+    const orderId = params.id as string;
+    const [order, setOrder] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const supabase = createClient();
 
-    // Mock order data - would come from backend
-    const order = {
-        id: orderId,
-        estimatedDelivery: 'Today, 3:00 PM',
-        currentStep: 1, // 0 to 3
-        totalSteps: 4,
-        address: {
-            label: 'Home',
-            text: '123 Sweet Street Bakery Town, CA 90210',
-            phone: '+1 (555) 123-4567'
-        },
-        courier: {
-            name: 'Alijon',
-            vehicle: 'Matiz (90 A 123 BZ)',
-            phone: '+998 90 123 45 67'
-        },
-        items: [
-            {
-                id: '1',
-                name: 'Chocolate Delight',
-                qty: 1,
-                price: 350000,
-                image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=200&h=200&fit=crop'
+    useEffect(() => {
+        async function fetchOrder() {
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('orders')
+                .select(`
+                    *,
+                    order_items (*)
+                `)
+                .eq('id', orderId)
+                .maybeSingle();
+
+            if (data && !error) {
+                setOrder({
+                    id: data.id,
+                    status: data.status,
+                    currentStep: getStatusStep(data.status),
+                    totalSteps: 5,
+                    total: data.total_price,
+                    address: {
+                        label: data.delivery_address?.label || 'Manzil',
+                        text: data.delivery_address?.street || 'Manzil ko\'rsatilmagan',
+                        phone: data.delivery_address?.phone || ''
+                    },
+                    items: data.order_items.map((item: any) => ({
+                        id: item.id,
+                        name: item.name,
+                        qty: item.quantity,
+                        price: item.unit_price,
+                        image: item.configuration?.uploaded_photo_url || 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=200&v=2'
+                    }))
+                });
             }
-        ],
-        total: 395500
-    };
+            setLoading(false);
+        }
+        fetchOrder();
+    }, [orderId]);
+
+    if (loading) return <div className={styles.container} style={{ padding: '40px', textAlign: 'center' }}>Yuklanmoqda...</div>;
+    if (!order) return <div className={styles.container} style={{ padding: '40px', textAlign: 'center' }}>Buyurtma topilmadi</div>;
 
     const progressValue = ((order.currentStep + 1) / order.totalSteps) * 100;
 
@@ -79,7 +110,7 @@ export default function TrackingPage() {
                     <ChevronLeft size={24} />
                 </button>
                 <div className={styles.headerInfo}>
-                    <h1>Track Order</h1>
+                    <h1>Buyurtmani kuzatish</h1>
                     <span className={styles.orderId}>{order.id}</span>
                 </div>
             </header>
@@ -88,8 +119,10 @@ export default function TrackingPage() {
             <div className={styles.progressCard}>
                 <div className={styles.progressHeader}>
                     <div>
-                        <span className={styles.estimatedLabel}>Estimated Delivery</span>
-                        <span className={styles.estimatedTime}>{order.estimatedDelivery}</span>
+                        <span className={styles.estimatedLabel}>Holati</span>
+                        <span className={styles.estimatedTime}>
+                            {ORDER_STATUSES.find(s => s.id === order.status)?.label || order.status}
+                        </span>
                     </div>
                     <div className={styles.statusIcon}>
                         <Package size={24} />
@@ -111,7 +144,7 @@ export default function TrackingPage() {
 
             {/* Timeline */}
             <div className={styles.card}>
-                <h2 className={styles.sectionTitle}>Order Timeline</h2>
+                <h2 className={styles.sectionTitle}>Buyurtma jarayoni</h2>
                 <div className={styles.timeline}>
                     {ORDER_STATUSES.map((status, index) => {
                         const isCompleted = index < order.currentStep;
@@ -131,7 +164,6 @@ export default function TrackingPage() {
                                 <div className={styles.timelineInfo}>
                                     <div className={styles.timelineHeader}>
                                         <span className={styles.timelineLabel}>{status.label}</span>
-                                        {status.time && <span className={styles.timelineTime}>{status.time}</span>}
                                     </div>
                                     <p className={styles.timelineDesc}>{status.desc}</p>
                                 </div>
@@ -143,7 +175,7 @@ export default function TrackingPage() {
 
             {/* Delivery Info */}
             <div className={styles.card}>
-                <h2 className={styles.sectionTitle}>Delivery Address</h2>
+                <h2 className={styles.sectionTitle}>Yetkazib berish manzili</h2>
                 <div className={styles.addressCard}>
                     <div className={styles.iconBox}>
                         <MapPin size={20} />
@@ -156,43 +188,23 @@ export default function TrackingPage() {
                 </div>
             </div>
 
-            {/* Delivery Partner */}
-            <div className={styles.card}>
-                <h2 className={styles.sectionTitle}>Yetkazib beruvchi</h2>
-                <div className={styles.courierCard}>
-                    <div className={styles.courierInfo}>
-                        <div className={styles.courierAvatar}>
-                            <User size={24} />
-                        </div>
-                        <div className={styles.courierDetails}>
-                            <span className={styles.courierName}>{order.courier.name}</span>
-                            <span className={styles.courierVehicle}>{order.courier.vehicle}</span>
-                        </div>
-                    </div>
-                    <a href={`tel:${order.courier.phone}`} className={styles.callBtn}>
-                        <Phone size={20} />
-                        <span>Qo'ng'iroq</span>
-                    </a>
-                </div>
-            </div>
-
             {/* Order Summary */}
             <div className={styles.card}>
-                <h2 className={styles.sectionTitle}>Order Items</h2>
+                <h2 className={styles.sectionTitle}>Buyurtma tarkibi</h2>
                 <div className={styles.itemsList}>
-                    {order.items.map(item => (
+                    {order.items.map((item: any) => (
                         <div key={item.id} className={styles.productRow}>
                             <img src={item.image} alt={item.name} className={styles.productImage} />
                             <div className={styles.productInfo}>
                                 <h3 className={styles.productName}>{item.name}</h3>
-                                <span className={styles.productQty}>Qty: {item.qty}</span>
+                                <span className={styles.productQty}>Soni: {item.qty} ta</span>
                             </div>
                             <span className={styles.productPrice}>{item.price.toLocaleString('uz-UZ')} so'm</span>
                         </div>
                     ))}
 
                     <div className={styles.totalRow}>
-                        <span className={styles.totalLabel}>Total</span>
+                        <span className={styles.totalLabel}>Jami</span>
                         <span className={styles.totalValue}>{order.total.toLocaleString('uz-UZ')} so'm</span>
                     </div>
                 </div>

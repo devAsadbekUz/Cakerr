@@ -19,7 +19,7 @@ export default function BottomAction({
   const [added, setAdded] = useState(false);
 
   const displayPrice = typeof price === 'number'
-    ? `${price.toLocaleString('en-US')} so'm`
+    ? `${price.toLocaleString('uz-UZ')} so'm`
     : price;
 
   const handleAdd = () => {

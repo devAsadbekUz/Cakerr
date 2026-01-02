@@ -1,90 +1,78 @@
 .container {
-  margin: 24px 0;
+    margin: 1.5rem 0;
 }
 
 .label {
-  font-size: 16px;
-  font-weight: 700;
-  margin-bottom: 12px;
-  color: #111827;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 1rem;
+    padding: 0 4px;
 }
 
 .scrollWrapper {
-  margin: 0 -20px;
-  /* Negative margin to pull to edges */
-  padding: 0 20px;
-  /* Padding to push content back in */
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  /* Smooth scroll on iOS */
-  scrollbar-width: none;
-  /* Firefox */
+    overflow-x: auto;
+    padding-bottom: 8px;
+    margin: 0 -4px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
 .scrollWrapper::-webkit-scrollbar {
-  display: none;
-  /* Chrome/Safari */
+    display: none;
 }
 
 .grid {
-  display: flex;
-  gap: 12px;
-  width: max-content;
-  /* Ensure it takes up necessary space */
-  padding-bottom: 4px;
-  /* Space for shadow or focus ring */
+    display: flex;
+    gap: 12px;
+    padding: 4px;
 }
 
 .card {
-  min-width: 100px;
-  /* Fixed width for consistent cards */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  background: white;
-  border: 2px solid #E5E7EB;
-  border-radius: 16px;
-  cursor: pointer;
-  transition: all 0.2s;
+    flex: 0 0 auto;
+    min-width: 80px;
+    height: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border: 2px solid #F3F4F6;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.card.active {
-  border-color: #E91E63;
-  background: #FCE4EC;
-  /* Light Pink tint */
-  box-shadow: 0 4px 12px rgba(233, 30, 99, 0.1);
+.card:hover {
+    border-color: #E91E63;
+    transform: translateY(-2px);
+}
+
+.active {
+    background-color: #FFF1F2;
+    border-color: #E91E63;
+    box-shadow: 0 4px 12px rgba(233, 30, 99, 0.15);
 }
 
 .value {
-  font-size: 24px;
-  font-weight: 800;
-  color: #1F2937;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #111827;
+    line-height: 1;
 }
 
 .active .value {
-  color: #E91E63;
+    color: #E91E63;
 }
 
 .sub {
-  font-size: 12px;
-  color: #6B7280;
-  margin-top: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6B7280;
+    margin-top: 4px;
 }
 
 .active .sub {
-  color: #E91E63;
-}
-
-.diameter {
-  font-size: 13px;
-  color: #6B7280;
-  margin-top: 4px;
-  font-weight: 600;
-  display: block;
-}
-
-.active .diameter {
-  color: #E91E63;
+    color: #E91E63;
+    opacity: 0.8;
 }
