@@ -142,3 +142,40 @@
     flex-shrink: 0;
     margin-left: 8px;
 }
+
+.readyBadge {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    background: #166534;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 12px rgba(22, 101, 52, 0.3);
+    z-index: 5;
+}
+
+.tag {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #111827;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    z-index: 5;
+}
+
+.favoritedCard {
+    display: flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}

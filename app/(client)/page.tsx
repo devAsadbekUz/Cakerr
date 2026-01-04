@@ -4,59 +4,63 @@ import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import Header from '@/app/components/layout/Header';
 import HeroBanner from '@/app/components/home/HeroBanner';
 import ProductGrid from '@/app/components/products/ProductGrid';
-import { CATEGORIES } from '@/app/lib/mockData';
 import ContactSheet from '@/app/components/home/ContactSheet';
 import ActiveOrderCard from '@/app/components/home/ActiveOrderCard';
+import { useSupabase } from '@/app/context/SupabaseContext';
 import { createClient } from '@/app/utils/supabase/client';
+import { productService } from '@/app/services/productService';
 
 export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState('birthday');
   const [searchTerm, setSearchTerm] = useState('');
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [activeOrder, setActiveOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const isScrollingRef = useRef(false);
   const supabase = createClient();
+  const { user } = useSupabase();
 
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
 
-      // 1. Fetch Products
-      const { data: pData } = await supabase
-        .from('products')
-        .select('*')
-        .eq('is_available', true);
+      // 1. Fetch Categories
+      const { data: cData } = await supabase
+        .from('categories')
+        .select('*');
 
-      if (pData) {
-        setProducts(pData.map(p => ({
-          ...p,
-          price: p.base_price,
-          image: p.image_url,
-          categoryId: p.category
-        })));
-      }
+      const loadedCategories = cData || [];
+      // Ensure 'custom' category is present if not in DB, though it should be.
+      // Assuming 'custom' was added via seed, if not we can push it manually or rely on DB.
+      // Based on seed, 'custom' is in DB.
+      setCategories(loadedCategories);
 
-      // 2. Fetch Active Order
-      const { data: { user } } = await supabase.auth.getUser();
+      // 2. Fetch Products via Service
+      const pData = await productService.getActiveProducts();
+      setProducts(pData);
+
+      // 3. Fetch Active Order (Only if user exists)
       if (user) {
         const { data: oData } = await supabase
           .from('orders')
           .select('id, status')
           .eq('user_id', user.id)
-          .not('status', 'in', '("completed", "cancelled")')
           .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .limit(5); // Fetch recent orders
 
-        if (oData) setActiveOrder(oData);
+        if (oData) {
+          // Filter in JS to be 100% sure it matches Profile logic
+          const active = oData.find(o => !['completed', 'cancelled'].includes(o.status));
+          if (active) setActiveOrder(active);
+        }
       }
 
       setLoading(false);
     }
     fetchData();
-  }, []);
+  }, [user]); // Re-run when user auth state loads/changes
 
   // Filter products based on search
   const filteredProducts = products.filter(p =>
@@ -86,8 +90,9 @@ export default function HomePage() {
   useEffect(() => {
     const handleScroll = () => {
       if (isScrollingRef.current) return;
+      if (categories.length === 0) return;
 
-      const categoryElements = CATEGORIES.filter(c => c.id !== 'custom').map(c => ({
+      const categoryElements = categories.filter(c => c.id !== 'custom').map(c => ({
         id: c.id,
         element: document.getElementById(`category-${c.id}`)
       }));
@@ -107,7 +112,7 @@ export default function HomePage() {
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [categories]);
 
   return (
     <main style={{ paddingBottom: '100px', backgroundColor: '#F9FAFB', minHeight: '100vh' }}>
@@ -118,17 +123,21 @@ export default function HomePage() {
         activeCategory={activeCategory}
         onSelectCategory={handleCategorySelect}
         onContactClick={() => setIsContactOpen(true)}
+        categories={categories}
       />
 
       <div style={{ padding: '0 20px', marginTop: '10px' }}>
         {activeOrder && (
-          <ActiveOrderCard
-            orderId={activeOrder.id}
-            status={activeOrder.status === 'new' ? 'Yangi' :
-              activeOrder.status === 'confirmed' ? 'Tasdiqlandi' :
-                activeOrder.status === 'preparing' ? 'Tayyorlanmoqda' :
-                  activeOrder.status === 'delivering' ? 'Yetkazilmoqda' : activeOrder.status}
-          />
+          <div style={{ marginBottom: '20px' }}>
+            <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#1F2937', marginBottom: '12px' }}>Faol buyurtmalar</h3>
+            <ActiveOrderCard
+              orderId={activeOrder.id}
+              status={activeOrder.status === 'new' ? 'Yangi' :
+                activeOrder.status === 'confirmed' ? 'Tasdiqlandi' :
+                  activeOrder.status === 'preparing' ? 'Tayyorlanmoqda' :
+                    activeOrder.status === 'delivering' ? 'Yetkazilmoqda' : activeOrder.status}
+            />
+          </div>
         )}
         <HeroBanner />
       </div>
@@ -141,7 +150,7 @@ export default function HomePage() {
           </div>
         ) : (
           <>
-            {CATEGORIES.filter(c => c.id !== 'custom').map((cat) => {
+            {categories.filter(c => c.id !== 'custom').map((cat) => {
               const productsInCategory = filteredProducts.filter(p => p.categoryId === cat.id);
 
               if (productsInCategory.length === 0) return null;

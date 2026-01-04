@@ -1,5 +1,8 @@
+'use client';
+
 import ProductCard from './ProductCard';
-import { Product } from '@/app/lib/mockData';
+import { Product } from '@/app/types';
+import styles from './ProductGrid.module.css';
 
 interface ProductGridProps {
     products: Product[];
@@ -7,11 +10,7 @@ interface ProductGridProps {
 
 export default function ProductGrid({ products }: ProductGridProps) {
     return (
-        <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '16px'
-        }}>
+        <div className={styles.productGridMain}>
             {products.map(product => (
                 <ProductCard
                     key={product.id}
@@ -19,7 +18,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
                     title={product.title}
                     price={product.price}
                     image={product.image}
-                    tag="Tayyor"
+                    isReady={product.is_ready}
                     variants={product.variants}
                 />
             ))}

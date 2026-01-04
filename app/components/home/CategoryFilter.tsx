@@ -2,15 +2,22 @@
 
 import { useRef, useEffect } from 'react';
 import styles from './CategoryFilter.module.css';
-import { CATEGORIES } from '@/app/lib/mockData';
 import { useRouter } from 'next/navigation';
+
+interface Category {
+    id: string;
+    label: string;
+    icon: string;
+    image_url?: string;
+}
 
 interface CategoryFilterProps {
     activeCategory: string;
     onSelectCategory: (id: string) => void;
+    categories: Category[];
 }
 
-export default function CategoryFilter({ activeCategory, onSelectCategory }: CategoryFilterProps) {
+export default function CategoryFilter({ activeCategory, onSelectCategory, categories }: CategoryFilterProps) {
     const router = useRouter();
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -34,7 +41,7 @@ export default function CategoryFilter({ activeCategory, onSelectCategory }: Cat
 
     return (
         <div className={styles.container} ref={scrollContainerRef}>
-            {CATEGORIES.map((cat) => (
+            {categories.map((cat) => (
                 <button
                     key={cat.id}
                     className={`${styles.item} ${activeCategory === cat.id ? styles.active : ''}`}
@@ -42,16 +49,13 @@ export default function CategoryFilter({ activeCategory, onSelectCategory }: Cat
                     data-active={activeCategory === cat.id}
                 >
                     <div className={styles.imageWrapper}>
-                        {/* Placeholder emoji icons for now until real assets are moved */}
-                        <span style={{ fontSize: '24px' }}>
-                            {cat.id === 'birthday' && '🎂'}
-                            {cat.id === 'wedding' && '💍'}
-                            {cat.id === 'anniversary' && '💑'}
-                            {cat.id === 'kids' && '🧸'}
-                            {cat.id === 'joy' && '🥳'}
-                            {cat.id === 'love' && '❤️'}
-                            {cat.id === 'custom' && '✨'}
-                        </span>
+                        {cat.image_url ? (
+                            <img src={cat.image_url} alt={cat.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                            <span style={{ fontSize: '24px' }}>
+                                {cat.icon || '🍰'}
+                            </span>
+                        )}
                     </div>
                     <span className={styles.label}>{cat.label}</span>
                 </button>

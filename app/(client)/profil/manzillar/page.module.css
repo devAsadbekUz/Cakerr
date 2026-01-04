@@ -1,0 +1,177 @@
+.container {
+    min-height: 100vh;
+    background-color: #F9FAFB;
+    padding-bottom: 40px;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: white;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.backBtn {
+    background: none;
+    border: none;
+    color: #1F2937;
+    cursor: pointer;
+    padding: 4px;
+}
+
+.title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.addBtn {
+    background: none;
+    border: none;
+    color: #BE185D;
+    cursor: pointer;
+    padding: 4px;
+}
+
+.content {
+    padding: 20px;
+}
+
+.addressList {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.addressCard {
+    background: white;
+    border-radius: 16px;
+    padding: 16px;
+    border: 1px solid #E5E7EB;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.addressCard:hover {
+    border-color: #BE185D;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.defaultCard {
+    border-color: #BE185D;
+    background: #FFF5F7;
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.labelSection {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #BE185D;
+}
+
+.label {
+    font-weight: 700;
+    font-size: 16px;
+}
+
+.deleteBtn {
+    background: none;
+    border: none;
+    color: #9CA3AF;
+    cursor: pointer;
+    padding: 4px;
+    transition: color 0.2s;
+}
+
+.deleteBtn:hover {
+    color: #EF4444;
+}
+
+.addressText {
+    font-size: 15px;
+    color: #374151;
+    margin: 4px 0;
+    line-height: 1.4;
+}
+
+.details {
+    font-size: 13px;
+    color: #6B7280;
+    margin-bottom: 12px;
+}
+
+.status {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed #E5E7EB;
+}
+
+.defaultBadge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #059669;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.setAsDefault {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #9CA3AF;
+    font-size: 13px;
+}
+
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 40px;
+    text-align: center;
+    color: #6B7280;
+}
+
+.emptyIcon {
+    color: #E5E7EB;
+    margin-bottom: 20px;
+}
+
+.emptyState h3 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 8px;
+}
+
+.primaryBtn {
+    margin-top: 24px;
+    background: #BE185D;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: #6B7280;
+}

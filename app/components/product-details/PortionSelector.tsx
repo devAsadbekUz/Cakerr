@@ -1,5 +1,7 @@
 'use client';
 
+import { useMemo } from 'react';
+
 import styles from './PortionSelector.module.css';
 
 interface PortionOption {
@@ -28,19 +30,31 @@ export default function PortionSelector({
   onSelect,
   options = DEFAULT_OPTIONS
 }: PortionSelectorProps) {
+
+  const uniqueOptions = useMemo(() => {
+    const seen = new Set();
+    return options.filter(opt => {
+      if (seen.has(opt.value)) return false;
+      seen.add(opt.value);
+      return true;
+    });
+  }, [options]);
+
   return (
     <div className={styles.container}>
       <h3 className={styles.label}>Porsiyalar (Necha kishiga)</h3>
       <div className={styles.scrollWrapper}>
         <div className={styles.grid}>
-          {options.map((opt) => (
+          {uniqueOptions.map((opt, index) => (
             <button
-              key={opt.value}
+              key={opt.value || index}
               className={`${styles.card} ${selected === opt.value ? styles.active : ''}`}
               onClick={() => onSelect(opt.value)}
             >
               <span className={styles.value}>{opt.value}</span>
-              <span className={styles.sub}>{opt.label || 'kishilik'}</span>
+              {opt.label && opt.label !== opt.value && (
+                <span className={styles.sub}>{opt.label}</span>
+              )}
             </button>
           ))}
         </div>

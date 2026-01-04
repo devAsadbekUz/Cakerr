@@ -42,7 +42,7 @@ export default function CheckoutPage() {
 
     const handleConfirmOrder = async () => {
         if (!user) {
-            router.push('/profil/login');
+            router.push('/profil/login?redirectTo=/savat/checkout');
             return;
         }
 
@@ -77,7 +77,7 @@ export default function CheckoutPage() {
             // 2. Create Order Items
             const orderItems = cart.map(item => ({
                 order_id: orderData.id,
-                product_id: item.id.length > 5 ? item.id : null, // Handle mock IDs vs real UUIDs
+                product_id: item.id, // We now strictly use UUIDs from Supabase
                 name: item.name,
                 quantity: item.quantity,
                 unit_price: item.price,

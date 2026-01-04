@@ -1,17 +1,18 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { Suspense, useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft, RefreshCcw } from 'lucide-react';
 import styles from './page.module.css';
 
 import { createClient } from '@/app/utils/supabase/client';
 
-export default function VerifyPage() {
+function VerifyContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const email = searchParams.get('email') || '';
     const name = searchParams.get('name') || '';
+    const redirectTo = searchParams.get('redirectTo') || '';
     const supabase = createClient();
 
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -59,7 +60,11 @@ export default function VerifyPage() {
 
             if (error) throw error;
 
-            router.push('/profil');
+            if (redirectTo) {
+                router.push(redirectTo);
+            } else {
+                router.push('/profil');
+            }
         } catch (err: any) {
             setError(err.message || 'Kod noto\'g\'ri');
             setLoading(false);
@@ -123,5 +128,13 @@ export default function VerifyPage() {
                 {loading ? 'Tasdiqlanmoqda...' : 'Tasdiqlash'}
             </button>
         </div>
+    );
+}
+
+export default function VerifyPage() {
+    return (
+        <Suspense fallback={<div className={styles.container}>Yuklanmoqda...</div>}>
+            <VerifyContent />
+        </Suspense>
     );
 }

@@ -10,6 +10,7 @@ import { useCart } from '@/app/context/CartContext';
 import { useFavorites } from '@/app/context/FavoritesContext';
 import { createClient } from '@/app/utils/supabase/client';
 import React from 'react';
+import { Product, Variant } from '@/app/types';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -32,7 +33,7 @@ function Chip({ label, color }: { label: string; color: string }) {
 
 export default function ProductDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = React.use(params);
-  const [product, setProduct] = useState<any>(null);
+  const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [portion, setPortion] = useState<string>('');
   const supabase = createClient();
@@ -44,22 +45,30 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
         .from('products')
         .select('*')
         .eq('id', id)
+        .is('deleted_at', null)
         .single();
 
       if (data && !error) {
-        const mappedProduct = {
-          ...data,
-          image: data.image_url,
-          price: data.base_price,
-          variants: data.variants || [],
-          details: data.details || {
-            shapes: ['Dumaloq'],
-            flavors: ['Shokoladli', 'Vanilli'],
-            coating: ['Krem-chiz'],
-          }
+        // Enforce type casting with validation if needed, but for now treating DB data as partial Product source
+        const mappedProduct: Product = {
+          id: data.id,
+          title: data.title,
+          subtitle: data.subtitle,
+          description: data.description,
+          category: data.category,
+          category_id: data.category_id,
+          base_price: data.base_price,
+          price: data.base_price, // Default price
+          image_url: data.image_url,
+          image: data.image_url, // Map for UI consistency
+          is_available: data.is_available ?? true,
+          is_ready: data.is_ready ?? false,
+          variants: (Array.isArray(data.variants) ? data.variants : []) as Variant[],
+          details: data.details || {}
         };
         setProduct(mappedProduct);
-        if (mappedProduct.variants.length > 0) {
+
+        if (mappedProduct.variants && mappedProduct.variants.length > 0) {
           setPortion(mappedProduct.variants[0].value);
         }
       }
@@ -75,10 +84,14 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
   if (!product) return <div className={styles.container} style={{ padding: '100px', textAlign: 'center' }}>Mahsulot topilmadi</div>;
 
   const favorited = isFavorite(product.id);
-  const selectedVariant = product.variants?.find((v: any) => v.value === portion) || product.variants?.[0];
+  const selectedVariant = product.variants?.find((v: Variant) => v.value === portion) || product.variants?.[0];
   const currentPrice = selectedVariant?.price || product.price;
 
   const handleAddToCart = (quantity: number) => {
+    // Defensive coding: Ensure flavors is an array and access safely
+    const flavors = product.details?.flavors;
+    const firstFlavor = (Array.isArray(flavors) && flavors.length > 0) ? flavors[0] : 'Klassik';
+
     addItem({
       id: product.id,
       name: product.title,
@@ -86,7 +99,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
       image: product.image,
       quantity,
       portion: portion,
-      flavor: product.details?.flavors[0] || 'Klassik'
+      flavor: firstFlavor
     });
   };
 
@@ -112,9 +125,11 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
           loading="eager"
         />
 
-        <span className={styles.tag}>
-          <span style={{ marginRight: '6px' }}>✓</span> Tayyor
-        </span>
+        {product.is_ready && (
+          <span className={styles.tag}>
+            <span style={{ marginRight: '6px' }}>✓</span> Tayyor
+          </span>
+        )}
 
         <div className={styles.imageActions}>
           <button className={styles.iconBtn} onClick={handleToggleFavorite} style={{ transition: 'all 0.2s active' }}>
@@ -149,23 +164,24 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
         <div className={styles.divider} />
 
         {/* Details Sections */}
-        {product.details?.shapes && (
+        {product.details?.shapes && product.details.shapes.length > 0 && (
           <Section title="Shakl">
             {product.details.shapes.map((t: string) => <Chip key={t} label={t} color="green" />)}
           </Section>
         )}
 
-        {product.details?.flavors && (
+        {product.details?.flavors && product.details.flavors.length > 0 && (
           <Section title="Ichki ta'mlar">
             {product.details.flavors.map((t: string) => <Chip key={t} label={t} color="pink" />)}
           </Section>
         )}
 
-        {product.details?.coating && (
-          <Section title="Qoplama turi">
+        {product.details?.coating && product.details.coating.length > 0 && (
+          <Section title="Ustki qoplama">
             {product.details.coating.map((t: string) => <Chip key={t} label={t} color="blue" />)}
           </Section>
         )}
+
 
         {product.details?.innerCoating && (
           <Section title="Ichki qoplama">
@@ -177,6 +193,14 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
           <Section title="Bezaklar">
             {product.details.decorations.map((t: string) => <Chip key={t} label={t} color="purple" />)}
           </Section>
+        )}
+
+        {/* Dynamic Description from Admin/DB */}
+        {product.description && (
+          <div className={styles.descriptionText}>
+            <h3 className={styles.sectionTitle} style={{ marginBottom: '8px' }}>Tavsif</h3>
+            {product.description}
+          </div>
         )}
 
         <BottomAction

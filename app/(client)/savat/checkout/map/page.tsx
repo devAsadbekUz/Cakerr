@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCart } from '@/app/context/CartContext';
 import styles from './page.module.css';
@@ -9,7 +9,7 @@ import Script from 'next/script';
 
 declare var L: any;
 
-export default function MapPage() {
+function MapContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const editId = searchParams.get('edit');
@@ -156,5 +156,13 @@ export default function MapPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function MapPage() {
+    return (
+        <Suspense fallback={<div className={styles.container} style={{ padding: '40px', textAlign: 'center' }}>Xarita yuklanmoqda...</div>}>
+            <MapContent />
+        </Suspense>
     );
 }

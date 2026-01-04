@@ -26,7 +26,8 @@ export default function SevimliPage() {
             const { data, error } = await supabase
                 .from('products')
                 .select('*')
-                .in('id', favorites);
+                .in('id', favorites)
+                .is('deleted_at', null);
 
             if (data && !error) {
                 // Map to match ProductGrid interface
@@ -36,7 +37,8 @@ export default function SevimliPage() {
                     price: p.base_price,
                     image: p.image_url,
                     category: p.category,
-                    variants: p.variants
+                    variants: p.variants,
+                    is_ready: p.is_ready
                 }));
                 setProducts(mappedProducts);
             }

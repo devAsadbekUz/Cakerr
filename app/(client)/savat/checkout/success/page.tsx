@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft, Check, Calendar, MapPin, MessageSquare, Banknote, ShoppingBag, Map as MapIcon } from 'lucide-react';
 import styles from './page.module.css';
@@ -24,7 +24,7 @@ function formattedDateWithSlot(isoDate: string, slot?: string) {
     return formattedDate;
 }
 
-export default function OrderSuccessPage() {
+function SuccessContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const orderId = searchParams.get('orderId');
@@ -171,5 +171,13 @@ export default function OrderSuccessPage() {
                 </button>
             </footer>
         </div>
+    );
+}
+
+export default function OrderSuccessPage() {
+    return (
+        <Suspense fallback={<div className={styles.container} style={{ padding: '40px', textAlign: 'center' }}>Yuklanmoqda...</div>}>
+            <SuccessContent />
+        </Suspense>
     );
 }

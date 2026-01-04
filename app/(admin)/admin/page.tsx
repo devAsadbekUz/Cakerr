@@ -6,7 +6,12 @@ export default function AdminDashboard() {
             <h1 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '24px' }}>Bosh sahifa</h1>
 
             {/* Stats Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '32px' }}>
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))',
+                gap: '24px',
+                marginBottom: '32px'
+            }}>
                 <StatCard title="Bugungi buyurtmalar" value="12" icon={ShoppingBag} color="blue" />
                 <StatCard title="Jami tushum" value="2,450,000" sub="so'm" icon={TrendingUp} color="green" />
                 <StatCard title="Faol mijozlar" value="45" icon={Users} color="purple" />
@@ -14,9 +19,9 @@ export default function AdminDashboard() {
             </div>
 
             {/* Recent Orders Table Placeholder */}
-            <div style={{ background: 'white', borderRadius: '16px', padding: '24px', border: '1px solid #E5E7EB' }}>
+            <div style={{ background: 'white', borderRadius: '16px', padding: '24px', border: '1px solid #E5E7EB', overflowX: 'auto' }}>
                 <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '16px' }}>Oxirgi buyurtmalar</h2>
-                <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                <table style={{ width: '100%', minWidth: '600px', textAlign: 'left', borderCollapse: 'collapse' }}>
                     <thead>
                         <tr style={{ color: '#6B7280', fontSize: '13px', borderBottom: '1px solid #F3F4F6' }}>
                             <th style={{ padding: '12px' }}>ID</th>

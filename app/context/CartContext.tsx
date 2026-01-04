@@ -1,6 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useSupabase } from './SupabaseContext';
+import { addressService } from '../services/addressService';
 
 export interface CartItem {
     cartId: string; // Unique ID for each item in cart (to distinguish same product with different options)
@@ -43,44 +45,100 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
     const [cart, setCart] = useState<CartItem[]>([]);
-    const [deliveryAddress, setDeliveryAddress] = useState<string>('Kinaiseppskv District');
+    const [deliveryAddress, setDeliveryAddress] = useState<string>('Toshkent');
     const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
     const [isInitialized, setIsInitialized] = useState(false);
+    const { user } = useSupabase();
 
-    // Load from localStorage on init
+    // Load and Sync Addresses
     useEffect(() => {
-        const savedCart = localStorage.getItem('cakerr_cart');
-        if (savedCart) {
-            try {
-                setCart(JSON.parse(savedCart));
-            } catch (e) {
-                console.error('Failed to parse cart', e);
+        if (!isInitialized) {
+            // Initial load from localStorage
+            const savedCart = localStorage.getItem('cakerr_cart');
+            if (savedCart) {
+                try { setCart(JSON.parse(savedCart)); } catch (e) { console.error(e); }
             }
-        }
-        const savedAddress = localStorage.getItem('cakerr_address');
-        if (savedAddress) {
-            setDeliveryAddress(savedAddress);
-        }
-        const savedList = localStorage.getItem('cakerr_saved_addresses');
-        if (savedList) {
-            try {
-                setSavedAddresses(JSON.parse(savedList));
-            } catch (e) {
-                console.error('Failed to parse saved addresses', e);
+            const savedAddress = localStorage.getItem('cakerr_address');
+            if (savedAddress) setDeliveryAddress(savedAddress);
+
+            const savedList = localStorage.getItem('cakerr_saved_addresses');
+            if (savedList) {
+                try { setSavedAddresses(JSON.parse(savedList)); } catch (e) { console.error(e); }
+            } else {
+                // Default seeds for new guests
+                setSavedAddresses([
+                    { id: 'm1', label: 'Uy', address: 'Mustaqillik shoh ko\'chasi', type: 'home', lat: 41.3110, lng: 69.2405 },
+                    { id: 'm2', label: 'Ish', address: 'Amir Temur ko\'chasi', type: 'work', lat: 41.3323, lng: 69.2123 }
+                ]);
             }
-        } else {
-            // Only set default addresses if localStorage is empty
-            setSavedAddresses([
-                { id: 'm1', label: 'Дом', address: 'Малая кольцевая дорога', type: 'home', lat: 41.3110, lng: 69.2405 },
-                { id: 'm2', label: 'Beruniy 1-dahasi, 4A', address: 'Toshkent', type: 'other', lat: 41.3323, lng: 69.2123 },
-                { id: 'm3', label: 'Дом', address: 'Qiyot dahasi, 100', type: 'home', lat: 41.3523, lng: 69.2823 },
-                { id: 'm4', label: 'Дом', address: 'Kichik halqa yo\'li, 9A', type: 'home', lat: 41.2823, lng: 69.2023 },
-                { id: 'm5', label: 'Uy', address: 'Mingo\'rik mahallasi', type: 'home', lat: 41.3023, lng: 69.2623 },
-                { id: 'm6', label: 'Tallimarjon ko\'chasi, 1A', address: 'Toshkent', type: 'other', lat: 41.2923, lng: 69.3023 }
-            ]);
+            setIsInitialized(true);
         }
-        setIsInitialized(true);
     }, []);
+
+    // Sync with Database when user logs in
+    useEffect(() => {
+        if (isInitialized && user) {
+            fetchDBAddresses();
+        }
+    }, [user, isInitialized]);
+
+    const fetchDBAddresses = async () => {
+        const dbAddresses = await addressService.getUserAddresses();
+
+        // If user logged in and has local guest addresses, migrate them!
+        if (dbAddresses.length === 0 && savedAddresses.length > 0) {
+            const actualGuestAddresses = savedAddresses.filter(a => !['m1', 'm2'].includes(a.id));
+            if (actualGuestAddresses.length > 0) {
+                await migrateGuestAddresses(actualGuestAddresses);
+                return;
+            }
+        }
+
+        if (dbAddresses.length > 0) {
+            const mapped: SavedAddress[] = dbAddresses.map(addr => ({
+                id: addr.id,
+                label: addr.label,
+                address: addr.address_text,
+                type: addr.label.toLowerCase() === 'uy' ? 'home' :
+                    addr.label.toLowerCase() === 'ish' ? 'work' : 'other',
+                lat: Number(addr.lat),
+                lng: Number(addr.lng)
+            }));
+            setSavedAddresses(mapped);
+
+            // Auto-select default address if needed
+            const defaultAddr = dbAddresses.find(a => a.is_default);
+            if (defaultAddr) setDeliveryAddress(defaultAddr.address_text);
+        }
+    };
+
+    const migrateGuestAddresses = async (actualGuestAddresses: SavedAddress[]) => {
+        for (const addr of actualGuestAddresses) {
+            await addressService.addAddress({
+                label: addr.label,
+                address_text: addr.address,
+                lat: addr.lat,
+                lng: addr.lng,
+                is_default: false
+            });
+        }
+
+        // Clear local storage list to prevent double migration
+        localStorage.removeItem('cakerr_saved_addresses');
+
+        // Final fetch to get fresh DB state with new IDs
+        const finalAddresses = await addressService.getUserAddresses();
+        const mapped: SavedAddress[] = finalAddresses.map(addr => ({
+            id: addr.id,
+            label: addr.label,
+            address: addr.address_text,
+            type: addr.label.toLowerCase() === 'uy' ? 'home' :
+                addr.label.toLowerCase() === 'ish' ? 'work' : 'other',
+            lat: Number(addr.lat),
+            lng: Number(addr.lng)
+        }));
+        setSavedAddresses(mapped);
+    };
 
     // Save to localStorage on change
     useEffect(() => {
@@ -132,17 +190,45 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     const clearCart = () => setCart([]);
 
-    const addSavedAddress = (newAddr: Omit<SavedAddress, 'id'>) => {
-        const id = `addr-${Date.now()}`;
-        setSavedAddresses(prev => [...prev, { ...newAddr, id }]);
+    const addSavedAddress = async (newAddr: Omit<SavedAddress, 'id'>) => {
+        if (user) {
+            const { data, error } = await addressService.addAddress({
+                label: newAddr.label,
+                address_text: newAddr.address,
+                lat: newAddr.lat,
+                lng: newAddr.lng,
+                is_default: savedAddresses.length === 0
+            });
+            if (!error && data) {
+                fetchDBAddresses();
+            }
+        } else {
+            const id = `addr-${Date.now()}`;
+            setSavedAddresses(prev => [...prev, { ...newAddr, id }]);
+        }
     };
 
-    const updateSavedAddress = (id: string, updates: Partial<SavedAddress>) => {
-        setSavedAddresses(prev => prev.map(a => a.id === id ? { ...a, ...updates } : a));
+    const updateSavedAddress = async (id: string, updates: Partial<SavedAddress>) => {
+        if (user && !id.startsWith('addr-')) {
+            await addressService.updateAddress(id, {
+                label: updates.label,
+                address_text: updates.address,
+                lat: updates.lat,
+                lng: updates.lng
+            });
+            fetchDBAddresses();
+        } else {
+            setSavedAddresses(prev => prev.map(a => a.id === id ? { ...a, ...updates } : a));
+        }
     };
 
-    const removeSavedAddress = (id: string) => {
-        setSavedAddresses(prev => prev.filter(a => a.id !== id));
+    const removeSavedAddress = async (id: string) => {
+        if (user && !id.startsWith('addr-')) {
+            await addressService.deleteAddress(id);
+            fetchDBAddresses();
+        } else {
+            setSavedAddresses(prev => prev.filter(a => a.id !== id));
+        }
     };
 
     const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 0), 0);

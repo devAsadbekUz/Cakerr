@@ -1,21 +1,67 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Bell, Globe, Moon, Lock, Trash2, FileText, Shield, Info } from 'lucide-react';
+import { ChevronLeft, User, Phone, Save, Loader2 } from 'lucide-react';
 import styles from './page.module.css';
+import { profileService } from '@/app/services/profileService';
+import { useSupabase } from '@/app/context/SupabaseContext';
 
-export default function SettingsPage() {
+export default function SozlamalarPage() {
     const router = useRouter();
-    const [notifications, setNotifications] = useState({
-        orders: true,
-        promotions: false,
-        reminders: true
-    });
+    const { user } = useSupabase();
+    const [fullName, setFullName] = useState('');
+    const [phoneNumber, setPhoneNumber] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [success, setSuccess] = useState(false);
 
-    const toggleNotification = (key: keyof typeof notifications) => {
-        setNotifications(prev => ({ ...prev, [key]: !prev[key] }));
+    useEffect(() => {
+        if (user) {
+            fetchProfile();
+        } else {
+            setLoading(false);
+        }
+    }, [user]);
+
+    const fetchProfile = async () => {
+        setLoading(true);
+        const profile = await profileService.getProfile(user!.id);
+        if (profile) {
+            setFullName(profile.full_name || '');
+            setPhoneNumber(profile.phone_number || '');
+        }
+        setLoading(false);
     };
+
+    const handleSave = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSaving(true);
+        setSuccess(false);
+
+        const { error } = await profileService.updateProfile(user!.id, {
+            full_name: fullName,
+            phone_number: phoneNumber
+        });
+
+        if (!error) {
+            setSuccess(true);
+            setTimeout(() => setSuccess(false), 3000);
+        } else {
+            alert('Xatolik: ' + error.message);
+        }
+        setSaving(false);
+    };
+
+    if (loading) return <div className={styles.loading}>Yuklanmoqda...</div>;
+
+    if (!user) {
+        return (
+            <div className={styles.container}>
+                <p>Ushbu sahifani ko'rish uchun tizimga kiring.</p>
+            </div>
+        );
+    }
 
     return (
         <div className={styles.container}>
@@ -24,168 +70,71 @@ export default function SettingsPage() {
                     <ChevronLeft size={24} />
                 </button>
                 <h1 className={styles.title}>Sozlamalar</h1>
+                <div style={{ width: 24 }} /> {/* Spacer */}
             </header>
 
-            {/* Notifications */}
-            <div className={styles.section}>
-                <h2 className={styles.sectionTitle}>Bildirishnomalar</h2>
-                <div className={styles.settingsList}>
-                    <div className={styles.settingItem}>
-                        <div className={styles.settingInfo}>
-                            <Bell size={20} className={styles.settingIcon} />
-                            <div>
-                                <h3>Buyurtma yangiliklari</h3>
-                                <p>Buyurtma holati haqida xabar oling</p>
-                            </div>
-                        </div>
-                        <label className={styles.toggle}>
+            <form className={styles.form} onSubmit={handleSave}>
+                <div className={styles.section}>
+                    <h3 className={styles.sectionTitle}>Shaxsiy ma'lumotlar</h3>
+
+                    <div className={styles.inputGroup}>
+                        <label className={styles.label}>To'liq ism</label>
+                        <div className={styles.inputWrapper}>
+                            <User className={styles.inputIcon} size={20} />
                             <input
-                                type="checkbox"
-                                checked={notifications.orders}
-                                onChange={() => toggleNotification('orders')}
+                                type="text"
+                                className={styles.input}
+                                value={fullName}
+                                onChange={(e) => setFullName(e.target.value)}
+                                placeholder="Ismingizni kiriting"
+                                required
                             />
-                            <span className={styles.slider}></span>
-                        </label>
-                    </div>
-                    <div className={styles.settingItem}>
-                        <div className={styles.settingInfo}>
-                            <Bell size={20} className={styles.settingIcon} />
-                            <div>
-                                <h3>Aksiyalar va chegirmalar</h3>
-                                <p>Maxsus takliflar haqida bilib oling</p>
-                            </div>
                         </div>
-                        <label className={styles.toggle}>
+                    </div>
+
+                    <div className={styles.inputGroup}>
+                        <label className={styles.label}>Telefon raqam</label>
+                        <div className={styles.inputWrapper}>
+                            <Phone className={styles.inputIcon} size={20} />
                             <input
-                                type="checkbox"
-                                checked={notifications.promotions}
-                                onChange={() => toggleNotification('promotions')}
+                                type="tel"
+                                className={styles.input}
+                                value={phoneNumber}
+                                onChange={(e) => setPhoneNumber(e.target.value)}
+                                placeholder="+998 90 123 45 67"
+                                required
                             />
-                            <span className={styles.slider}></span>
-                        </label>
-                    </div>
-                    <div className={styles.settingItem}>
-                        <div className={styles.settingInfo}>
-                            <Bell size={20} className={styles.settingIcon} />
-                            <div>
-                                <h3>Eslatmalar</h3>
-                                <p>Muhim sanalar haqida eslatma</p>
-                            </div>
-                        </div>
-                        <label className={styles.toggle}>
-                            <input
-                                type="checkbox"
-                                checked={notifications.reminders}
-                                onChange={() => toggleNotification('reminders')}
-                            />
-                            <span className={styles.slider}></span>
-                        </label>
-                    </div>
-                </div>
-            </div>
-
-            {/* Preferences */}
-            <div className={styles.section}>
-                <h2 className={styles.sectionTitle}>Afzalliklar</h2>
-                <div className={styles.settingsList}>
-                    <button className={styles.settingItem}>
-                        <div className={styles.settingInfo}>
-                            <Globe size={20} className={styles.settingIcon} />
-                            <div>
-                                <h3>Til</h3>
-                                <p>O'zbekcha</p>
-                            </div>
-                        </div>
-                        <ChevronRight size={20} className={styles.chevron} />
-                    </button>
-                    <button className={styles.settingItem}>
-                        <div className={styles.settingInfo}>
-                            <Moon size={20} className={styles.settingIcon} />
-                            <div>
-                                <h3>Qorong'i rejim</h3>
-                                <p>Tez kunda</p>
-                            </div>
-                        </div>
-                        <ChevronRight size={20} className={styles.chevron} />
-                    </button>
-                </div>
-            </div>
-
-            {/* Privacy */}
-            <div className={styles.section}>
-                <h2 className={styles.sectionTitle}>Maxfiylik va xavfsizlik</h2>
-                <div className={styles.settingsList}>
-                    <button className={styles.settingItem}>
-                        <div className={styles.settingInfo}>
-                            <Lock size={20} className={styles.settingIcon} />
-                            <div>
-                                <h3>Parolni o'zgartirish</h3>
-                            </div>
-                        </div>
-                        <ChevronRight size={20} className={styles.chevron} />
-                    </button>
-                    <button className={styles.settingItem}>
-                        <div className={styles.settingInfo}>
-                            <Trash2 size={20} className={styles.settingIcon} />
-                            <div>
-                                <h3>Keshni tozalash</h3>
-                            </div>
-                        </div>
-                        <ChevronRight size={20} className={styles.chevron} />
-                    </button>
-                </div>
-            </div>
-
-            {/* Legal */}
-            <div className={styles.section}>
-                <h2 className={styles.sectionTitle}>Huquqiy</h2>
-                <div className={styles.settingsList}>
-                    <button className={styles.settingItem}>
-                        <div className={styles.settingInfo}>
-                            <FileText size={20} className={styles.settingIcon} />
-                            <div>
-                                <h3>Foydalanish shartlari</h3>
-                            </div>
-                        </div>
-                        <ChevronRight size={20} className={styles.chevron} />
-                    </button>
-                    <button className={styles.settingItem}>
-                        <div className={styles.settingInfo}>
-                            <Shield size={20} className={styles.settingIcon} />
-                            <div>
-                                <h3>Maxfiylik siyosati</h3>
-                            </div>
-                        </div>
-                        <ChevronRight size={20} className={styles.chevron} />
-                    </button>
-                </div>
-            </div>
-
-            {/* About */}
-            <div className={styles.section}>
-                <h2 className={styles.sectionTitle}>Ilova haqida</h2>
-                <div className={styles.settingsList}>
-                    <div className={styles.settingItem}>
-                        <div className={styles.settingInfo}>
-                            <Info size={20} className={styles.settingIcon} />
-                            <div>
-                                <h3>Versiya</h3>
-                                <p>1.0.0</p>
-                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Danger Zone */}
-            <div className={styles.section}>
-                <div className={styles.dangerZone}>
-                    <button className={styles.dangerBtn}>
-                        <Trash2 size={20} />
-                        <span>Akkauntni o'chirish</span>
+                <div className={styles.section}>
+                    <h3 className={styles.sectionTitle}>Akkount ma'lumotlari</h3>
+                    <div className={styles.readOnlyInfo}>
+                        <label className={styles.label}>Email</label>
+                        <p className={styles.infoText}>{user.email || 'Biriktirilmagan'}</p>
+                    </div>
+                </div>
+
+                <div className={styles.actions}>
+                    <button
+                        type="submit"
+                        className={`${styles.saveBtn} ${success ? styles.successBtn : ''}`}
+                        disabled={saving}
+                    >
+                        {saving ? (
+                            <Loader2 className={styles.spin} size={20} />
+                        ) : success ? (
+                            'Saqlandi!'
+                        ) : (
+                            <>
+                                <Save size={20} />
+                                <span>Saqlash</span>
+                            </>
+                        )}
                     </button>
                 </div>
-            </div>
+            </form>
         </div>
     );
 }

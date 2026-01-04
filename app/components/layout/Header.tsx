@@ -10,6 +10,7 @@ interface HeaderProps {
     activeCategory: string;
     onSelectCategory: (id: string) => void;
     onContactClick: () => void;
+    categories: any[];
 }
 
 export default function Header({
@@ -17,7 +18,8 @@ export default function Header({
     onSearchChange,
     activeCategory,
     onSelectCategory,
-    onContactClick
+    onContactClick,
+    categories
 }: HeaderProps) {
     return (
         <div style={{
@@ -56,7 +58,11 @@ export default function Header({
                 <SearchBar value={searchTerm} onChange={onSearchChange} />
             </div>
 
-            <CategoryFilter activeCategory={activeCategory} onSelectCategory={onSelectCategory} />
+            <CategoryFilter
+                activeCategory={activeCategory}
+                onSelectCategory={onSelectCategory}
+                categories={categories}
+            />
         </div>
     );
 }

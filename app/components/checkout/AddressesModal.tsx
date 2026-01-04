@@ -56,7 +56,7 @@ export default function AddressesModal({ isOpen, onClose, onSelect, onNewAddress
         <div className={styles.overlay} onClick={onClose}>
             <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
                 <header className={styles.header}>
-                    <h2 className={styles.title}>Адреса</h2>
+                    <h2 className={styles.title}>Manzillar</h2>
                     <button className={styles.closeBtn} onClick={onClose}>
                         <X size={20} color="#111827" />
                     </button>
@@ -96,7 +96,7 @@ export default function AddressesModal({ isOpen, onClose, onSelect, onNewAddress
 
                 <button className={styles.newAddressBtn} onClick={handleNewAddress}>
                     <Plus size={20} />
-                    Новый адрес
+                    Yangi manzil
                 </button>
             </div>
         </div>

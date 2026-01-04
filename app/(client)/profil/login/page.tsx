@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft, Mail, ArrowRight, User } from 'lucide-react';
 import styles from './page.module.css';
 
@@ -9,6 +9,8 @@ import { createClient } from '@/app/utils/supabase/client';
 
 export default function LoginPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const redirectTo = searchParams.get('redirectTo') || '';
     const [email, setEmail] = useState('');
     const [fullName, setFullName] = useState('');
     const [loading, setLoading] = useState(false);
@@ -33,7 +35,7 @@ export default function LoginPage() {
 
             if (error) throw error;
 
-            router.push(`/profil/login/verify?email=${encodeURIComponent(email)}&name=${encodeURIComponent(fullName)}`);
+            router.push(`/profil/login/verify?email=${encodeURIComponent(email)}&name=${encodeURIComponent(fullName)}&redirectTo=${encodeURIComponent(redirectTo)}`);
         } catch (err: any) {
             setError(err.message || 'Xatolik yuz berdi');
         } finally {

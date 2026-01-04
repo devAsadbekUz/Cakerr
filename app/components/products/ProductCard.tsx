@@ -5,6 +5,7 @@ import { Plus, Heart } from 'lucide-react';
 import styles from './ProductCard.module.css';
 import { useCart } from '@/app/context/CartContext';
 import { useFavorites } from '@/app/context/FavoritesContext';
+import { Variant } from '@/app/types';
 
 interface ProductProps {
     id: string;
@@ -12,10 +13,11 @@ interface ProductProps {
     price: string | number;
     image: string;
     tag?: string;
-    variants?: { id: string; value: string; label?: string; price: number }[];
+    isReady?: boolean;
+    variants?: Variant[];
 }
 
-export default function ProductCard({ id, title, price, image, tag = 'Tayyor', variants }: ProductProps) {
+export default function ProductCard({ id, title, price, image, tag, isReady, variants }: ProductProps) {
     const { addItem } = useCart();
     const { toggleFavorite, isFavorite } = useFavorites();
     const favorited = isFavorite(id);
@@ -46,7 +48,7 @@ export default function ProductCard({ id, title, price, image, tag = 'Tayyor', v
     };
 
     return (
-        <Link href={`/mahsulot/${id}`} className={styles.card}>
+        <Link href={`/mahsulot/${id}`} className={`${styles.card} ${favorited ? styles.favoritedCard : ''}`}>
             <div className={styles.imageContainer}>
                 <img
                     src={image}
@@ -62,6 +64,7 @@ export default function ProductCard({ id, title, price, image, tag = 'Tayyor', v
                     <Heart size={16} fill={favorited ? "currentColor" : "none"} />
                 </button>
 
+                {isReady && <span className={styles.readyBadge}>Tayyor</span>}
                 {tag && <span className={styles.tag}>{tag}</span>}
             </div>
 
