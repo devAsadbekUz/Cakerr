@@ -50,12 +50,26 @@ export default function ProductCard({ id, title, price, image, tag, isReady, var
     return (
         <Link href={`/mahsulot/${id}`} className={`${styles.card} ${favorited ? styles.favoritedCard : ''}`}>
             <div className={styles.imageContainer}>
-                <img
-                    src={image}
-                    alt={title}
-                    className={styles.productImage}
-                    loading="lazy"
-                />
+                {image ? (
+                    <img
+                        src={image}
+                        alt={title}
+                        className={styles.productImage}
+                        loading="lazy"
+                    />
+                ) : (
+                    <div className={styles.productImage} style={{
+                        background: 'linear-gradient(135deg, #FDF2F8 0%, #FCE7F3 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#E91E63',
+                        fontSize: '14px',
+                        fontWeight: 600
+                    }}>
+                        Rasm yo'q
+                    </div>
+                )}
 
                 <button
                     className={`${styles.favoriteBtn} ${favorited ? styles.favorited : ''}`}

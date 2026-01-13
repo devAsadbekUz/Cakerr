@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import SupabaseProvider from "./context/SupabaseContext";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -31,7 +32,9 @@ export default function RootLayout({
         />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        {children}
+        <SupabaseProvider>
+          {children}
+        </SupabaseProvider>
       </body>
     </html>
   );

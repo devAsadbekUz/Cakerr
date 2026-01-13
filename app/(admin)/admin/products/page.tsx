@@ -12,7 +12,7 @@ export default function ProductsPage() {
     const [loading, setLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState<any>(null);
-    const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+    const [viewMode, setViewMode] = useState<'table' | 'grid'>('grid');
     const [mounted, setMounted] = useState(false);
     const supabase = createClient();
 
@@ -82,6 +82,22 @@ export default function ProductsPage() {
                     align-items: center;
                     gap: 16px;
                     margin-bottom: 32px;
+                }
+                .admin-product-grid {
+                    display: grid;
+                    grid-template-columns: repeat(4, 1fr);
+                    gap: 24px;
+                }
+                @media (max-width: 1200px) {
+                    .admin-product-grid {
+                        grid-template-columns: repeat(3, 1fr);
+                    }
+                }
+                @media (max-width: 900px) {
+                    .admin-product-grid {
+                        grid-template-columns: repeat(2, 1fr);
+                        gap: 16px;
+                    }
                 }
                 @media (max-width: 640px) {
                     .header-wrapper {
@@ -250,7 +266,7 @@ export default function ProductsPage() {
                     </table>
                 </div>
             ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px' }}>
+                <div className="admin-product-grid">
                     {products.map((p) => (
                         <div key={p.id} style={{ background: 'white', borderRadius: '16px', border: '1px solid #E5E7EB', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                             <div style={{ position: 'relative', paddingTop: '75%', background: '#F3F4F6' }}>

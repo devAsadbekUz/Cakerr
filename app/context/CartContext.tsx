@@ -14,6 +14,7 @@ export interface CartItem {
     flavor: string;
     quantity: number;
     customNote?: string;
+    configuration?: any; // Generic object for custom cake configuration
 }
 
 export interface SavedAddress {

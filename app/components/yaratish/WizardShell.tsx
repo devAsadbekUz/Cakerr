@@ -17,6 +17,9 @@ import { useRouter } from 'next/navigation';
 import BuilderModeSelection from './BuilderModeSelection';
 import PhotoUploadForm from './PhotoUploadForm';
 
+import { useEffect } from 'react';
+import { customCakeService } from '@/app/services/customCakeService';
+
 const STEPS = [
     { title: 'Shakl', component: ShapeStep },
     { title: 'Hajm', component: SizeStep },
@@ -36,10 +39,27 @@ export default function WizardShell() {
         shape,
         size,
         sponge,
-        cream
+        cream,
+        decorations,
+        text,
+        drawingData,
+        uploadedImage,
+        uploadComment,
+        options,
+        setOptions,
+        calculateTotal,
+        reset
     } = useCustomCake();
     const { addItem } = useCart();
     const router = useRouter();
+
+    useEffect(() => {
+        const load = async () => {
+            const opts = await customCakeService.getOptions();
+            setOptions(opts);
+        };
+        load();
+    }, []);
 
     if (!mode) {
         return <BuilderModeSelection />;
@@ -60,20 +80,37 @@ export default function WizardShell() {
         return false;
     };
 
-    const handleAddToCart = () => {
-        const flavor = `${sponge} + ${cream}`;
-        const name = `Maxsus Tort (${shape})`;
+    const handleComplete = () => {
+        const total = calculateTotal();
 
-        addItem({
-            id: `custom-wizard-${Date.now()}`,
-            name: name,
-            price: 350000, // Fixed price for custom cake for now
-            image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80',
-            portion: size || 'O\'rtacha',
-            flavor: flavor,
-            quantity: 1
-        });
+        const item: any = {
+            id: `custom-${Date.now()}`,
+            productId: 'custom-cake-id',
+            name: 'Maxsus tort',
+            price: total,
+            quantity: 1,
+            image: '/images/custom-cake-placeholder.jpg',
+            // Portsiya and flavor are required by CartItem type
+            portion: options.find(o => o.id === size)?.label || 'Maxsus',
+            flavor: options.find(o => o.id === cream)?.label || 'Maxsus',
+            configuration: {
+                mode,
+                shape,
+                size: options.find(o => o.id === size)?.label,
+                sponge: options.find(o => o.id === sponge)?.label,
+                flavor: options.find(o => o.id === cream)?.label,
+                decorations: options.filter(o => decorations.includes(o.id)).map(o => o.label).join(', '),
+                custom_note: text,
+                drawing: drawingData,
+                uploaded_photo_url: uploadedImage,
+                order_note: uploadComment,
+                pricing_type: 'hybrid',
+                estimated_total: total
+            }
+        };
 
+        addItem(item);
+        reset();
         router.push('/savat');
     };
 
@@ -103,25 +140,32 @@ export default function WizardShell() {
             </main>
 
             <footer className={styles.footer}>
-                <button className={styles.prevBtn} onClick={handleBack}>
-                    <ChevronLeft size={20} style={{ verticalAlign: 'middle', marginRight: 4 }} />
-                    Orqaga
-                </button>
+                <div className={styles.priceBar}>
+                    <span className={styles.priceLabel}>Taxminiy narxi*</span>
+                    <span className={styles.priceValue}>{calculateTotal().toLocaleString()} so'm</span>
+                </div>
 
-                {step < STEPS.length ? (
-                    <button
-                        className={styles.nextBtn}
-                        onClick={nextStep}
-                        disabled={isNextDisabled()}
-                    >
-                        Davom etish
-                        <ChevronRight size={20} style={{ verticalAlign: 'middle', marginLeft: 4 }} />
+                <div className={styles.buttonGroup}>
+                    <button className={styles.prevBtn} onClick={handleBack}>
+                        <ChevronLeft size={20} style={{ marginRight: 4 }} />
+                        Orqaga
                     </button>
-                ) : (
-                    <button className={styles.nextBtn} onClick={handleAddToCart}>
-                        Savatga qo'shish
-                    </button>
-                )}
+
+                    {step < STEPS.length ? (
+                        <button
+                            className={styles.nextBtn}
+                            onClick={nextStep}
+                            disabled={isNextDisabled()}
+                        >
+                            Davom etish
+                            <ChevronRight size={20} style={{ marginLeft: 4 }} />
+                        </button>
+                    ) : (
+                        <button className={styles.nextBtn} onClick={handleComplete}>
+                            Savatga qo'shish
+                        </button>
+                    )}
+                </div>
             </footer>
         </div>
     );

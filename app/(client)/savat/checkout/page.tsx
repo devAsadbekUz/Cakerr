@@ -1,15 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/app/context/CartContext';
 import styles from './page.module.css';
-import { ChevronLeft, ChevronRight, Calendar, Banknote, CreditCard } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Banknote, CreditCard, XCircle } from 'lucide-react';
 import CalendarModal from '@/app/components/checkout/CalendarModal';
 import AddressesModal from '@/app/components/checkout/AddressesModal';
 import SuccessModal from '@/app/components/checkout/SuccessModal';
 import { useSupabase } from '@/app/context/SupabaseContext';
 import { createClient } from '@/app/utils/supabase/client';
+import { format } from 'date-fns';
 
 const TIME_SLOTS = [
     '09:00 - 11:00',
@@ -37,8 +38,47 @@ export default function CheckoutPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [newOrderId, setNewOrderId] = useState<string | null>(null);
 
+    const [overrides, setOverrides] = useState<any[]>([]);
+    const [loadingAvailability, setLoadingAvailability] = useState(false);
+
     const deliveryFee = totalItems > 0 ? 25000 : 0;
     const total = subtotal + deliveryFee;
+
+    const fetchAvailability = async () => {
+        setLoadingAvailability(true);
+        try {
+            const today = new Date();
+            const nextMonth = new Date();
+            nextMonth.setDate(today.getDate() + 45); // Support booking up to 45 days in advance
+
+            const startDate = format(today, 'yyyy-MM-dd');
+            const endDate = format(nextMonth, 'yyyy-MM-dd');
+
+            const { data, error } = await supabase
+                .from('availability_overrides')
+                .select('*')
+                .gte('date', startDate)
+                .lte('date', endDate);
+
+            if (error) throw error;
+            setOverrides(data || []);
+        } catch (error) {
+            console.error('Error fetching availability:', error);
+        } finally {
+            setLoadingAvailability(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchAvailability();
+    }, []);
+
+    const isSlotBlocked = (slot: string) => {
+        if (!selectedDateObj) return false;
+        const dateStr = format(selectedDateObj, 'yyyy-MM-dd');
+        const dayOverrides = overrides.filter(o => o.date === dateStr);
+        return dayOverrides.some(o => o.slot === null || o.slot === slot);
+    };
 
     const handleConfirmOrder = async () => {
         if (!user) {
@@ -152,26 +192,34 @@ export default function CheckoutPage() {
                     isOpen={isCalendarOpen}
                     onClose={() => setIsCalendarOpen(false)}
                     selectedDate={selectedDateObj}
+                    overrides={overrides}
                     onSelect={(date) => {
                         setSelectedDateObj(date);
                         const monthNames = [
-                            "January", "February", "March", "April", "May", "June",
-                            "July", "August", "September", "October", "November", "December"
+                            "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
+                            "Iyul", "Avgust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr"
                         ];
-                        const formattedDate = `${monthNames[date.getMonth()]} ${date.getDate()}`;
+                        const formattedDate = `${date.getDate()}-${monthNames[date.getMonth()]}`;
                         setSelectedDate(formattedDate);
                     }}
                 />
                 <div className={styles.timeGrid}>
-                    {TIME_SLOTS.map((slot) => (
-                        <div
-                            key={slot}
-                            className={`${styles.timeSlot} ${selectedSlot === slot ? styles.timeSlotActive : ''}`}
-                            onClick={() => setSelectedSlot(slot)}
-                        >
-                            {slot}
-                        </div>
-                    ))}
+                    {TIME_SLOTS.map((slot) => {
+                        const blocked = isSlotBlocked(slot);
+                        return (
+                            <div
+                                key={slot}
+                                className={`
+                                    ${styles.timeSlot} 
+                                    ${selectedSlot === slot ? styles.timeSlotActive : ''} 
+                                    ${blocked ? styles.timeSlotBlocked : ''}
+                                `}
+                                onClick={() => !blocked && setSelectedSlot(slot)}
+                            >
+                                {slot}
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
 

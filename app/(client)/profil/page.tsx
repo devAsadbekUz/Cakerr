@@ -45,56 +45,77 @@ export default function ProfilPage() {
         featureName: ''
     });
 
-    useEffect(() => {
+    const fetchProfileData = async () => {
         if (!user) return;
+        setLoading(true);
 
-        async function fetchProfileData() {
-            setLoading(true);
+        const { data: ordersData } = await supabase
+            .from('orders')
+            .select(`
+                *,
+                order_items (*)
+            `)
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
 
-            // 1. Fetch Orders and Items
-            const { data: ordersData } = await supabase
-                .from('orders')
-                .select(`
-                    *,
-                    order_items (*)
-                `)
-                .eq('user_id', user?.id)
-                .order('created_at', { ascending: false });
+        if (ordersData) {
+            // Set stats
+            setStats({
+                orderCount: ordersData.length,
+                coins: 0
+            });
 
-            if (ordersData) {
-                // Set stats
-                setStats({
-                    orderCount: ordersData.length,
-                    coins: 0
+            const active = ordersData.find(o => !['completed', 'cancelled'].includes(o.status));
+            setActiveOrder(active || null);
+
+            // Map past orders for "Tez buyurtma" (completed ones)
+            const completed = ordersData
+                .filter(o => o.status === 'completed')
+                .map(o => {
+                    const item = o.order_items?.[0];
+                    return {
+                        id: o.id,
+                        date: new Date(o.created_at).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' }),
+                        items: `${item?.name || 'Mahsulot'} (${item?.configuration?.portion || ''})`,
+                        price: o.total_price,
+                        image: item?.configuration?.uploaded_photo_url || '/images/cake-placeholder.jpg',
+                        productId: item?.product_id,
+                        name: item?.name,
+                        portion: item?.configuration?.portion,
+                        flavor: item?.configuration?.flavor
+                    };
                 });
-
-                // Find active order
-                const active = ordersData.find(o => !['completed', 'cancelled'].includes(o.status));
-                setActiveOrder(active);
-
-                // Map past orders for "Tez buyurtma" (completed ones)
-                const completed = ordersData
-                    .filter(o => o.status === 'completed')
-                    .map(o => {
-                        const item = o.order_items?.[0];
-                        return {
-                            id: o.id,
-                            date: new Date(o.created_at).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' }),
-                            items: `${item?.name || 'Mahsulot'} (${item?.configuration?.portion || ''})`,
-                            price: o.total_price,
-                            image: item?.configuration?.uploaded_photo_url || 'https://images.unsplash.com/photo-1558301211-0d8c8ddee6ec?auto=format&fit=crop&w=800&q=80',
-                            productId: item?.product_id,
-                            name: item?.name,
-                            portion: item?.configuration?.portion,
-                            flavor: item?.configuration?.flavor
-                        };
-                    });
-                setOrders(completed);
-            }
-            setLoading(false);
+            setOrders(completed);
         }
+        setLoading(false);
+    };
 
+    useEffect(() => {
         fetchProfileData();
+
+        if (user) {
+            // Subscribe to real-time updates for user's orders to keep profile in sync
+            const channel = supabase
+                .channel(`profile-orders-${user.id}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'orders',
+                        filter: `user_id=eq.${user.id}`
+                    },
+                    () => {
+                        console.log('Order change detected on profile, refreshing...');
+                        fetchProfileData();
+                    }
+                )
+                .subscribe();
+
+            return () => {
+                supabase.removeChannel(channel);
+            };
+        }
     }, [user]);
 
     if (authLoading || (user && loading)) {
@@ -165,10 +186,12 @@ export default function ProfilPage() {
                         <h3 className={styles.sectionTitle}>Faol buyurtmalar</h3>
                         <ActiveOrderCard
                             orderId={activeOrder.id}
+                            itemName={activeOrder.order_items?.[0]?.name || 'Buyurtma'}
                             status={activeOrder.status === 'new' ? 'Yangi' :
                                 activeOrder.status === 'confirmed' ? 'Tasdiqlandi' :
                                     activeOrder.status === 'preparing' ? 'Tayyorlanmoqda' :
-                                        activeOrder.status === 'delivering' ? 'Yetkazilmoqda' : activeOrder.status}
+                                        activeOrder.status === 'ready' ? 'Tayyor' :
+                                            activeOrder.status === 'delivering' ? 'Yetkazilmoqda' : activeOrder.status}
                         />
                     </div>
                 )}

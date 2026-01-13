@@ -6,7 +6,7 @@ import styles from './Steps.module.css';
 import {
     Circle, Square, Heart, Maximize2, Move, Minimize2,
     Cookie, Droplets, Utensils, Wheat, IceCream, Coffee,
-    Check, MessageCircle, Pencil, Trash2, Palette, Type
+    Check, MessageCircle, Pencil, Trash2, Palette, Type, Info
 } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
 import { CAKE_OPTIONS } from '@/app/config/cakeBuilderConfig';
@@ -64,89 +64,100 @@ export function ShapeStep() {
 }
 
 export function SizeStep() {
-    const { size, setSize } = useCustomCake();
+    const { size, setSize, options } = useCustomCake();
+    const sizes = options.filter(o => o.type === 'size');
 
     return (
         <div className={styles.stepContainer}>
             <h2 className={styles.stepTitle}>O'lchamini tanlang</h2>
-            <div className={styles.grid}>
-                {CAKE_OPTIONS.sizes.map((s) => {
-                    const Icon = SIZE_ICONS[s.id] || Move;
-                    return (
-                        <div
-                            key={s.id}
-                            className={`${styles.card} ${size === s.id ? styles.cardActive : ''}`}
-                            onClick={() => setSize(s.id)}
-                        >
-                            <div className={styles.iconWrapper}>
-                                <Icon size={32} />
-                            </div>
-                            <span className={styles.label}>{s.label}</span>
-                            <span className={styles.price}>x{s.priceMultiplier}</span>
+            <div className={styles.sizeGrid}>
+                {sizes.map((s) => (
+                    <div
+                        key={s.id}
+                        className={`${styles.sizeCard} ${size === s.id ? styles.sizeCardActive : ''}`}
+                        onClick={() => setSize(s.id)}
+                    >
+                        <div className={styles.sizeCircle}>
+                            <span>{s.sub_label || 'Ø'}</span>
+                            <small>diametr</small>
                         </div>
-                    );
-                })}
+                        <div className={styles.sizeInfo}>
+                            <span className={styles.sizeLabel}>{s.label}</span>
+                            <span className={styles.sizeSubLabel}>Taxminiy vazni: 1.5kg - 2.5kg</span>
+                        </div>
+                        <div className={styles.sizePrice}>
+                            {s.price.toLocaleString()} so'm
+                        </div>
+                    </div>
+                ))}
+            </div>
+            <div className={styles.pricingNote}>
+                <Info size={18} />
+                <span>Tanlangan o'lchamga qarab yakuniy narx turlicha bo'lishi mumkin.</span>
             </div>
         </div>
     );
 }
 
 export function SpongeStep() {
-    const { sponge, setSponge } = useCustomCake();
+    const { sponge, setSponge, options } = useCustomCake();
+    const sponges = options.filter(o => o.type === 'sponge');
 
     return (
         <div className={styles.stepContainer}>
             <h2 className={styles.stepTitle}>Biskvit (Asos) turini tanlang</h2>
             <div className={styles.grid}>
-                {CAKE_OPTIONS.sponges.map((s) => {
-                    const Icon = SPONGE_ICONS[s.id] || IceCream;
-                    return (
-                        <div
-                            key={s.id}
-                            className={`${styles.card} ${sponge === s.id ? styles.cardActive : ''}`}
-                            onClick={() => setSponge(s.id)}
-                        >
-                            <div className={styles.iconWrapper} style={{ color: s.color }}>
-                                <Icon size={32} />
-                            </div>
-                            <span className={styles.label}>{s.label}</span>
+                {sponges.map((s) => (
+                    <div
+                        key={s.id}
+                        className={`${styles.card} ${sponge === s.id ? styles.cardActive : ''}`}
+                        onClick={() => setSponge(s.id)}
+                    >
+                        <div className={styles.iconWrapper}>
+                            <Cookie size={32} />
                         </div>
-                    );
-                })}
+                        <span className={styles.label}>{s.label}</span>
+                        {s.price > 0 && <span className={styles.price}>+{s.price.toLocaleString()} so'm</span>}
+                    </div>
+                ))}
             </div>
         </div>
     );
 }
 
 export function CreamStep() {
-    const { cream, setCream } = useCustomCake();
+    const { cream, setCream, options } = useCustomCake();
+    const creams = options.filter(o => o.type === 'cream');
 
     return (
         <div className={styles.stepContainer}>
             <h2 className={styles.stepTitle}>Krem turini tanlang</h2>
             <div className={styles.grid}>
-                {CAKE_OPTIONS.creams.map((c) => {
-                    const Icon = CREAM_ICONS[c.id] || Coffee;
-                    return (
-                        <div
-                            key={c.id}
-                            className={`${styles.card} ${cream === c.id ? styles.cardActive : ''}`}
-                            onClick={() => setCream(c.id)}
-                        >
-                            <div className={styles.iconWrapper} style={{ color: c.color }}>
-                                <Icon size={32} />
+                {creams.map((c) => (
+                    <div
+                        key={c.id}
+                        className={`${styles.card} ${cream === c.id ? styles.cardActive : ''}`}
+                        onClick={() => setCream(c.id)}
+                    >
+                        {c.image_url ? (
+                            <img src={c.image_url} alt={c.label} className={styles.cardImage} style={{ width: 60, height: 60, borderRadius: '50%', objectFit: 'cover' }} />
+                        ) : (
+                            <div className={styles.iconWrapper}>
+                                <Droplets size={32} />
                             </div>
-                            <span className={styles.label}>{c.label}</span>
-                        </div>
-                    );
-                })}
+                        )}
+                        <span className={styles.label}>{c.label}</span>
+                        {c.price > 0 && <span className={styles.price}>+{c.price.toLocaleString()} so'm</span>}
+                    </div>
+                ))}
             </div>
         </div>
     );
 }
 
 export function DecorationStep() {
-    const { decorations, toggleDecoration, text, setText, drawingData, setDrawingData } = useCustomCake();
+    const { decorations, toggleDecoration, text, setText, drawingData, setDrawingData, options } = useCustomCake();
+    const decors = options.filter(o => o.type === 'decoration');
     const [mode, setMode] = useState<'text' | 'drawing'>('text');
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isDrawing, setIsDrawing] = useState(false);
@@ -250,14 +261,17 @@ export function DecorationStep() {
         <div className={styles.stepContainer}>
             <h2 className={styles.stepTitle}>Bezaklarni qo'shing</h2>
             <div className={styles.list}>
-                {CAKE_OPTIONS.decorations.map((d) => (
+                {decors.map((d) => (
                     <div
                         key={d.id}
                         className={`${styles.listItem} ${decorations.includes(d.id) ? styles.listItemActive : ''}`}
                         onClick={() => toggleDecoration(d.id)}
                     >
-                        <span className={styles.label}>{d.label}</span>
-                        {decorations.includes(d.id) && <Check size={20} color="hsl(var(--color-primary))" />}
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span className={styles.label}>{d.label}</span>
+                            {d.price > 0 && <span style={{ fontSize: 13, color: '#BE185D', fontWeight: 600 }}>+{d.price.toLocaleString()} so'm</span>}
+                        </div>
+                        {decorations.includes(d.id) && <Check size={20} color="#BE185D" />}
                     </div>
                 ))}
             </div>
@@ -332,20 +346,17 @@ export function DecorationStep() {
 }
 
 export function ReviewStep() {
-    const { shape, size, sponge, cream, decorations, text, drawingData } = useCustomCake();
+    const { shape, size, sponge, cream, decorations, text, drawingData, options, calculateTotal } = useCustomCake();
 
-    // Helper to find label by ID
+    // Helper to find label by ID from DB or fallback
+    const getOptionLabel = (id: string | null) => options.find(o => o.id === id)?.label || 'Tanlanmagan';
     const getShapeLabel = (id: string | null) => CAKE_OPTIONS.shapes.find(s => s.id === id)?.label || id;
-    const getSizeLabel = (id: string | null) => CAKE_OPTIONS.sizes.find(s => s.id === id)?.label || id;
-    const getSpongeLabel = (id: string | null) => CAKE_OPTIONS.sponges.find(s => s.id === id)?.label || id;
-    const getCreamLabel = (id: string | null) => CAKE_OPTIONS.creams.find(c => c.id === id)?.label || id;
-    const getDecorationLabel = (id: string) => CAKE_OPTIONS.decorations.find(d => d.id === id)?.label || id;
 
     const summaryItems = [
         { label: 'Shakl', value: getShapeLabel(shape) },
-        { label: 'Hajm', value: getSizeLabel(size) },
-        { label: 'Biskvit', value: getSpongeLabel(sponge) },
-        { label: 'Krem', value: getCreamLabel(cream) },
+        { label: 'Hajm', value: getOptionLabel(size) },
+        { label: 'Biskvit', value: getOptionLabel(sponge) },
+        { label: 'Krem', value: getOptionLabel(cream) },
     ];
 
     return (
@@ -356,7 +367,7 @@ export function ReviewStep() {
                     {summaryItems.map((item) => (
                         <div key={item.label} className={styles.summaryRow}>
                             <span className={styles.summaryLabel}>{item.label}:</span>
-                            <span className={styles.summaryValue}>{item.value || 'Tanlanmagan'}</span>
+                            <span className={styles.summaryValue}>{item.value}</span>
                         </div>
                     ))}
                 </div>
@@ -365,8 +376,8 @@ export function ReviewStep() {
                     <div className={styles.summarySection}>
                         <h4 className={styles.summarySubTitle}>Bezaklar:</h4>
                         <div className={styles.tagCloud}>
-                            {decorations.map(d => (
-                                <span key={d} className={styles.tag}>{getDecorationLabel(d)}</span>
+                            {decorations.map(dId => (
+                                <span key={dId} className={styles.tag}>{getOptionLabel(dId)}</span>
                             ))}
                         </div>
                     </div>
@@ -385,6 +396,14 @@ export function ReviewStep() {
                         <img src={drawingData} alt="Custom Drawing" style={{ width: '100%', borderRadius: 8, border: '1px solid #eee' }} />
                     </div>
                 )}
+
+                <div className={styles.totalEstimated}>
+                    <div>
+                        <span className={styles.totalLabel}>Taxminiy narxi*</span>
+                        <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>Admin tomonidan o'zgartirilishi mumkin</div>
+                    </div>
+                    <div className={styles.totalValue}>{calculateTotal().toLocaleString()} so'm</div>
+                </div>
             </div>
         </div>
     );

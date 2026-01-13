@@ -38,17 +38,22 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 24px;
+    margin-bottom: 32px;
 }
 
 .monthTitle {
-    font-size: 18px;
-    font-weight: 700;
+    font-size: 24px;
+    font-weight: 800;
     color: #111827;
+    margin: 0;
+}
+
+.navGroup {
+    display: flex;
+    gap: 8px;
 }
 
 .navBtn {
-    background: none;
     border: none;
     color: #E91E63;
     cursor: pointer;
@@ -107,6 +112,11 @@
 .dayBtn:disabled {
     color: #E5E7EB;
     cursor: not-allowed;
+}
+
+.blocked {
+    color: #E5E7EB !important;
+    text-decoration: line-through;
 }
 
 .dayBtn:not(:disabled):hover {

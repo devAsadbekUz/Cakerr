@@ -1,96 +1,130 @@
-import { TrendingUp, Users, ShoppingBag, Clock } from 'lucide-react';
+'use client';
 
-export default function AdminDashboard() {
+import { useState, useEffect } from 'react';
+import {
+    ShoppingBag, Clock, AlertCircle, CheckCircle2,
+    TrendingUp, Users, DollarSign, Calendar
+} from 'lucide-react';
+import { orderService } from '@/app/services/orderService';
+import {
+    format, isToday, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay
+} from 'date-fns';
+import styles from './AdminDashboard.module.css';
+import { StatCard } from '@/app/components/admin/DashboardComponents';
+
+export default function AdminAnalyticsPage() {
+    const [orders, setOrders] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+        const fetchData = async () => {
+            const data = await orderService.getAllOrdersAdmin();
+            setOrders(data || []);
+            setLoading(false);
+        };
+        fetchData();
+    }, []);
+
+    if (!mounted) return null;
+
+    // Analytics Logic
+    const newOrders = orders.filter(o => o.status === 'new');
+    const todaysOrders = orders.filter(o => isToday(new Date(o.delivery_time)) && o.status !== 'completed' && o.status !== 'cancelled');
+    const totalRevenue = orders
+        .filter(o => o.status === 'completed')
+        .reduce((sum, o) => sum + Number(o.total_price), 0);
+
+    // Weekly Bar Graph Logic
+    const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
+    const daysOfCurrentWeek = eachDayOfInterval({ start: weekStart, end: weekEnd });
+
+    const weeklyData = daysOfCurrentWeek.map(day => {
+        const dayOrders = orders.filter(o => isSameDay(new Date(o.delivery_time), day));
+        return {
+            label: format(day, 'EEE'),
+            date: format(day, 'd-MMM'),
+            count: dayOrders.length,
+            isToday: isToday(day)
+        };
+    });
+
+    const maxOrders = Math.max(...weeklyData.map(d => d.count), 5); // Minimum scale of 5
+
     return (
-        <div>
-            <h1 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '24px' }}>Bosh sahifa</h1>
+        <div className={styles.container}>
+            <header className={styles.header}>
+                <h1 className={styles.title}>Menejer Paneli</h1>
+                <p style={{ color: '#6B7280', marginTop: '4px' }}>Xush kelibsiz! Bugungi tahlillar bilan tanishing.</p>
+            </header>
 
-            {/* Stats Grid */}
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))',
-                gap: '24px',
-                marginBottom: '32px'
-            }}>
-                <StatCard title="Bugungi buyurtmalar" value="12" icon={ShoppingBag} color="blue" />
-                <StatCard title="Jami tushum" value="2,450,000" sub="so'm" icon={TrendingUp} color="green" />
-                <StatCard title="Faol mijozlar" value="45" icon={Users} color="purple" />
-                <StatCard title="Kutilmoqda" value="5" icon={Clock} color="orange" />
+            {/* Main Stats Grid */}
+            <div className={styles.statsGrid}>
+                <StatCard title="Yangi" value={newOrders.length} icon={AlertCircle} color="orange" />
+                <StatCard title="Bugun" value={todaysOrders.length} icon={Clock} color="blue" />
+                <StatCard title="Daromat" value={`${(totalRevenue / 1000000).toFixed(1)}M`} icon={DollarSign} color="green" />
+                <StatCard title="Mijozlar" value={new Set(orders.map(o => o.user_id)).size} icon={Users} color="purple" />
             </div>
 
-            {/* Recent Orders Table Placeholder */}
-            <div style={{ background: 'white', borderRadius: '16px', padding: '24px', border: '1px solid #E5E7EB', overflowX: 'auto' }}>
-                <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '16px' }}>Oxirgi buyurtmalar</h2>
-                <table style={{ width: '100%', minWidth: '600px', textAlign: 'left', borderCollapse: 'collapse' }}>
-                    <thead>
-                        <tr style={{ color: '#6B7280', fontSize: '13px', borderBottom: '1px solid #F3F4F6' }}>
-                            <th style={{ padding: '12px' }}>ID</th>
-                            <th style={{ padding: '12px' }}>Mijoz</th>
-                            <th style={{ padding: '12px' }}>Mahsulot</th>
-                            <th style={{ padding: '12px' }}>Narx</th>
-                            <th style={{ padding: '12px' }}>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <OrderRow id="#1024" customer="Aziza Rahimova" product="Shokoladli tort" price="228,000" status="Yangi" statusColor="blue" />
-                        <OrderRow id="#1023" customer="Bekzod Aliyev" product="Vanilla Dream" price="180,000" status="Yuborildi" statusColor="green" />
-                        <OrderRow id="#1022" customer="Malika T." product="Red Velvet" price="250,000" status="Bekor qilindi" statusColor="red" />
-                    </tbody>
-                </table>
-            </div>
+            {loading ? (
+                <div style={{ textAlign: 'center', padding: '60px', color: '#6B7280' }}>Yuklanmoqda...</div>
+            ) : (
+                <div className={styles.analyticsLayout}>
+                    {/* Weekly Orders Bar Graph */}
+                    <div className={styles.chartCard}>
+                        <div className={styles.chartHeader}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <TrendingUp size={20} color="#BE185D" />
+                                <h2 style={{ fontSize: '18px', fontWeight: 800 }}>Haftalik buyurtmalar</h2>
+                            </div>
+                            <span style={{ fontSize: '12px', color: '#6B7280', fontWeight: 600 }}>Joriy hafta</span>
+                        </div>
+
+                        <div className={styles.barGraphContainer}>
+                            {weeklyData.map((day, idx) => {
+                                const heightPercentage = (day.count / maxOrders) * 100;
+                                return (
+                                    <div key={idx} className={styles.barColumn}>
+                                        <div className={styles.barWrapper}>
+                                            <div
+                                                className={`${styles.bar} ${day.isToday ? styles.barToday : ''}`}
+                                                style={{ height: `${Math.max(heightPercentage, 5)}%` }}
+                                            >
+                                                {day.count > 0 && <span className={styles.barValue}>{day.count}</span>}
+                                            </div>
+                                        </div>
+                                        <span className={styles.barLabel}>{day.label}</span>
+                                        <span className={styles.barDate}>{day.date}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Additional Analytics - Popular Products etc could go here */}
+                    <div className={styles.recentActivity}>
+                        <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '20px' }}>So'nggi harakatlar</h2>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            {orders.slice(0, 5).map(o => (
+                                <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'white', borderRadius: '16px', border: '1px solid #F3F4F6' }}>
+                                    <div style={{ padding: '8px', background: '#FDF2F8', borderRadius: '10px', color: '#BE185D' }}>
+                                        <ShoppingBag size={16} />
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ fontSize: '14px', fontWeight: 700 }}>#{o.id.slice(0, 6)} - {o.profiles?.full_name}</div>
+                                        <div style={{ fontSize: '12px', color: '#6B7280' }}>{format(new Date(o.created_at), 'HH:mm')} • {o.total_price.toLocaleString()} so'm</div>
+                                    </div>
+                                    <div style={{ fontSize: '11px', fontWeight: 700, padding: '4px 8px', borderRadius: '6px', background: '#F3F4F6', color: '#6B7280', textTransform: 'uppercase' }}>
+                                        {o.status}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
-}
-
-// Simple Components for MVP
-function StatCard({ title, value, sub, icon: Icon, color }: any) {
-    const colors: any = {
-        blue: { bg: '#DBEAFE', text: '#1E40AF' },
-        green: { bg: '#D1FAE5', text: '#065F46' },
-        purple: { bg: '#EDE9FE', text: '#5B21B6' },
-        orange: { bg: '#FFEDD5', text: '#9A3412' },
-    };
-
-    return (
-        <div style={{ background: 'white', padding: '24px', borderRadius: '16px', border: '1px solid #E5E7EB', display: 'flex', gap: '16px' }}>
-            <div style={{
-                width: '48px', height: '48px', borderRadius: '12px',
-                background: colors[color].bg, color: colors[color].text,
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-            }}>
-                <Icon size={24} />
-            </div>
-            <div>
-                <p style={{ color: '#6B7280', fontSize: '13px', marginBottom: '4px' }}>{title}</p>
-                <p style={{ fontSize: '24px', fontWeight: 800 }}>
-                    {value} <span style={{ fontSize: '14px', color: '#9CA3AF' }}>{sub}</span>
-                </p>
-            </div>
-        </div>
-    )
-}
-
-function OrderRow({ id, customer, product, price, status, statusColor }: any) {
-    const colors: any = {
-        blue: { bg: '#DBEAFE', text: '#1E40AF' },
-        green: { bg: '#D1FAE5', text: '#065F46' },
-        red: { bg: '#FEE2E2', text: '#991B1B' },
-    };
-
-    return (
-        <tr style={{ borderBottom: '1px solid #F9FAFB' }}>
-            <td style={{ padding: '16px 12px', fontWeight: 600 }}>{id}</td>
-            <td style={{ padding: '16px 12px' }}>{customer}</td>
-            <td style={{ padding: '16px 12px' }}>{product}</td>
-            <td style={{ padding: '16px 12px' }}>{price}</td>
-            <td style={{ padding: '16px 12px' }}>
-                <span style={{
-                    background: colors[statusColor].bg, color: colors[statusColor].text,
-                    padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600
-                }}>
-                    {status}
-                </span>
-            </td>
-        </tr>
-    )
 }

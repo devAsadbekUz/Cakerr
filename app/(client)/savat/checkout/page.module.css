@@ -138,6 +138,37 @@
     border-color: #E91E63;
 }
 
+.timeSlotBlocked {
+    background-color: #F3F4F6;
+    color: #9CA3AF;
+    cursor: not-allowed;
+    border-color: #E5E7EB;
+    position: relative;
+    overflow: hidden;
+    opacity: 0.7;
+}
+
+.timeSlotBlocked::before,
+.timeSlotBlocked::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 140%;
+    height: 1.5px;
+    background-color: #EF4444;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.timeSlotBlocked::before {
+    transform: translate(-50%, -50%) rotate(25deg);
+}
+
+.timeSlotBlocked::after {
+    transform: translate(-50%, -50%) rotate(-25deg);
+}
+
 .textarea {
     width: 100%;
     min-height: 100px;

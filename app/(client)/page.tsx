@@ -22,45 +22,68 @@ export default function HomePage() {
   const supabase = createClient();
   const { user } = useSupabase();
 
-  useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
+  const fetchData = async () => {
+    setLoading(true);
 
-      // 1. Fetch Categories
-      const { data: cData } = await supabase
-        .from('categories')
-        .select('*');
+    // 1. Fetch Categories
+    const { data: cData } = await supabase
+      .from('categories')
+      .select('*');
 
-      const loadedCategories = cData || [];
-      // Ensure 'custom' category is present if not in DB, though it should be.
-      // Assuming 'custom' was added via seed, if not we can push it manually or rely on DB.
-      // Based on seed, 'custom' is in DB.
-      setCategories(loadedCategories);
+    const loadedCategories = cData || [];
+    setCategories(loadedCategories);
 
-      // 2. Fetch Products via Service
-      const pData = await productService.getActiveProducts();
-      setProducts(pData);
+    // 2. Fetch Products via Service
+    const pData = await productService.getActiveProducts();
+    setProducts(pData);
 
-      // 3. Fetch Active Order (Only if user exists)
-      if (user) {
-        const { data: oData } = await supabase
-          .from('orders')
-          .select('id, status')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(5); // Fetch recent orders
+    // 3. Fetch Active Order (Only if user exists)
+    if (user) {
+      const { data: oData } = await supabase
+        .from('orders')
+        .select('*, order_items(*)')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5); // Fetch recent orders
 
-        if (oData) {
-          // Filter in JS to be 100% sure it matches Profile logic
-          const active = oData.find(o => !['completed', 'cancelled'].includes(o.status));
-          if (active) setActiveOrder(active);
-        }
+      if (oData) {
+        const active = oData.find(o => !['completed', 'cancelled'].includes(o.status));
+        setActiveOrder(active || null);
+      } else {
+        setActiveOrder(null);
       }
-
-      setLoading(false);
     }
+
+    setLoading(false);
+  };
+
+  useEffect(() => {
     fetchData();
-  }, [user]); // Re-run when user auth state loads/changes
+
+    if (user) {
+      // Subscribe to real-time updates for user's orders
+      const channel = supabase
+        .channel(`user-orders-${user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*', // Listen for inserts, updates, deletes
+            schema: 'public',
+            table: 'orders',
+            filter: `user_id=eq.${user.id}`
+          },
+          () => {
+            console.log('Order change detected, refreshing home data...');
+            fetchData(); // Simple re-fetch to keep logic centralized
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [user]);
 
   // Filter products based on search
   const filteredProducts = products.filter(p =>
@@ -132,10 +155,12 @@ export default function HomePage() {
             <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#1F2937', marginBottom: '12px' }}>Faol buyurtmalar</h3>
             <ActiveOrderCard
               orderId={activeOrder.id}
+              itemName={activeOrder.order_items?.[0]?.name || 'Buyurtma'}
               status={activeOrder.status === 'new' ? 'Yangi' :
                 activeOrder.status === 'confirmed' ? 'Tasdiqlandi' :
                   activeOrder.status === 'preparing' ? 'Tayyorlanmoqda' :
-                    activeOrder.status === 'delivering' ? 'Yetkazilmoqda' : activeOrder.status}
+                    activeOrder.status === 'ready' ? 'Tayyor' :
+                      activeOrder.status === 'delivering' ? 'Yetkazilmoqda' : activeOrder.status}
             />
           </div>
         )}

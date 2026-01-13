@@ -1,7 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+    format, startOfMonth, endOfMonth, startOfWeek, endOfWeek,
+    eachDayOfInterval, isSameMonth, isSameDay, isPast
+} from 'date-fns';
 import styles from './CalendarModal.module.css';
 
 interface CalendarModalProps {
@@ -9,73 +13,85 @@ interface CalendarModalProps {
     onClose: () => void;
     onSelect: (date: Date) => void;
     selectedDate?: Date;
+    overrides?: any[];
 }
 
 const MONTHS = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
+    'Iyul', 'Avgust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'
 ];
 
-const WEEKDAYS = ['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sha', 'Ya'];
+const WEEKDAYS = ['Du', 'Se', 'Cho', 'Pa', 'Ju', 'Sha', 'Ya'];
 
-export default function CalendarModal({ isOpen, onClose, onSelect, selectedDate }: CalendarModalProps) {
+export default function CalendarModal({ isOpen, onClose, onSelect, selectedDate, overrides }: CalendarModalProps) {
     const [viewDate, setViewDate] = useState(new Date());
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     if (!isOpen) return null;
 
-    const currentYear = viewDate.getFullYear();
-    const currentMonth = viewDate.getMonth();
+    const monthStart = startOfMonth(viewDate);
+    const monthEnd = endOfMonth(monthStart);
+    const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
+    const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
 
-    const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
-    // Adjust for Monday start (JS default is Sunday)
-    const startingDay = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    // Generate a fixed 42-cell grid (6 rows of 7 days)
+    const calendarDays = eachDayOfInterval({ start: startDate, end: endDate });
+
+    // If the interval resulted in 35 days (5 rows), add another week to keep layout consistent
+    if (calendarDays.length < 42) {
+        const extraStartDate = new Date(calendarDays[calendarDays.length - 1]);
+        extraStartDate.setDate(extraStartDate.getDate() + 1);
+        const extraEndDate = new Date(extraStartDate);
+        extraEndDate.setDate(extraEndDate.getDate() + (41 - calendarDays.length));
+
+        calendarDays.push(...eachDayOfInterval({ start: extraStartDate, end: extraEndDate }));
+    }
 
     const prevMonth = () => {
-        setViewDate(new Date(currentYear, currentMonth - 1, 1));
+        setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
     };
 
     const nextMonth = () => {
-        setViewDate(new Date(currentYear, currentMonth + 1, 1));
+        setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1));
     };
 
-    const handleDateSelect = (day: number) => {
-        const date = new Date(currentYear, currentMonth, day);
+    const handleDateSelect = (date: Date) => {
         onSelect(date);
         onClose();
     };
 
-    const isToday = (day: number) => {
-        const d = new Date(currentYear, currentMonth, day);
-        return d.getTime() === today.getTime();
+    const isDateSelected = (date: Date) => {
+        return selectedDate && isSameDay(date, selectedDate);
     };
 
-    const isSelected = (day: number) => {
-        if (!selectedDate) return false;
-        const d = new Date(currentYear, currentMonth, day);
-        return d.toDateString() === selectedDate.toDateString();
+    const isDateToday = (date: Date) => {
+        return isSameDay(date, today);
     };
 
-    const isPast = (day: number) => {
-        const d = new Date(currentYear, currentMonth, day);
-        return d < today;
+    const getDayStatus = (date: Date) => {
+        const dateStr = format(date, 'yyyy-MM-dd');
+        const dayOverrides = overrides?.filter(o => o.date === dateStr) || [];
+        if (dayOverrides.some(o => o.slot === null)) return 'blocked';
+        if (dayOverrides.length > 0) return 'partial';
+        return 'open';
     };
 
     return (
         <div className={styles.overlay} onClick={onClose}>
             <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
                 <header className={styles.header}>
-                    <button className={styles.navBtn} onClick={prevMonth}>
-                        <ChevronLeft size={24} />
-                    </button>
                     <h2 className={styles.monthTitle}>
-                        {MONTHS[currentMonth]} {currentYear}
+                        {MONTHS[viewDate.getMonth()]} {viewDate.getFullYear()}
                     </h2>
-                    <button className={styles.navBtn} onClick={nextMonth}>
-                        <ChevronRight size={24} />
-                    </button>
+                    <div className={styles.navGroup}>
+                        <button className={styles.navBtn} onClick={prevMonth}>
+                            <ChevronLeft size={22} />
+                        </button>
+                        <button className={styles.navBtn} onClick={nextMonth}>
+                            <ChevronRight size={22} />
+                        </button>
+                    </div>
                 </header>
 
                 <div className={styles.weekdays}>
@@ -85,23 +101,33 @@ export default function CalendarModal({ isOpen, onClose, onSelect, selectedDate 
                 </div>
 
                 <div className={styles.daysGrid}>
-                    {[...Array(startingDay)].map((_, i) => (
-                        <div key={`empty-${i}`} className={styles.empty} />
-                    ))}
-                    {[...Array(daysInMonth)].map((_, i) => {
-                        const day = i + 1;
+                    {calendarDays.map((day, idx) => {
+                        const isCurrentMonth = isSameMonth(day, monthStart);
+                        const isSelected = isDateSelected(day);
+                        const isToday = isDateToday(day);
+                        const status = getDayStatus(day);
+                        const disabled = (isPast(day) && !isToday) || (status === 'blocked' && isCurrentMonth);
+
                         return (
                             <button
-                                key={day}
+                                key={idx}
                                 className={`
                                     ${styles.dayBtn} 
-                                    ${isToday(day) ? styles.today : ''} 
-                                    ${isSelected(day) ? styles.selected : ''}
+                                    ${!isCurrentMonth ? styles.otherMonth : ''} 
+                                    ${isToday ? styles.today : ''} 
+                                    ${isSelected ? styles.selected : ''}
+                                    ${status === 'blocked' && isCurrentMonth ? styles.blocked : ''}
                                 `}
-                                disabled={isPast(day)}
-                                onClick={() => handleDateSelect(day)}
+                                onClick={() => isCurrentMonth && !disabled && handleDateSelect(day)}
+                                disabled={!isCurrentMonth || disabled}
                             >
-                                {day}
+                                {format(day, 'd')}
+                                {isCurrentMonth && status === 'blocked' && !isSelected && (
+                                    <div className={`${styles.dot} ${styles.dotBlocked}`} />
+                                )}
+                                {isCurrentMonth && status === 'partial' && !isSelected && (
+                                    <div className={`${styles.dot} ${styles.dotPartial}`} />
+                                )}
                             </button>
                         );
                     })}

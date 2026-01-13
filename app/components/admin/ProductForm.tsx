@@ -19,12 +19,12 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
     const [title, setTitle] = useState('');
     const [subtitle, setSubtitle] = useState('');
     const [description, setDescription] = useState('');
-    const [basePrice, setBasePrice] = useState<number>(0);
+    const [basePrice, setBasePrice] = useState<number | string>(0);
     const [categoryId, setCategoryId] = useState('');
     const [imageUrl, setImageUrl] = useState('');
 
     // Variants State: [{ label: '1.5 kg', value: '1.5 kg', price: 250000 }]
-    const [variants, setVariants] = useState<{ label: string; value: string; price: number }[]>([]);
+    const [variants, setVariants] = useState<{ label: string; value: string; price: number | string }[]>([]);
 
     // Details/Attributes State
     const [shapes, setShapes] = useState('');
@@ -34,10 +34,12 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
     const [isReady, setIsReady] = useState(false);
 
     const [loading, setLoading] = useState(false);
+    const [showErrors, setShowErrors] = useState(false);
     const supabase = createClient();
     const router = useRouter();
 
     useEffect(() => {
+        setShowErrors(false);
         if (product) {
             setTitle(product.title || '');
             setSubtitle(product.subtitle || '');
@@ -47,7 +49,8 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
             setImageUrl(product.image_url || '');
             setVariants(Array.isArray(product.variants) ? product.variants.map((v: any) => ({
                 ...v,
-                value: v.value || v.label || '' // Ensure value exists
+                value: v.value || v.label || '', // Ensure value exists
+                price: v.price || 0
             })) : []);
 
             // Populate Attributes
@@ -80,10 +83,11 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
         setCoating('');
         setIsAvailable(true);
         setIsReady(false);
+        setShowErrors(false);
     };
 
     const handleAddVariant = () => {
-        setVariants([...variants, { label: '', value: '', price: basePrice }]);
+        setVariants([...variants, { label: '', value: '', price: basePrice === 0 ? '' : basePrice }]);
     };
 
     const handleVariantChange = (index: number, field: 'label' | 'price', value: any) => {
@@ -91,7 +95,9 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
         if (field === 'label') {
             newVariants[index] = { ...newVariants[index], label: value, value: value }; // Keep value in sync with label
         } else {
-            newVariants[index] = { ...newVariants[index], [field]: value };
+            // Allow empty string for better UX
+            const val = value === '' ? '' : Number(value);
+            newVariants[index] = { ...newVariants[index], price: val };
         }
         setVariants(newVariants);
     };
@@ -104,6 +110,16 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Custom validation
+        const hasBasePrice = Number(basePrice) > 0;
+        const allVariantsHavePrice = variants.every(v => Number(v.price) > 0);
+
+        if (!hasBasePrice || !allVariantsHavePrice) {
+            setShowErrors(true);
+            return;
+        }
+
         setLoading(true);
 
         const categoryLabel = categories.find(c => c.id === categoryId)?.label || 'Boshqa';
@@ -117,7 +133,7 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
             category_id: categoryId,
             category: categoryLabel, // Denormalize for easier client reading
             image_url: imageUrl,
-            variants: variants,
+            variants: variants.map(v => ({ ...v, price: Number(v.price) })),
             details: {
                 shapes: shapes.split(',').map(s => s.trim()).filter(Boolean),
                 flavors: flavors.split(',').map(s => s.trim()).filter(Boolean),
@@ -220,10 +236,22 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
                             </label>
                             <input
                                 type="number"
-                                value={basePrice} onChange={e => setBasePrice(Number(e.target.value))}
-                                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #E5E7EB' }}
-                                required
+                                value={basePrice === 0 ? '' : basePrice}
+                                onChange={e => setBasePrice(e.target.value === '' ? '' : Number(e.target.value))}
+                                style={{
+                                    width: '100%',
+                                    padding: '10px',
+                                    borderRadius: '8px',
+                                    border: `1px solid ${showErrors && Number(basePrice) <= 0 ? '#EF4444' : '#E5E7EB'}`,
+                                    background: showErrors && Number(basePrice) <= 0 ? '#FEF2F2' : 'white',
+                                    transition: 'all 0.2s'
+                                }}
                             />
+                            {showErrors && Number(basePrice) <= 0 && (
+                                <p style={{ color: '#EF4444', fontSize: '12px', marginTop: '4px', fontWeight: 500 }}>
+                                    Narx kiriting
+                                </p>
+                            )}
                         </div>
 
                         <div style={{ marginBottom: '16px' }}>
@@ -328,27 +356,46 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
                             </div>
 
                             {variants.map((variant, index) => (
-                                <div key={index} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                                    <input
-                                        placeholder="Nomi (Masalan: Kichik)"
-                                        value={variant.label}
-                                        onChange={e => handleVariantChange(index, 'label', e.target.value)}
-                                        style={{ flex: 2, padding: '8px', borderRadius: '6px', border: '1px solid #E5E7EB', fontSize: '13px' }}
-                                    />
-                                    <input
-                                        type="number"
-                                        placeholder="Narx"
-                                        value={variant.price}
-                                        onChange={e => handleVariantChange(index, 'price', Number(e.target.value))}
-                                        style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #E5E7EB', fontSize: '13px' }}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => handleRemoveVariant(index)}
-                                        style={{ background: '#FEF2F2', color: '#DC2626', border: 'none', borderRadius: '6px', padding: '8px', cursor: 'pointer' }}
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
+                                <div key={index} style={{ marginBottom: '12px' }}>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <input
+                                            placeholder="Nomi (Masalan: Kichik)"
+                                            value={variant.label}
+                                            onChange={e => handleVariantChange(index, 'label', e.target.value)}
+                                            style={{
+                                                flex: 2,
+                                                padding: '8px',
+                                                borderRadius: '6px',
+                                                border: `1px solid ${showErrors && !variant.label ? '#EF4444' : '#E5E7EB'}`,
+                                                fontSize: '13px'
+                                            }}
+                                        />
+                                        <input
+                                            type="number"
+                                            placeholder="Narx"
+                                            value={variant.price === 0 ? '' : variant.price}
+                                            onChange={e => handleVariantChange(index, 'price', e.target.value)}
+                                            style={{
+                                                flex: 1,
+                                                padding: '8px',
+                                                borderRadius: '6px',
+                                                border: `1px solid ${showErrors && Number(variant.price) <= 0 ? '#EF4444' : '#E5E7EB'}`,
+                                                fontSize: '13px'
+                                            }}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemoveVariant(index)}
+                                            style={{ background: '#FEF2F2', color: '#DC2626', border: 'none', borderRadius: '6px', padding: '8px', cursor: 'pointer' }}
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                    {showErrors && (Number(variant.price) <= 0 || !variant.label) && (
+                                        <p style={{ color: '#EF4444', fontSize: '11px', marginTop: '4px', fontWeight: 500 }}>
+                                            {!variant.label ? 'Nomini kiriting' : 'Narxini kiriting'}
+                                        </p>
+                                    )}
                                 </div>
                             ))}
                             {variants.length === 0 && (

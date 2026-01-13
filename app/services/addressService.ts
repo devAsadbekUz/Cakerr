@@ -4,22 +4,27 @@ import { UserAddress } from '@/app/types';
 export const addressService = {
     async getUserAddresses(): Promise<UserAddress[]> {
         const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
 
-        if (!user) return [];
+            if (!user) return [];
 
-        const { data, error } = await supabase
-            .from('addresses')
-            .select('*')
-            .order('is_default', { ascending: false })
-            .order('created_at', { ascending: false });
+            const { data, error } = await supabase
+                .from('addresses')
+                .select('*')
+                .order('is_default', { ascending: false })
+                .order('created_at', { ascending: false });
 
-        if (error) {
-            console.error('Error fetching addresses:', error);
+            if (error) {
+                console.error('Error fetching addresses (DB Error):', error.message, '| Code:', error.code);
+                return [];
+            }
+
+            return data || [];
+        } catch (err: any) {
+            console.error('Error fetching addresses (Runtime):', err.message || err);
             return [];
         }
-
-        return data || [];
     },
 
     async addAddress(address: Omit<UserAddress, 'id' | 'user_id'>): Promise<{ data: any; error: any }> {

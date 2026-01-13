@@ -60,8 +60,9 @@ export default function OrderHistoryPage() {
                     statusLabel: o.status === 'new' ? 'Yangi' :
                         o.status === 'confirmed' ? 'Tasdiqlandi' :
                             o.status === 'preparing' ? 'Tayyorlanmoqda' :
-                                o.status === 'delivering' ? 'Yetkazilmoqda' :
-                                    o.status === 'completed' ? 'Yetkazilgan' : 'Bekor qilingan',
+                                o.status === 'ready' ? 'Tayyor' :
+                                    o.status === 'delivering' ? 'Yetkazilmoqda' :
+                                        o.status === 'completed' ? 'Yetkazilgan' : 'Bekor qilingan',
                     items: o.order_items.map((item: any) => ({
                         id: item.id,
                         productId: item.product_id,
@@ -69,7 +70,7 @@ export default function OrderHistoryPage() {
                         portion: item.configuration?.portion || '',
                         flavor: item.configuration?.flavor || '',
                         price: item.unit_price,
-                        image: item.configuration?.uploaded_photo_url || 'https://images.unsplash.com/photo-1558301211-0d8c8ddee6ec?auto=format&fit=crop&w=800&q=80',
+                        image: item.configuration?.uploaded_photo_url || '/images/cake-placeholder.jpg',
                         quantity: item.quantity
                     }))
                 }));
@@ -98,7 +99,7 @@ export default function OrderHistoryPage() {
 
     const filteredOrders = orders.filter(order => {
         if (filter === 'all') return true;
-        if (filter === 'pending') return ['new', 'confirmed', 'preparing', 'delivering'].includes(order.status);
+        if (filter === 'pending') return ['new', 'confirmed', 'preparing', 'ready', 'delivering'].includes(order.status);
         return order.status === filter;
     });
 
@@ -160,7 +161,7 @@ export default function OrderHistoryPage() {
                                 <h3 className={styles.orderId}>{order.id}</h3>
                                 <p className={styles.orderDate}>{order.date}</p>
                             </div>
-                            <div className={`${styles.statusBadge} ${['new', 'confirmed', 'preparing', 'delivering'].includes(order.status) ? styles.statusBadgePending : ''}`}>
+                            <div className={`${styles.statusBadge} ${['new', 'confirmed', 'preparing', 'ready', 'delivering'].includes(order.status) ? styles.statusBadgePending : ''}`}>
                                 <Check size={12} />
                                 <span>{order.statusLabel}</span>
                             </div>

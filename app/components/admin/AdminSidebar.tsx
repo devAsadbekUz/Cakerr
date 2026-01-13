@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ShoppingBag, Package, Calendar, Settings, LogOut, Tags, Menu, X } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Package, Calendar, Settings, LogOut, Tags, Menu, X, Wand2 } from 'lucide-react';
 import styles from './AdminSidebar.module.css';
 
 const MENU = [
@@ -12,6 +12,7 @@ const MENU = [
     { path: '/admin/products', label: 'Mahsulotlar', icon: Package },
     { path: '/admin/categories', label: 'Kategoriyalar', icon: Tags },
     { path: '/admin/schedule', label: 'Vaqtlar', icon: Calendar },
+    { path: '/admin/custom', label: 'Maxsus', icon: Wand2 },
     { path: '/admin/settings', label: 'Sozlamalar', icon: Settings },
 ];
 

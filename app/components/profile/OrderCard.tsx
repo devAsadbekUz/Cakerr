@@ -35,7 +35,7 @@ export default function OrderCard({ date, items, price, image, productId, name, 
     return (
         <div className={styles.card}>
             <div className={styles.content}>
-                <img src={image} alt="Order item" className={styles.image} />
+                <img src={image || '/images/cake-placeholder.jpg'} alt="Order item" className={styles.image} />
                 <div className={styles.info}>
                     <p className={styles.date}>{date}</p>
                     <h4 className={styles.items}>{items}</h4>

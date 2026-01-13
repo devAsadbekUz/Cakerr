@@ -27,6 +27,12 @@ const ORDER_STATUSES = [
         icon: Package,
     },
     {
+        id: 'ready',
+        label: 'Tayyor',
+        desc: 'Buyurtmangiz qadoqlandi va tayyor holatga keldi',
+        icon: Check,
+    },
+    {
         id: 'delivering',
         label: 'Yo\'lda',
         desc: 'Buyurtmangiz kuryerga topshirildi',
@@ -45,8 +51,9 @@ const getStatusStep = (status: string) => {
         case 'new': return 0;
         case 'confirmed': return 1;
         case 'preparing': return 2;
-        case 'delivering': return 3;
-        case 'completed': return 4;
+        case 'ready': return 3;
+        case 'delivering': return 4;
+        case 'completed': return 5;
         case 'cancelled': return -1;
         default: return 0;
     }
@@ -60,42 +67,69 @@ export default function TrackingPage() {
     const [loading, setLoading] = useState(true);
     const supabase = createClient();
 
-    useEffect(() => {
-        async function fetchOrder() {
-            setLoading(true);
-            const { data, error } = await supabase
-                .from('orders')
-                .select(`
-                    *,
-                    order_items (*)
-                `)
-                .eq('id', orderId)
-                .maybeSingle();
+    const fetchOrder = async () => {
+        setLoading(true);
+        const { data, error } = await supabase
+            .from('orders')
+            .select(`
+                *,
+                order_items (*)
+            `)
+            .eq('id', orderId)
+            .maybeSingle();
 
-            if (data && !error) {
-                setOrder({
-                    id: data.id,
-                    status: data.status,
-                    currentStep: getStatusStep(data.status),
-                    totalSteps: 5,
-                    total: data.total_price,
-                    address: {
-                        label: data.delivery_address?.label || 'Manzil',
-                        text: data.delivery_address?.street || 'Manzil ko\'rsatilmagan',
-                        phone: data.delivery_address?.phone || ''
-                    },
-                    items: data.order_items.map((item: any) => ({
-                        id: item.id,
-                        name: item.name,
-                        qty: item.quantity,
-                        price: item.unit_price,
-                        image: item.configuration?.uploaded_photo_url || 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=200&v=2'
-                    }))
-                });
-            }
-            setLoading(false);
+        if (data && !error) {
+            setOrder({
+                id: data.id,
+                status: data.status,
+                currentStep: getStatusStep(data.status),
+                totalSteps: 6,
+                total: data.total_price,
+                address: {
+                    label: data.delivery_address?.label || 'Manzil',
+                    text: data.delivery_address?.street || 'Manzil ko\'rsatilmagan',
+                    phone: data.delivery_address?.phone || ''
+                },
+                items: data.order_items.map((item: any) => ({
+                    id: item.id,
+                    name: item.name,
+                    qty: item.quantity,
+                    price: item.unit_price,
+                    image: item.configuration?.uploaded_photo_url || '/images/cake-placeholder.jpg'
+                }))
+            });
         }
+        setLoading(false);
+    };
+
+    useEffect(() => {
         fetchOrder();
+
+        // Subscribe to real-time updates for this specific order
+        const channel = supabase
+            .channel(`order-tracking-${orderId}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'orders',
+                    filter: `id=eq.${orderId}`
+                },
+                (payload) => {
+                    console.log('Order status updated real-time:', payload.new.status);
+                    setOrder((prev: any) => prev ? {
+                        ...prev,
+                        status: payload.new.status,
+                        currentStep: getStatusStep(payload.new.status)
+                    } : null);
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, [orderId]);
 
     if (loading) return <div className={styles.container} style={{ padding: '40px', textAlign: 'center' }}>Yuklanmoqda...</div>;

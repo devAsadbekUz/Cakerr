@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { CakeShapeId, CakeSizeId, CakeSpongeId, CakeCreamId } from '../config/cakeBuilderConfig';
+import { CustomOption } from '../services/customCakeService';
 
 export type BuilderMode = 'wizard' | 'upload' | null;
 
@@ -11,10 +11,10 @@ interface CustomCakeState {
 
     // Wizard State
     step: number;
-    shape: CakeShapeId | null;
-    size: CakeSizeId | null;
-    sponge: CakeSpongeId | null;
-    cream: CakeCreamId | null;
+    shape: string | null;
+    size: string | null;
+    sponge: string | null;
+    cream: string | null;
     decorations: string[];
     text: string;
     drawingData: string;
@@ -22,24 +22,29 @@ interface CustomCakeState {
     // Upload State
     uploadedImage: string | null;
     uploadComment: string;
+
+    // Options from DB
+    options: CustomOption[];
 }
 
 interface CustomCakeContextType extends CustomCakeState {
     setMode: (mode: BuilderMode) => void;
-    setShape: (shape: CakeShapeId) => void;
-    setSize: (size: CakeSizeId) => void;
-    setSponge: (sponge: CakeSpongeId) => void;
-    setCream: (cream: CakeCreamId) => void;
+    setShape: (shape: string) => void;
+    setSize: (size: string) => void;
+    setSponge: (sponge: string) => void;
+    setCream: (cream: string) => void;
     toggleDecoration: (decoration: string) => void;
     setText: (text: string) => void;
     setDrawingData: (data: string) => void;
 
     setUploadedImage: (image: string | null) => void;
     setUploadComment: (comment: string) => void;
+    setOptions: (options: CustomOption[]) => void;
 
     nextStep: () => void;
     prevStep: () => void;
     reset: () => void;
+    calculateTotal: () => number;
 }
 
 const initialState: CustomCakeState = {
@@ -54,6 +59,7 @@ const initialState: CustomCakeState = {
     drawingData: '',
     uploadedImage: null,
     uploadComment: '',
+    options: []
 };
 
 const CustomCakeContext = createContext<CustomCakeContextType | undefined>(undefined);
@@ -63,10 +69,10 @@ export function CustomCakeProvider({ children }: { children: ReactNode }) {
 
     const setMode = (mode: BuilderMode) => setState(prev => ({ ...prev, mode }));
 
-    const setShape = (shape: CakeShapeId) => setState(prev => ({ ...prev, shape }));
-    const setSize = (size: CakeSizeId) => setState(prev => ({ ...prev, size }));
-    const setSponge = (sponge: CakeSpongeId) => setState(prev => ({ ...prev, sponge }));
-    const setCream = (cream: CakeCreamId) => setState(prev => ({ ...prev, cream }));
+    const setShape = (shape: string) => setState(prev => ({ ...prev, shape }));
+    const setSize = (size: string) => setState(prev => ({ ...prev, size }));
+    const setSponge = (sponge: string) => setState(prev => ({ ...prev, sponge }));
+    const setCream = (cream: string) => setState(prev => ({ ...prev, cream }));
     const toggleDecoration = (decoration: string) => {
         setState(prev => ({
             ...prev,
@@ -80,10 +86,28 @@ export function CustomCakeProvider({ children }: { children: ReactNode }) {
 
     const setUploadedImage = (uploadedImage: string | null) => setState(prev => ({ ...prev, uploadedImage }));
     const setUploadComment = (uploadComment: string) => setState(prev => ({ ...prev, uploadComment }));
+    const setOptions = (options: CustomOption[]) => setState(prev => ({ ...prev, options }));
 
     const nextStep = () => setState(prev => ({ ...prev, step: prev.step + 1 }));
     const prevStep = () => setState(prev => ({ ...prev, step: Math.max(1, prev.step - 1) }));
     const reset = () => setState(initialState);
+
+    const calculateTotal = () => {
+        let total = 0;
+
+        // Find selected item prices
+        const selectedSize = state.options.find(o => o.id === state.size);
+        const selectedSponge = state.options.find(o => o.id === state.sponge);
+        const selectedCream = state.options.find(o => o.id === state.cream);
+        const selectedDecors = state.options.filter(o => state.decorations.includes(o.id));
+
+        if (selectedSize) total += Number(selectedSize.price);
+        if (selectedSponge) total += Number(selectedSponge.price);
+        if (selectedCream) total += Number(selectedCream.price);
+        selectedDecors.forEach(d => total += Number(d.price));
+
+        return total;
+    };
 
     return (
         <CustomCakeContext.Provider
@@ -99,15 +123,18 @@ export function CustomCakeProvider({ children }: { children: ReactNode }) {
                 setDrawingData,
                 setUploadedImage,
                 setUploadComment,
+                setOptions,
                 nextStep,
                 prevStep,
                 reset,
+                calculateTotal,
             }}
         >
             {children}
         </CustomCakeContext.Provider>
     );
 }
+
 
 export function useCustomCake() {
     const context = useContext(CustomCakeContext);

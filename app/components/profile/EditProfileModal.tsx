@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Camera, X, Check, Loader2, User as UserIcon } from 'lucide-react';
 import styles from './EditProfileModal.module.css';
 import { createClient } from '@/app/utils/supabase/client';
@@ -16,27 +16,52 @@ interface EditProfileModalProps {
 export default function EditProfileModal({ isOpen, onClose, user, onUpdate }: EditProfileModalProps) {
     const supabase = createClient();
     const [fullName, setFullName] = useState(user.user_metadata?.full_name || '');
+    const [phone, setPhone] = useState('');
+    const [email, setEmail] = useState(user.email || '');
     const [loading, setLoading] = useState(false);
+    const [fetching, setFetching] = useState(true);
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const avatarUrl = user.user_metadata?.avatar_url;
+
+    useEffect(() => {
+        async function fetchProfile() {
+            setFetching(true);
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('phone_number, full_name')
+                .eq('id', user.id)
+                .single();
+
+            if (data && !error) {
+                if (data.phone_number) setPhone(data.phone_number);
+                if (data.full_name && !fullName) setFullName(data.full_name);
+            }
+            setFetching(false);
+        }
+        fetchProfile();
+    }, [user.id]);
 
     if (!isOpen) return null;
 
     const handleSave = async () => {
         setLoading(true);
         try {
+            // 1. Update Auth Metadata
             const { error: authError } = await supabase.auth.updateUser({
                 data: { full_name: fullName }
             });
 
             if (authError) throw authError;
 
-            // Also update the profiles table
+            // 2. Update the profiles table
             const { error: dbError } = await supabase
                 .from('profiles')
-                .update({ full_name: fullName })
+                .update({
+                    full_name: fullName,
+                    phone_number: phone
+                })
                 .eq('id', user.id);
 
             if (dbError) throw dbError;
@@ -106,7 +131,7 @@ export default function EditProfileModal({ isOpen, onClose, user, onUpdate }: Ed
                     <button
                         className={styles.saveBtn}
                         onClick={handleSave}
-                        disabled={loading || uploading}
+                        disabled={loading || uploading || fetching}
                     >
                         {loading ? <Loader2 className={styles.spin} size={20} /> : <Check size={24} />}
                     </button>
@@ -148,6 +173,28 @@ export default function EditProfileModal({ isOpen, onClose, user, onUpdate }: Ed
                             value={fullName}
                             onChange={(e) => setFullName(e.target.value)}
                             placeholder="Masalan: Aziz Toshpulatov"
+                        />
+                    </div>
+
+                    <div className={styles.inputGroup} style={{ marginTop: '20px' }}>
+                        <label className={styles.label}>Telefon raqamingiz</label>
+                        <input
+                            type="tel"
+                            className={styles.input}
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            placeholder="+998 90 123 45 67"
+                        />
+                    </div>
+
+                    <div className={styles.inputGroup} style={{ marginTop: '20px' }}>
+                        <label className={styles.label}>Email (O'zgartirib bo'lmaydi)</label>
+                        <input
+                            type="email"
+                            className={styles.input}
+                            value={email}
+                            disabled
+                            style={{ opacity: 0.6, cursor: 'not-allowed' }}
                         />
                     </div>
                 </div>
