@@ -1,23 +1,73 @@
 .container {
-    padding: 24px;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    background-color: white;
+    background-color: #fce4ec;
 }
 
-.header {
-    margin-top: 40px;
-    margin-bottom: 40px;
+.heroSection {
+    height: 35vh;
+    position: relative;
+    overflow: hidden;
+}
+
+.heroImageWrapper {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.heroImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: saturate(1.2);
+}
+
+.heroOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 0%, rgba(252, 228, 236, 1) 100%);
 }
 
 .backBtn {
-    background: none;
+    position: absolute;
+    top: 40px;
+    left: 20px;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(8px);
     border: none;
-    padding: 0;
-    margin-bottom: 24px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: #111827;
     cursor: pointer;
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.contentCard {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(16px);
+    border-radius: 32px 32px 0 0;
+    margin-top: -32px;
+    padding: 32px 24px;
+    position: relative;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.05);
+}
+
+.header {
+    margin-bottom: 32px;
 }
 
 .title {
@@ -25,61 +75,71 @@
     font-weight: 800;
     color: #111827;
     margin-bottom: 8px;
+    letter-spacing: -0.5px;
 }
 
 .subtitle {
-    font-size: 15px;
+    font-size: 16px;
     color: #6B7280;
     line-height: 1.5;
 }
 
 .subtitle b {
-    color: #111827;
+    color: #E91E63;
+    font-weight: 700;
+}
+
+.otpSection {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
 }
 
 .otpGrid {
     display: flex;
     justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 32px;
+    gap: 10px;
 }
 
 .otpInput {
     flex: 1;
-    height: 56px;
+    height: 64px;
     background-color: #F3F4F6;
     border: 2px solid transparent;
-    border-radius: 12px;
+    border-radius: 16px;
     text-align: center;
-    font-size: 24px;
-    font-weight: 700;
+    font-size: 28px;
+    font-weight: 800;
     color: #111827;
     outline: none;
-    transition: all 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .otpInput:focus {
     border-color: #E91E63;
     background-color: white;
-    box-shadow: 0 4px 12px rgba(233, 30, 99, 0.1);
+    box-shadow: 0 0 0 4px rgba(233, 30, 99, 0.1);
+    transform: translateY(-2px);
 }
 
 .errorText {
     color: #EF4444;
-    font-size: 13px;
-    margin-bottom: 24px;
+    font-size: 14px;
     text-align: center;
     font-weight: 500;
+    background: #FEF2F2;
+    padding: 8px;
+    border-radius: 12px;
 }
 
 .resendWrapper {
-    margin-bottom: 40px;
     text-align: center;
 }
 
 .timer {
     font-size: 14px;
     color: #6B7280;
+    font-weight: 500;
 }
 
 .timer span {
@@ -96,8 +156,14 @@
     border: none;
     color: #E91E63;
     font-size: 15px;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
+    margin: 0 auto;
+    transition: opacity 0.2s;
+}
+
+.resendBtn:hover {
+    opacity: 0.8;
 }
 
 .verifyBtn {
@@ -108,15 +174,42 @@
     border-radius: 16px;
     padding: 18px;
     font-size: 17px;
-    font-weight: 700;
+    font-weight: 800;
     cursor: pointer;
     box-shadow: 0 8px 24px rgba(233, 30, 99, 0.25);
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-top: 8px;
+}
+
+.verifyBtn:hover:not(:disabled) {
+    background-color: #D81B60;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(233, 30, 99, 0.35);
+}
+
+.verifyBtn:active:not(:disabled) {
+    transform: translateY(0);
 }
 
 .verifyBtn:disabled {
-    background-color: #F3F4F6;
+    background-color: #E5E7EB;
     color: #9CA3AF;
     box-shadow: none;
     cursor: not-allowed;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.contentCard {
+    animation: slideIn 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }

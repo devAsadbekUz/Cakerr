@@ -1,12 +1,10 @@
-import type { NextConfig } from "next";
-
+/** @type {import('next').NextConfig} */
 const withPWA = require("@ducanh2912/next-pwa").default({
   dest: "public",
   disable: process.env.NODE_ENV === "development",
   workboxOptions: {
     runtimeCaching: [
       {
-        // Cache Unsplash Images (CacheFirst)
         urlPattern: /^https:\/\/images\.unsplash\.com\/.*/i,
         handler: "CacheFirst",
         options: {
@@ -18,7 +16,6 @@ const withPWA = require("@ducanh2912/next-pwa").default({
         },
       },
       {
-        // Cache Static Assets (StaleWhileRevalidate)
         urlPattern: /\.(?:js|css|png|jpg|jpeg|svg|gif|ico)$/i,
         handler: "StaleWhileRevalidate",
         options: {
@@ -30,7 +27,6 @@ const withPWA = require("@ducanh2912/next-pwa").default({
         },
       },
       {
-        // Cache Google Fonts (CacheFirst)
         urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i,
         handler: "CacheFirst",
         options: {
@@ -42,7 +38,6 @@ const withPWA = require("@ducanh2912/next-pwa").default({
         },
       },
       {
-        // API Routes (NetworkFirst) - fresh data critical
         urlPattern: /^\/api\/.*$/i,
         handler: "NetworkFirst",
         options: {
@@ -55,7 +50,6 @@ const withPWA = require("@ducanh2912/next-pwa").default({
         },
       },
       {
-        // Internal Next.js Routes (StaleWhileRevalidate)
         urlPattern: /^\/_next\/static\/.*/i,
         handler: "StaleWhileRevalidate",
         options: {
@@ -70,8 +64,14 @@ const withPWA = require("@ducanh2912/next-pwa").default({
   },
 });
 
-const nextConfig: NextConfig = {
-  /* config options here */
+const nextConfig = {
+  env: {
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    // Map server-side vars too for Middleware fallback
+    SUPABASE_URL: process.env.SUPABASE_URL,
+    SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
+  },
 };
 
-export default withPWA(nextConfig);
+module.exports = withPWA(nextConfig);

@@ -29,6 +29,15 @@ export const orderService = {
             .update({ status, updated_at: new Date().toISOString() })
             .eq('id', orderId);
 
+        // Sync status to Telegram bot message (fire and forget)
+        if (!error) {
+            fetch('/api/telegram/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId, newStatus: status })
+            }).catch(err => console.error('Telegram sync error:', err));
+        }
+
         return { error };
     }
 };

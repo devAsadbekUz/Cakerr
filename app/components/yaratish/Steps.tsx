@@ -83,7 +83,6 @@ export function SizeStep() {
                         </div>
                         <div className={styles.sizeInfo}>
                             <span className={styles.sizeLabel}>{s.label}</span>
-                            <span className={styles.sizeSubLabel}>Taxminiy vazni: 1.5kg - 2.5kg</span>
                         </div>
                         <div className={styles.sizePrice}>
                             {s.price.toLocaleString()} so'm

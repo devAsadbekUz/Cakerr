@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, ShoppingBag, Package, Calendar, Settings, LogOut, Tags, Menu, X, Wand2 } from 'lucide-react';
+import { createClient } from '@/app/utils/supabase/client';
 import styles from './AdminSidebar.module.css';
 
 const MENU = [
@@ -18,6 +19,7 @@ const MENU = [
 
 export default function AdminSidebar() {
     const pathname = usePathname();
+    const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
     const [mounted, setMounted] = useState(false);
 
@@ -28,6 +30,12 @@ export default function AdminSidebar() {
     useEffect(() => {
         setIsOpen(false);
     }, [pathname]);
+
+    const handleLogout = async () => {
+        const supabase = createClient();
+        await supabase.auth.signOut();
+        router.push('/admin/login');
+    };
 
     if (!mounted) return null;
 
@@ -73,7 +81,7 @@ export default function AdminSidebar() {
                     })}
                 </nav>
 
-                <button className={styles.logout} onClick={() => setIsOpen(false)}>
+                <button className={styles.logout} onClick={handleLogout}>
                     <LogOut size={20} />
                     <span>Chiqish</span>
                 </button>

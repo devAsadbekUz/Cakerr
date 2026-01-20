@@ -1,0 +1,40 @@
+.fixedContainer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background-color: #F9FAFB;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.collapsed {
+    transform: translateY(-129px);
+    /* Title (64px) + Search (65px) */
+}
+
+.headerSection {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 20px 10px 20px;
+    height: 64px;
+}
+
+.title {
+    font-size: 24px;
+    font-weight: 800;
+    color: #111827;
+    margin: 0;
+}
+
+.searchWrapper {
+    padding: 0 20px 15px 20px;
+    height: 65px;
+}
+
+.filterWrapper {
+    background-color: #F9FAFB;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}

@@ -8,9 +8,19 @@ export async function proxy(request: NextRequest) {
         },
     });
 
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+
+    // Fail-safe: If keys are missing, don't crash the whole app.
+    // Just log a warning and let the request proceed (though auth checks will be skipped)
+    if (!supabaseUrl || !supabaseKey) {
+        console.error('[Middleware] CRITICAL: Supabase URL or Key is missing from environment variables!');
+        return response;
+    }
+
     const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        supabaseUrl,
+        supabaseKey,
         {
             cookies: {
                 getAll() {
@@ -35,26 +45,21 @@ export async function proxy(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser();
 
-    // Protective Logic
-    // If accessing /admin but not login page
-    if (request.nextUrl.pathname.startsWith('/admin')) {
-        if (!user) {
-            // Redirect to login
-            const url = request.nextUrl.clone();
-            url.pathname = '/profil/login';
-            return NextResponse.redirect(url);
+    const ADMIN_EMAIL = 'moida.buvayda@gmail.com';
+    const isAdmin = user?.email === ADMIN_EMAIL;
+    const isPathAdmin = request.nextUrl.pathname.startsWith('/admin');
+    const isPathLogin = request.nextUrl.pathname.includes('/login');
+
+    // PROTECT /admin routes: Only the specific admin email can enter
+    if (isPathAdmin && !isPathLogin) {
+        if (!user || !isAdmin) {
+            console.log(`[Middleware] Unauthorized attempt to /admin: ${user?.email || 'Guest'}`);
+            return NextResponse.redirect(new URL(user ? '/profil' : '/admin/login', request.url));
         }
     }
 
-    // If accessing /profil/login but ALREADY logged in and trying to reach admin
-    if (request.nextUrl.pathname.startsWith('/profil/login')) {
-        if (user) {
-            // Redirect to dashboard
-            const url = request.nextUrl.clone();
-            url.pathname = '/admin';
-            return NextResponse.redirect(url);
-        }
-    }
+    // Note: We removed the "forcing" logic that sent the admin to /admin automatically
+    // when they visited /profil/login. This respects the user's wish for "separate links".
 
     return response;
 }

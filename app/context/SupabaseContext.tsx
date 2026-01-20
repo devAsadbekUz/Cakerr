@@ -36,7 +36,19 @@ export default function SupabaseProvider({ children }: { children: React.ReactNo
         getUser();
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            setUser(session?.user ?? null);
+            const newUser = session?.user ?? null;
+
+            setUser(current => {
+                // If both are null, or both have same ID, don't trigger state update
+                if (!current && !newUser) return null;
+                if (current?.id === newUser?.id) {
+                    console.log('[Auth] State refresh (no ID change), skipping update');
+                    return current;
+                }
+                console.log('[Auth] User changed or session initialized:', event, newUser?.id);
+                return newUser;
+            });
+
             setLoading(false);
         });
 

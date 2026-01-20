@@ -11,11 +11,14 @@ import {
 } from 'date-fns';
 import styles from './AdminDashboard.module.css';
 import { StatCard } from '@/app/components/admin/DashboardComponents';
+import { createClient } from '@/app/utils/supabase/client';
 
 export default function AdminAnalyticsPage() {
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
+
+    const supabase = createClient();
 
     useEffect(() => {
         setMounted(true);
@@ -25,6 +28,22 @@ export default function AdminAnalyticsPage() {
             setLoading(false);
         };
         fetchData();
+
+        // Realtime Subscription
+        const channel = supabase
+            .channel('admin-dashboard')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+                fetchData();
+            })
+            .subscribe();
+
+        // Fallback Polling (Every 10s) to handle connection issues
+        const interval = setInterval(fetchData, 10000);
+
+        return () => {
+            supabase.removeChannel(channel);
+            clearInterval(interval);
+        };
     }, []);
 
     if (!mounted) return null;

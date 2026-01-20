@@ -23,7 +23,7 @@ const TIME_SLOTS = [
 
 export default function CheckoutPage() {
     const router = useRouter();
-    const { cart, subtotal, totalItems, deliveryAddress, clearCart } = useCart();
+    const { cart, subtotal, totalItems, deliveryAddress, clearCart, savedAddresses } = useCart();
     const { user } = useSupabase();
     const supabase = createClient();
 
@@ -94,6 +94,9 @@ export default function CheckoutPage() {
         setIsSubmitting(true);
 
         try {
+            // Find the selected address coordinates
+            const selectedAddr = savedAddresses.find(a => a.address === deliveryAddress);
+
             // 1. Create Order
             const { data: orderData, error: orderError } = await supabase
                 .from('orders')
@@ -102,8 +105,10 @@ export default function CheckoutPage() {
                     total_price: total,
                     status: 'new',
                     delivery_address: {
-                        label: 'Address', // Could be dynamic if we had label
+                        label: selectedAddr?.label || 'Address',
                         street: deliveryAddress,
+                        lat: selectedAddr?.lat || null,
+                        lng: selectedAddr?.lng || null,
                     },
                     delivery_time: selectedDateObj ? selectedDateObj.toISOString() : new Date().toISOString(),
                     delivery_slot: selectedSlot,
@@ -115,24 +120,68 @@ export default function CheckoutPage() {
             if (orderError) throw orderError;
 
             // 2. Create Order Items
-            const orderItems = cart.map(item => ({
-                order_id: orderData.id,
-                product_id: item.id, // We now strictly use UUIDs from Supabase
-                name: item.name,
-                quantity: item.quantity,
-                unit_price: item.price,
-                configuration: {
-                    portion: item.portion,
-                    flavor: item.flavor,
-                    custom_note: item.customNote
-                }
-            }));
+            const orderItems = cart.map(item => {
+                const isCustom = item.id.startsWith('custom-') || item.configuration?.pricing_type === 'hybrid';
+
+                return {
+                    order_id: orderData.id,
+                    product_id: isCustom ? null : item.id,
+                    name: item.name,
+                    quantity: item.quantity,
+                    unit_price: item.price,
+                    configuration: isCustom ? item.configuration : {
+                        portion: item.portion,
+                        flavor: item.flavor,
+                        custom_note: item.customNote
+                    }
+                };
+            });
 
             const { error: itemsError } = await supabase
                 .from('order_items')
                 .insert(orderItems);
 
             if (itemsError) throw itemsError;
+
+            // 3. Send Telegram notification
+            try {
+                const monthNames = [
+                    "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
+                    "Iyul", "Avgust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr"
+                ];
+                const deliveryDateFormatted = selectedDateObj
+                    ? `${selectedDateObj.getDate()}-${monthNames[selectedDateObj.getMonth()]}`
+                    : 'Noma\'lum';
+
+                const locationUrl = selectedAddr?.lat && selectedAddr?.lng
+                    ? `https://www.google.com/maps?q=${selectedAddr.lat},${selectedAddr.lng}`
+                    : undefined;
+
+                await fetch('/api/telegram/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        orderId: orderData.id,
+                        customerName: user.user_metadata?.full_name || 'Mijoz',
+                        customerPhone: user.phone || user.email || 'Noma\'lum',
+                        address: deliveryAddress,
+                        locationUrl,
+                        deliveryDate: deliveryDateFormatted,
+                        deliverySlot: selectedSlot,
+                        items: cart.map(item => ({
+                            name: item.name,
+                            quantity: item.quantity,
+                            price: item.price * item.quantity,
+                            portion: item.portion || item.configuration?.portion
+                        })),
+                        comment: comment || undefined,
+                        total: total
+                    })
+                });
+            } catch (telegramError) {
+                console.error('Telegram notification failed:', telegramError);
+                // Don't block order success if Telegram fails
+            }
 
             setNewOrderId(orderData.id);
             setIsSuccessOpen(true);

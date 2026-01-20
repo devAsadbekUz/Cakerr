@@ -80,53 +80,68 @@ function VerifyContent() {
 
     return (
         <div className={styles.container}>
-            <header className={styles.header}>
-                <button className={styles.backBtn} onClick={() => router.back()}>
-                    <ChevronLeft size={24} />
-                </button>
-                <h1 className={styles.title}>{name ? `Salom, ${name}!` : 'Kodni kiriting'}</h1>
-                <p className={styles.subtitle}>
-                    Tasdiqlash kodi <b>{email}</b> pochtasiga yuborildi
-                </p>
-            </header>
-
-            <div className={styles.otpGrid}>
-                {otp.map((digit, index) => (
-                    <input
-                        key={index}
-                        ref={(el) => { inputs.current[index] = el; }}
-                        type="text"
-                        inputMode="numeric"
-                        maxLength={1}
-                        className={styles.otpInput}
-                        value={digit}
-                        onChange={(e) => handleChange(index, e.target.value)}
-                        onKeyDown={(e) => handleKeyDown(index, e)}
-                        autoFocus={index === 0}
+            <div className={styles.heroSection}>
+                <div className={styles.heroImageWrapper}>
+                    <img
+                        src="/auth-hero.png"
+                        alt="Verification"
+                        className={styles.heroImage}
                     />
-                ))}
+                    <div className={styles.heroOverlay}></div>
+                </div>
+                <button className={styles.backBtn} onClick={() => router.back()}>
+                    <ChevronLeft size={28} />
+                </button>
             </div>
 
-            {error && <p className={styles.errorText}>{error}</p>}
+            <div className={styles.contentCard}>
+                <header className={styles.header}>
+                    <h1 className={styles.title}>{name ? `Salom, ${name}!` : 'Kodni kiriting'}</h1>
+                    <p className={styles.subtitle}>
+                        Tasdiqlash kodi <b>{email}</b> pochtasiga yuborildi
+                    </p>
+                </header>
 
-            <div className={styles.resendWrapper}>
-                {timer > 0 ? (
-                    <p className={styles.timer}>Kodni qayta yuborish: <span>0:{timer.toString().padStart(2, '0')}</span></p>
-                ) : (
-                    <button className={styles.resendBtn} onClick={handleResend}>
-                        <RefreshCcw size={16} />
-                        Kodni qayta yuborish
+                <div className={styles.otpSection}>
+                    <div className={styles.otpGrid}>
+                        {otp.map((digit, index) => (
+                            <input
+                                key={index}
+                                ref={(el) => { inputs.current[index] = el; }}
+                                type="text"
+                                inputMode="numeric"
+                                maxLength={1}
+                                className={styles.otpInput}
+                                value={digit}
+                                onChange={(e) => handleChange(index, e.target.value)}
+                                onKeyDown={(e) => handleKeyDown(index, e)}
+                                autoFocus={index === 0}
+                            />
+                        ))}
+                    </div>
+
+                    {error && <p className={styles.errorText}>{error}</p>}
+
+                    <div className={styles.resendWrapper}>
+                        {timer > 0 ? (
+                            <p className={styles.timer}>Kodni qayta yuborish: <span>0:{timer.toString().padStart(2, '0')}</span></p>
+                        ) : (
+                            <button className={styles.resendBtn} onClick={handleResend}>
+                                <RefreshCcw size={18} />
+                                Kodni qayta yuborish
+                            </button>
+                        )}
+                    </div>
+
+                    <button
+                        className={styles.verifyBtn}
+                        disabled={otp.some(d => !d) || loading}
+                        onClick={handleVerify}
+                    >
+                        {loading ? 'Tasdiqlanmoqda...' : 'Tasdiqlash'}
                     </button>
-                )}
+                </div>
             </div>
-
-            <button
-                className={styles.verifyBtn}
-                disabled={otp.some(d => !d) || loading}
-                onClick={handleVerify}
-            >
-                {loading ? 'Tasdiqlanmoqda...' : 'Tasdiqlash'}
-            </button>
         </div>
     );
 }

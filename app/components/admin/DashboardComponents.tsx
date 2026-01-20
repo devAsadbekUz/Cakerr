@@ -185,9 +185,25 @@ export function OrderDetailsModal({ order, onClose, onUpdate }: { order: any, on
 
                     <div className={styles.infoSection}>
                         <div className={styles.infoLabel}>Yetkazib berish</div>
-                        <div style={{ fontSize: '15px', color: '#374151', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ fontSize: '15px', color: '#374151', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                             <MapPinned size={18} color="#BE185D" />
-                            {order.delivery_address?.street || 'Manzil kiritilmagan'}, {order.delivery_address?.apartment || ''}
+                            <span>{order.delivery_address?.street || 'Manzil kiritilmagan'}{order.delivery_address?.apartment ? `, ${order.delivery_address.apartment}` : ''}</span>
+                            {order.delivery_address?.lat && order.delivery_address?.lng && (
+                                <a
+                                    href={`https://www.google.com/maps?q=${order.delivery_address.lat},${order.delivery_address.lng}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{
+                                        color: '#0EA5E9',
+                                        fontSize: '14px',
+                                        fontWeight: 600,
+                                        textDecoration: 'underline',
+                                        marginLeft: '4px'
+                                    }}
+                                >
+                                    joylashuvni ko'rish
+                                </a>
+                            )}
                         </div>
                         <div style={{ fontSize: '14px', color: '#6B7280', marginTop: '4px' }}>
                             <CalendarIcon size={14} style={{ marginRight: 4 }} />
@@ -195,25 +211,58 @@ export function OrderDetailsModal({ order, onClose, onUpdate }: { order: any, on
                         </div>
                     </div>
 
+                    {order.comment && (
+                        <div className={styles.infoSection} style={{ background: '#F0F9FF', padding: '12px', borderRadius: '12px', border: '1px solid #BAE6FD' }}>
+                            <div className={styles.infoLabel} style={{ color: '#0369A1' }}>Qo'shimcha izoh</div>
+                            <div style={{ fontSize: '14px', color: '#0C4A6E', fontStyle: 'italic' }}>
+                                "{order.comment}"
+                            </div>
+                        </div>
+                    )}
+
                     <div className={styles.infoSection}>
                         <div className={styles.infoLabel}>Mahsulotlar</div>
                         <div style={{ marginTop: '12px' }}>
                             {order.order_items?.map((item: any, idx: number) => (
                                 <div key={idx} className={styles.orderItemCard}>
                                     <img
-                                        src={item.products?.image_url || '/placeholder.png'}
+                                        src={item.configuration?.uploaded_photo_url || item.configuration?.drawing || item.products?.image_url || '/placeholder.png'}
                                         alt={item.name}
                                         className={styles.itemImage}
                                     />
                                     <div className={styles.itemInfo}>
                                         <h3 className={styles.itemName}>{item.name || 'Tort'}</h3>
                                         <div className={styles.itemConfig}>
-                                            {item.configuration?.portion && <div>Portsiya: {item.configuration.portion}</div>}
-                                            {item.configuration?.flavor && <div>Lazzat: {item.configuration.flavor}</div>}
-                                            {item.configuration?.custom_note && <div style={{ fontWeight: 600, color: '#BE185D' }}>Izoh: {item.configuration.custom_note}</div>}
+                                            {/* Custom Cake Specific Fields */}
+                                            {item.configuration?.mode === 'upload' ? (
+                                                <div style={{ color: '#BE185D', fontWeight: 700, fontSize: '11px', marginBottom: '4px', textTransform: 'uppercase' }}>📸 Mijoz rasmi asosida</div>
+                                            ) : item.configuration?.mode === 'builder' ? (
+                                                <div style={{ color: '#0369A1', fontWeight: 700, fontSize: '11px', marginBottom: '4px', textTransform: 'uppercase' }}>🎂 Konstruktor orqali</div>
+                                            ) : null}
+
+                                            {item.configuration?.portion && <div>Hajm/Portsiya: {item.configuration.portion}</div>}
+                                            {item.configuration?.flavor && <div>Lazzat/Krem: {item.configuration.flavor}</div>}
+
+                                            {item.configuration?.shape && <div>Shakl: {item.configuration.shape}</div>}
+                                            {item.configuration?.sponge && <div>Biskvit: {item.configuration.sponge}</div>}
+                                            {item.configuration?.decorations && (
+                                                <div>Bezaklar: <span style={{ color: '#BE185D', fontWeight: 600 }}>{item.configuration.decorations}</span></div>
+                                            )}
+
+                                            {/* Notes and Comments */}
+                                            {(item.configuration?.custom_note || item.configuration?.order_note) && (
+                                                <div style={{ marginTop: '4px', padding: '6px', background: '#FFF5F7', borderRadius: '6px', borderLeft: '3px solid #BE185D' }}>
+                                                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#BE185D', textTransform: 'uppercase' }}>
+                                                        {item.configuration?.mode === 'upload' ? 'Mijoz izohi:' : 'Tabrik yozuvi:'}
+                                                    </div>
+                                                    <div style={{ fontSize: '13px', color: '#111827' }}>
+                                                        {item.configuration.custom_note || item.configuration.order_note}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                         <div className={styles.itemPriceQty}>
-                                            <div className={styles.itemPrice}>{(item.price * item.quantity).toLocaleString()} so'm</div>
+                                            <div className={styles.itemPrice}>{(item.unit_price * item.quantity).toLocaleString()} so'm</div>
                                             <div className={styles.itemQtyBadge}>{item.quantity} dona</div>
                                         </div>
                                     </div>

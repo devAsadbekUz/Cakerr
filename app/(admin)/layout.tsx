@@ -19,33 +19,49 @@ export default function AdminLayout({
     const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
     const supabase = createClient();
 
-    const isLoginPage = pathname?.includes('/login');
+    const isLoginPage = pathname?.startsWith('/admin/login');
+    console.log('AdminLayout pathname:', pathname, 'isLoginPage:', isLoginPage);
 
     useEffect(() => {
         if (authLoading) return;
 
         if (!user) {
+            console.log('No user found in admin layout, redirecting to login');
             if (!isLoginPage) router.push('/admin/login');
             setIsAuthorized(false);
             return;
         }
 
         async function checkRole() {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', user?.id)
-                .single();
+            try {
+                console.log('Checking role for user:', user?.id);
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', user?.id)
+                    .single();
 
-            if (data && (data.role === 'admin' || data.role === 'baker')) {
-                setIsAuthorized(true);
-            } else {
-                // If not authorized, redirect if not on login
-                if (!isLoginPage) {
-                    alert('Kirishga ruxsat yo\'q. Faqat admin yoki novvoylar uchun.');
-                    router.push('/admin/login');
+                if (error) {
+                    console.error('Error fetching role:', error);
+                    setIsAuthorized(false);
+                    if (!isLoginPage) router.push('/admin/login');
+                    return;
                 }
+
+                if (data && (data.role === 'admin' || data.role === 'baker')) {
+                    console.log('User authorized as:', data.role);
+                    setIsAuthorized(true);
+                } else {
+                    console.warn('User not authorized. Role:', data?.role);
+                    setIsAuthorized(false);
+                    if (!isLoginPage) {
+                        router.push('/admin/login');
+                    }
+                }
+            } catch (err) {
+                console.error('Exception in checkRole:', err);
                 setIsAuthorized(false);
+                if (!isLoginPage) router.push('/admin/login');
             }
         }
 
@@ -58,13 +74,31 @@ export default function AdminLayout({
 
     if (authLoading || isAuthorized === null) {
         return (
-            <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
                 <div style={{ fontSize: '18px', color: '#BE185D', fontWeight: 600 }}>Tekshirilmoqda...</div>
+                <button
+                    onClick={() => router.push('/admin/login')}
+                    style={{ background: 'none', border: 'none', color: '#6B7280', textDecoration: 'underline', cursor: 'pointer' }}
+                >
+                    Login sahifasiga o'tish
+                </button>
             </div>
         );
     }
 
-    if (!isAuthorized) return null;
+    if (!isAuthorized) {
+        return (
+            <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
+                <div style={{ fontSize: '18px', color: '#991B1B', fontWeight: 600 }}>Ruxsat yo'q</div>
+                <button
+                    onClick={() => router.push('/admin/login')}
+                    style={{ padding: '8px 16px', background: '#BE185D', color: 'white', borderRadius: '8px', border: 'none', cursor: 'pointer' }}
+                >
+                    Login sahifasiga o'tish
+                </button>
+            </div>
+        );
+    }
 
     return (
         <div className={styles.layout}>

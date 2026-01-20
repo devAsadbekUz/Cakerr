@@ -19,6 +19,7 @@ import PhotoUploadForm from './PhotoUploadForm';
 
 import { useEffect } from 'react';
 import { customCakeService } from '@/app/services/customCakeService';
+import { CAKE_OPTIONS } from '@/app/config/cakeBuilderConfig';
 
 const STEPS = [
     { title: 'Shakl', component: ShapeStep },
@@ -95,7 +96,7 @@ export default function WizardShell() {
             flavor: options.find(o => o.id === cream)?.label || 'Maxsus',
             configuration: {
                 mode,
-                shape,
+                shape: CAKE_OPTIONS.shapes.find(s => s.id === shape)?.label || shape,
                 size: options.find(o => o.id === size)?.label,
                 sponge: options.find(o => o.id === sponge)?.label,
                 flavor: options.find(o => o.id === cream)?.label,

@@ -4,8 +4,9 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCart } from '@/app/context/CartContext';
 import styles from './page.module.css';
-import { ChevronLeft, MapPin, Navigation } from 'lucide-react';
+import { ChevronLeft, MapPin, Navigation, Loader2 } from 'lucide-react';
 import Script from 'next/script';
+import Head from 'next/head';
 
 declare var L: any;
 
@@ -87,6 +88,12 @@ function MapContent() {
     const handleSave = () => {
         setDeliveryAddress(address);
 
+        // Guard against marker not being initialized yet
+        if (!marker) {
+            alert('Xarita hali yuklanmadi. Iltimos, biroz kuting.');
+            return;
+        }
+
         const latlng = marker.getLatLng();
 
         if (editId) {
@@ -124,11 +131,37 @@ function MapContent() {
 
     return (
         <div className={styles.container}>
+            {/* Leaflet CSS - Critical for map to render */}
+            <link
+                rel="stylesheet"
+                href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+                integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+                crossOrigin=""
+            />
             <Script
                 src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
                 strategy="afterInteractive"
                 onLoad={() => setScriptLoaded(true)}
             />
+
+            {/* Loading overlay while map initializes */}
+            {!map && (
+                <div style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    zIndex: 1000,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '12px',
+                    color: '#BE185D'
+                }}>
+                    <Loader2 size={32} className="animate-spin" style={{ animation: 'spin 1s linear infinite' }} />
+                    <span style={{ fontSize: '14px', fontWeight: 600 }}>Xarita yuklanmoqda...</span>
+                </div>
+            )}
 
             <header className={styles.header}>
                 <button className={styles.backBtn} onClick={() => router.back()}>

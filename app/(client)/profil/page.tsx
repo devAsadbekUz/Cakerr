@@ -45,9 +45,9 @@ export default function ProfilPage() {
         featureName: ''
     });
 
-    const fetchProfileData = async () => {
+    const fetchProfileData = async (isInitialLoad = false) => {
         if (!user) return;
-        setLoading(true);
+        if (isInitialLoad) setLoading(true);
 
         const { data: ordersData } = await supabase
             .from('orders')
@@ -91,7 +91,7 @@ export default function ProfilPage() {
     };
 
     useEffect(() => {
-        fetchProfileData();
+        fetchProfileData(true); // Initial load shows loading state
 
         if (user) {
             // Subscribe to real-time updates for user's orders to keep profile in sync
@@ -105,12 +105,28 @@ export default function ProfilPage() {
                         table: 'orders',
                         filter: `user_id=eq.${user.id}`
                     },
-                    () => {
-                        console.log('Order change detected on profile, refreshing...');
-                        fetchProfileData();
+                    (payload: any) => {
+                        console.log('[Realtime] Profile order change:', payload.eventType, payload.new?.status);
+
+                        if (payload.eventType === 'UPDATE') {
+                            // Targeted update - only change the activeOrder status if it matches
+                            setActiveOrder((prev: any) => {
+                                if (!prev) return null;
+                                if (prev.id === payload.new.id) {
+                                    return { ...prev, status: payload.new.status };
+                                }
+                                return prev;
+                            });
+                        } else if (payload.eventType === 'INSERT') {
+                            // New order created - refresh profile data
+                            fetchProfileData();
+                        }
                     }
                 )
-                .subscribe();
+                .subscribe((status, err) => {
+                    console.log('[Realtime] Profile Subscription:', status);
+                    if (err) console.error('[Realtime] Error:', err);
+                });
 
             return () => {
                 supabase.removeChannel(channel);

@@ -7,20 +7,13 @@ export const productService = {
 
         const { data, error } = await supabase
             .from('products')
-            .select(`
-                *,
-                categories (
-                    id,
-                    label,
-                    icon
-                )
-            `)
+            .select('*')
             .eq('is_available', true)
             .is('deleted_at', null)
             .order('created_at', { ascending: false });
 
         if (error) {
-            console.error('Error fetching products:', error);
+            console.error('Error fetching products:', error.message || error);
             return [];
         }
 

@@ -41,8 +41,12 @@ export default function AdminOrdersPage() {
             .on('postgres_changes', { event: 'UPDATE', table: 'orders', schema: 'public' }, () => {
                 fetchData();
             })
-            .subscribe();
+            .subscribe((status, err) => {
+                console.log('[Realtime] Admin Orders Subscription:', status);
+                if (err) console.error('[Realtime] Error:', err);
+            });
 
+        // Realtime subscription handles updates - no polling needed
         return () => {
             supabase.removeChannel(channel);
         };

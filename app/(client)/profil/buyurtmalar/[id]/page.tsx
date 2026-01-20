@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ChevronLeft, Package, Check, Clock, Truck, MapPin, Phone, User } from 'lucide-react';
+import { ChevronLeft, Package, Check, Clock, Truck, MapPin, Phone, User, AlertCircle } from 'lucide-react';
 import styles from './page.module.css';
 import { createClient } from '@/app/utils/supabase/client';
 
@@ -65,44 +65,52 @@ export default function TrackingPage() {
     const orderId = params.id as string;
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const supabase = createClient();
+    const supabase = React.useMemo(() => createClient(), []);
+
+    const [realtimeStatus, setRealtimeStatus] = useState<string>('connecting');
 
     const fetchOrder = async () => {
-        setLoading(true);
-        const { data, error } = await supabase
-            .from('orders')
-            .select(`
-                *,
-                order_items (*)
-            `)
-            .eq('id', orderId)
-            .maybeSingle();
+        // No setLoading(true) here! It's already true on mount.
+        // Subsequent re-fetches will be silent background updates.
 
-        if (data && !error) {
-            setOrder({
-                id: data.id,
-                status: data.status,
-                currentStep: getStatusStep(data.status),
-                totalSteps: 6,
-                total: data.total_price,
-                address: {
-                    label: data.delivery_address?.label || 'Manzil',
-                    text: data.delivery_address?.street || 'Manzil ko\'rsatilmagan',
-                    phone: data.delivery_address?.phone || ''
-                },
-                items: data.order_items.map((item: any) => ({
-                    id: item.id,
-                    name: item.name,
-                    qty: item.quantity,
-                    price: item.unit_price,
-                    image: item.configuration?.uploaded_photo_url || '/images/cake-placeholder.jpg'
-                }))
-            });
+        try {
+            const { data, error } = await supabase
+                .from('orders')
+                .select(`
+                    *,
+                    order_items (*)
+                `)
+                .eq('id', orderId)
+                .maybeSingle();
+
+            if (data && !error) {
+                setOrder({
+                    id: data.id,
+                    status: data.status,
+                    currentStep: getStatusStep(data.status),
+                    totalSteps: 6,
+                    total: data.total_price,
+                    address: {
+                        label: data.delivery_address?.label || 'Manzil',
+                        text: data.delivery_address?.street || 'Manzil ko\'rsatilmagan',
+                        phone: data.delivery_address?.phone || ''
+                    },
+                    items: data.order_items.map((item: any) => ({
+                        id: item.id,
+                        name: item.name,
+                        qty: item.quantity,
+                        price: item.unit_price,
+                        image: item.configuration?.uploaded_photo_url || '/images/cake-placeholder.jpg'
+                    }))
+                });
+            }
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     useEffect(() => {
+        console.log('[Component] TrackingPage MOUNTED', { orderId });
         fetchOrder();
 
         // Subscribe to real-time updates for this specific order
@@ -116,7 +124,7 @@ export default function TrackingPage() {
                     table: 'orders',
                     filter: `id=eq.${orderId}`
                 },
-                (payload) => {
+                (payload: any) => {
                     console.log('Order status updated real-time:', payload.new.status);
                     setOrder((prev: any) => prev ? {
                         ...prev,
@@ -125,130 +133,154 @@ export default function TrackingPage() {
                     } : null);
                 }
             )
-            .subscribe();
+            .subscribe((status, err) => {
+                setRealtimeStatus(status);
+                console.log('[Realtime] Order Tracking Subscription:', status);
+                if (err) console.error('[Realtime] Error:', err);
+            });
 
         return () => {
+            console.log('[Component] TrackingPage UNMOUNTED', { orderId });
             supabase.removeChannel(channel);
         };
     }, [orderId]);
 
-    if (loading) return <div className={styles.container} style={{ padding: '40px', textAlign: 'center' }}>Yuklanmoqda...</div>;
-    if (!order) return <div className={styles.container} style={{ padding: '40px', textAlign: 'center' }}>Buyurtma topilmadi</div>;
-
-    const progressValue = ((order.currentStep + 1) / order.totalSteps) * 100;
+    const progressValue = order ? ((order.currentStep + 1) / order.totalSteps) * 100 : 0;
 
     return (
         <div className={styles.container}>
-            <header className={styles.header}>
-                <button className={styles.backBtn} onClick={() => router.back()}>
-                    <ChevronLeft size={24} />
-                </button>
-                <div className={styles.headerInfo}>
-                    <h1>Buyurtmani kuzatish</h1>
-                    <span className={styles.orderId}>{order.id}</span>
+            {/* Debug: Realtime Status Indicator */}
+            {process.env.NODE_ENV === 'development' && (
+                <div style={{
+                    position: 'fixed', bottom: 80, right: 10,
+                    background: realtimeStatus === 'SUBSCRIBED' ? '#10B981' : realtimeStatus === 'CHANNEL_ERROR' ? '#EF4444' : '#F59E0B',
+                    color: 'white', padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600, zIndex: 9999,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                }}>
+                    RT: {realtimeStatus}
                 </div>
-            </header>
+            )}
 
-            {/* Progress Card */}
-            <div className={styles.progressCard}>
-                <div className={styles.progressHeader}>
-                    <div>
-                        <span className={styles.estimatedLabel}>Holati</span>
-                        <span className={styles.estimatedTime}>
-                            {ORDER_STATUSES.find(s => s.id === order.status)?.label || order.status}
-                        </span>
-                    </div>
-                    <div className={styles.statusIcon}>
-                        <Package size={24} />
-                    </div>
+            {loading && !order ? (
+                <div style={{ padding: '80px 40px', textAlign: 'center', color: '#6B7280' }}>
+                    <Clock className={styles.loadingIcon} size={48} style={{ margin: '0 auto 16px', opacity: 0.5, animation: 'spin 2s linear infinite' }} />
+                    <p style={{ fontWeight: 500 }}>Yuklanmoqda...</p>
                 </div>
-
-                <div className={styles.progressBarContainer}>
-                    <div className={styles.progressBar}>
-                        <div
-                            className={styles.progressFill}
-                            style={{ width: `${progressValue}%` }}
-                        />
-                    </div>
-                    <div className={styles.progressText}>
-                        {order.currentStep + 1} / {order.totalSteps}
-                    </div>
+            ) : !order ? (
+                <div style={{ padding: '80px 40px', textAlign: 'center', color: '#6B7280' }}>
+                    <AlertCircle size={48} style={{ margin: '0 auto 16px', opacity: 0.5 }} />
+                    <p style={{ fontWeight: 500 }}>Buyurtma topilmadi</p>
+                    <button onClick={() => router.push('/')} style={{ marginTop: '20px', color: '#BE185D', fontWeight: 600 }}>Asosiy sahifaga qaytish</button>
                 </div>
-            </div>
-
-            {/* Timeline */}
-            <div className={styles.card}>
-                <h2 className={styles.sectionTitle}>Buyurtma jarayoni</h2>
-                <div className={styles.timeline}>
-                    {ORDER_STATUSES.map((status, index) => {
-                        const isCompleted = index < order.currentStep;
-                        const isActive = index === order.currentStep;
-                        const Icon = status.icon;
-
-                        return (
-                            <div key={status.id} className={`${styles.timelineItem} ${!isCompleted && !isActive ? styles.dimmed : ''}`}>
-                                {index < ORDER_STATUSES.length - 1 && (
-                                    <div className={styles.timelineLine} />
-                                )}
-
-                                <div className={`${styles.timelineBadge} ${isActive ? styles.timelineBadgeActive : ''} ${isCompleted ? styles.timelineBadgeCompleted : ''}`}>
-                                    <Icon size={18} />
-                                </div>
-
-                                <div className={styles.timelineInfo}>
-                                    <div className={styles.timelineHeader}>
-                                        <span className={styles.timelineLabel}>{status.label}</span>
-                                    </div>
-                                    <p className={styles.timelineDesc}>{status.desc}</p>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-
-            {/* Delivery Info */}
-            <div className={styles.card}>
-                <h2 className={styles.sectionTitle}>Yetkazib berish manzili</h2>
-                <div className={styles.addressCard}>
-                    <div className={styles.iconBox}>
-                        <MapPin size={20} />
-                    </div>
-                    <div className={styles.addressDetails}>
-                        <span className={styles.addressLabel}>{order.address.label}</span>
-                        <span className={styles.addressText}>{order.address.text}</span>
-                        <span className={styles.addressText}>{order.address.phone}</span>
-                    </div>
-                </div>
-            </div>
-
-            {/* Order Summary */}
-            <div className={styles.card}>
-                <h2 className={styles.sectionTitle}>Buyurtma tarkibi</h2>
-                <div className={styles.itemsList}>
-                    {order.items.map((item: any) => (
-                        <div key={item.id} className={styles.productRow}>
-                            <img src={item.image} alt={item.name} className={styles.productImage} />
-                            <div className={styles.productInfo}>
-                                <h3 className={styles.productName}>{item.name}</h3>
-                                <span className={styles.productQty}>Soni: {item.qty} ta</span>
-                            </div>
-                            <span className={styles.productPrice}>{item.price.toLocaleString('uz-UZ')} so'm</span>
+            ) : (
+                <>
+                    <header className={styles.header}>
+                        <button className={styles.backBtn} onClick={() => router.back()}>
+                            <ChevronLeft size={24} />
+                        </button>
+                        <div className={styles.headerInfo}>
+                            <h1>Buyurtmani kuzatish</h1>
+                            <span className={styles.orderId}>{order.id}</span>
                         </div>
-                    ))}
+                    </header>
 
-                    <div className={styles.totalRow}>
-                        <span className={styles.totalLabel}>Jami</span>
-                        <span className={styles.totalValue}>{order.total.toLocaleString('uz-UZ')} so'm</span>
+                    {/* Progress Card */}
+                    <div className={styles.progressCard}>
+                        <div className={styles.progressHeader}>
+                            <div>
+                                <span className={styles.estimatedLabel}>Holati</span>
+                                <span className={styles.estimatedTime}>
+                                    {ORDER_STATUSES.find(s => s.id === order.status)?.label || order.status}
+                                </span>
+                            </div>
+                            <div className={styles.statusIcon}>
+                                <Package size={24} />
+                            </div>
+                        </div>
+
+                        <div className={styles.progressBarContainer}>
+                            <div className={styles.progressBar}>
+                                <div
+                                    className={styles.progressFill}
+                                    style={{ width: `${progressValue}%` }}
+                                />
+                            </div>
+                            <div className={styles.progressText}>
+                                {order.currentStep + 1} / {order.totalSteps}
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
 
-            <footer className={styles.footer}>
-                <button className={styles.browseBtn} onClick={() => router.push('/')}>
-                    Xarid qilishni davom ettirish
-                </button>
-            </footer>
+                    {/* Timeline */}
+                    <div className={styles.card}>
+                        <h2 className={styles.sectionTitle}>Buyurtma jarayoni</h2>
+                        <div className={styles.timeline}>
+                            {ORDER_STATUSES.map((status, index) => {
+                                const isCompleted = index < order.currentStep;
+                                const isActive = index === order.currentStep;
+                                const Icon = status.icon;
+
+                                return (
+                                    <div key={status.id} className={`${styles.timelineItem} ${!isCompleted && !isActive ? styles.dimmed : ''}`}>
+                                        {index < ORDER_STATUSES.length - 1 && (
+                                            <div className={styles.timelineLine} />
+                                        )}
+
+                                        <div className={`${styles.timelineBadge} ${isActive ? styles.timelineBadgeActive : ''} ${isCompleted ? styles.timelineBadgeCompleted : ''}`}>
+                                            <Icon size={18} />
+                                        </div>
+
+                                        <div className={styles.timelineInfo}>
+                                            <div className={styles.timelineHeader}>
+                                                <span className={styles.timelineLabel}>{status.label}</span>
+                                            </div>
+                                            <p className={styles.timelineDesc}>{status.desc}</p>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Delivery Info */}
+                    <div className={styles.card}>
+                        <h2 className={styles.sectionTitle}>Yetkazib berish manzili</h2>
+                        <div className={styles.addressCard}>
+                            <div className={styles.iconBox}>
+                                <MapPin size={20} />
+                            </div>
+                            <div className={styles.addressDetails}>
+                                <span className={styles.addressLabel}>{order.address.label}</span>
+                                <span className={styles.addressText}>{order.address.text}</span>
+                                <span className={styles.addressText}>{order.address.phone}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Order Summary */}
+                    <div className={styles.card}>
+                        <h2 className={styles.sectionTitle}>Buyurtma tarkibi</h2>
+                        <div className={styles.itemsList}>
+                            {order.items.map((item: any) => (
+                                <div key={item.id} className={styles.productRow}>
+                                    <img src={item.image} alt={item.name} className={styles.productImage} />
+                                    <div className={styles.productInfo}>
+                                        <h3 className={styles.productName}>{item.name}</h3>
+                                        <span className={styles.productQty}>Soni: {item.qty} ta</span>
+                                    </div>
+                                    <span className={styles.productPrice}>{item.price.toLocaleString('uz-UZ')} so'm</span>
+                                </div>
+                            ))}
+
+                            <div className={styles.totalRow}>
+                                <span className={styles.totalLabel}>Jami</span>
+                                <span className={styles.totalValue}>{order.total.toLocaleString('uz-UZ')} so'm</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </>
+            )}
         </div>
     );
 }
