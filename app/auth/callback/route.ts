@@ -8,7 +8,10 @@ export async function GET(request: Request) {
     const next = searchParams.get('next') ?? '/profil';
 
     if (code) {
-        const supabase = await createClient();
+        const isAdminPath = next.startsWith('/admin');
+        const { createAdminServerClient } = await import('@/app/utils/supabase/admin-server');
+
+        const supabase = isAdminPath ? await createAdminServerClient() : await createClient();
         const { error } = await supabase.auth.exchangeCodeForSession(code);
 
         if (!error) {

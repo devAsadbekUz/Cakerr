@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, ShoppingBag, Package, Calendar, Settings, LogOut, Tags, Menu, X, Wand2 } from 'lucide-react';
-import { createClient } from '@/app/utils/supabase/client';
+import { createAdminBrowserClient } from '@/app/utils/supabase/admin-client';
 import styles from './AdminSidebar.module.css';
 
 const MENU = [
@@ -32,7 +32,8 @@ export default function AdminSidebar() {
     }, [pathname]);
 
     const handleLogout = async () => {
-        const supabase = createClient();
+        const { createAdminBrowserClient } = await import('@/app/utils/supabase/admin-client');
+        const supabase = createAdminBrowserClient();
         await supabase.auth.signOut();
         router.push('/admin/login');
     };

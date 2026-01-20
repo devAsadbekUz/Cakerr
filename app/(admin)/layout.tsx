@@ -5,7 +5,7 @@ import AdminBottomNav from "@/app/components/admin/AdminBottomNav";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useSupabase } from "@/app/context/SupabaseContext";
-import { createClient } from "@/app/utils/supabase/client";
+import { createAdminBrowserClient } from "@/app/utils/supabase/admin-client";
 import styles from "./AdminLayout.module.css";
 
 export default function AdminLayout({
@@ -15,15 +15,24 @@ export default function AdminLayout({
 }>) {
     const pathname = usePathname();
     const router = useRouter();
-    const { user, loading: authLoading } = useSupabase();
     const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
-    const supabase = createClient();
+    const [user, setUser] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const supabase = createAdminBrowserClient();
 
     const isLoginPage = pathname?.startsWith('/admin/login');
-    console.log('AdminLayout pathname:', pathname, 'isLoginPage:', isLoginPage);
 
     useEffect(() => {
-        if (authLoading) return;
+        const checkUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            setUser(user);
+            setLoading(false);
+        };
+        checkUser();
+    }, [supabase]);
+
+    useEffect(() => {
+        if (loading) return;
 
         if (!user) {
             console.log('No user found in admin layout, redirecting to login');
@@ -66,13 +75,13 @@ export default function AdminLayout({
         }
 
         checkRole();
-    }, [user, authLoading, isLoginPage, router, supabase]);
+    }, [user, loading, isLoginPage, router, supabase]);
 
     if (isLoginPage) {
         return <>{children}</>;
     }
 
-    if (authLoading || isAuthorized === null) {
+    if (loading || isAuthorized === null) {
         return (
             <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
                 <div style={{ fontSize: '18px', color: '#BE185D', fontWeight: 600 }}>Tekshirilmoqda...</div>

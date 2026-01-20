@@ -18,10 +18,17 @@ export async function proxy(request: NextRequest) {
         return response;
     }
 
+    const isPathAdmin = request.nextUrl.pathname.startsWith('/admin');
+    const cookieName = isPathAdmin ? 'sb-admin-token' : 'sb-access-token';
+
     const supabase = createServerClient(
         supabaseUrl,
         supabaseKey,
         {
+            cookieOptions: {
+                name: cookieName,
+                path: '/',
+            },
             cookies: {
                 getAll() {
                     return request.cookies.getAll();
@@ -47,19 +54,17 @@ export async function proxy(request: NextRequest) {
 
     const ADMIN_EMAIL = 'moida.buvayda@gmail.com';
     const isAdmin = user?.email === ADMIN_EMAIL;
-    const isPathAdmin = request.nextUrl.pathname.startsWith('/admin');
     const isPathLogin = request.nextUrl.pathname.includes('/login');
 
     // PROTECT /admin routes: Only the specific admin email can enter
     if (isPathAdmin && !isPathLogin) {
         if (!user || !isAdmin) {
             console.log(`[Middleware] Unauthorized attempt to /admin: ${user?.email || 'Guest'}`);
+            // If they are logged in with a wrong email, they go back to store
+            // If they are not logged in at all, they go to admin login
             return NextResponse.redirect(new URL(user ? '/profil' : '/admin/login', request.url));
         }
     }
-
-    // Note: We removed the "forcing" logic that sent the admin to /admin automatically
-    // when they visited /profil/login. This respects the user's wish for "separate links".
 
     return response;
 }

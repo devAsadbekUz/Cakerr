@@ -110,40 +110,49 @@ export default function TrackingPage() {
     };
 
     useEffect(() => {
-        console.log('[Component] TrackingPage MOUNTED', { orderId });
+        console.log('[Realtime] Initializing tracking for:', orderId);
         fetchOrder();
 
+        // Fallback: Refresh data periodically in case socket fails
+        const pollInterval = setInterval(() => {
+            console.log('[Realtime] Background refresh pulse...');
+            fetchOrder();
+        }, 5000);
+
         // Subscribe to real-time updates for this specific order
+        // Using the same robust pattern as the success page to ensure all data stays in sync
         const channel = supabase
             .channel(`order-tracking-${orderId}`)
             .on(
                 'postgres_changes',
                 {
-                    event: 'UPDATE',
+                    event: 'UPDATE', // We mostly care about updates from admin/bot
                     schema: 'public',
                     table: 'orders',
                     filter: `id=eq.${orderId}`
                 },
                 (payload: any) => {
-                    console.log('Order status updated real-time:', payload.new.status);
-                    setOrder((prev: any) => prev ? {
-                        ...prev,
-                        status: payload.new.status,
-                        currentStep: getStatusStep(payload.new.status)
-                    } : null);
+                    console.log('[Realtime] Order updated, re-fetching data:', payload.new.status);
+                    // Instead of manual state updates, we re-fetch the whole order
+                    // This ensures items, address, and status are all perfectly in sync
+                    fetchOrder();
                 }
             )
-            .subscribe((status, err) => {
+            .subscribe((status) => {
                 setRealtimeStatus(status);
-                console.log('[Realtime] Order Tracking Subscription:', status);
-                if (err) console.error('[Realtime] Error:', err);
+                console.log('[Realtime] Subscription Status:', status);
+
+                if (status === 'CHANNEL_ERROR') {
+                    console.error('[Realtime] Socket failed. Falling back to background polling.');
+                }
             });
 
         return () => {
-            console.log('[Component] TrackingPage UNMOUNTED', { orderId });
+            console.log('[Component] Cleanup Tracking:', orderId);
+            clearInterval(pollInterval);
             supabase.removeChannel(channel);
         };
-    }, [orderId]);
+    }, [orderId, supabase]);
 
     const progressValue = order ? ((order.currentStep + 1) / order.totalSteps) * 100 : 0;
 

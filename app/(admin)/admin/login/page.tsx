@@ -2,18 +2,16 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/app/utils/supabase/client';
+import { createAdminBrowserClient } from '@/app/utils/supabase/admin-client';
 import { Lock, ArrowRight, Mail, Key, Loader2 } from 'lucide-react';
 
 const ADMIN_EMAIL = 'moida.buvayda@gmail.com';
 
 export default function AdminLoginPage() {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const router = useRouter();
-    const supabase = createClient();
+    const supabase = createAdminBrowserClient();
 
     const handleGoogleLogin = async () => {
         setLoading(true);

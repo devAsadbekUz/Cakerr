@@ -55,8 +55,35 @@ function SuccessContent() {
             }
             setLoading(false);
         }
+
         fetchOrder();
-    }, [orderId]);
+
+        // Real-time subscription for this specific order
+        // This ensures the page stays updated if the admin or bot changes the order status/details
+        const channel = supabase
+            .channel(`order-success-${orderId}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    table: 'orders',
+                    schema: 'public',
+                    filter: `id=eq.${orderId}`
+                },
+                (payload) => {
+                    console.log('[Realtime] Order updated:', payload);
+                    // Re-fetch the full order including items when an update occurs
+                    fetchOrder();
+                }
+            )
+            .subscribe((status) => {
+                console.log('[Realtime] Subscription status:', status);
+            });
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [orderId, supabase]);
 
     if (loading) return <div className={styles.container} style={{ padding: '40px', textAlign: 'center' }}>Yuklanmoqda...</div>;
 

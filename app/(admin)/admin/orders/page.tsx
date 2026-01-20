@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { orderService } from '@/app/services/orderService';
 import { format, isToday, isTomorrow, isSameDay, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
-import { createClient } from '@/app/utils/supabase/client';
+import { createAdminBrowserClient } from '@/app/utils/supabase/admin-client';
 import styles from '../AdminDashboard.module.css';
 import { Section, OrderCard, OrderDetailsModal } from '@/app/components/admin/DashboardComponents';
 
@@ -17,7 +17,7 @@ export default function AdminOrdersPage() {
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const [viewMode, setViewMode] = useState<'inbox' | 'calendar'>('inbox');
     const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
-    const supabase = createClient();
+    const supabase = createAdminBrowserClient();
     const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
     const [newOrderNotify, setNewOrderNotify] = useState(false);
     const [mounted, setMounted] = useState(false);
@@ -50,10 +50,10 @@ export default function AdminOrdersPage() {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, []);
+    }, [supabase]);
 
     const handleUpdateStatus = async (orderId: string, newStatus: string) => {
-        const { error } = await orderService.updateOrderStatus(orderId, newStatus);
+        const { error } = await orderService.updateOrderStatus(orderId, newStatus, true);
         if (error) {
             alert('Xatolik: ' + error.message);
         } else {

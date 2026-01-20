@@ -2,7 +2,8 @@ import { createClient } from '@/app/utils/supabase/client';
 
 export const orderService = {
     async getAllOrdersAdmin() {
-        const supabase = createClient();
+        const { createAdminBrowserClient } = await import('@/app/utils/supabase/admin-client');
+        const supabase = createAdminBrowserClient();
         const { data, error } = await supabase
             .from('orders')
             .select(`
@@ -22,8 +23,15 @@ export const orderService = {
         return data;
     },
 
-    async updateOrderStatus(orderId: string, status: string) {
-        const supabase = createClient();
+    async updateOrderStatus(orderId: string, status: string, isAdmin: boolean = false) {
+        let supabase;
+        if (isAdmin) {
+            const { createAdminBrowserClient } = await import('@/app/utils/supabase/admin-client');
+            supabase = createAdminBrowserClient();
+        } else {
+            supabase = createClient();
+        }
+
         const { error } = await supabase
             .from('orders')
             .update({ status, updated_at: new Date().toISOString() })
