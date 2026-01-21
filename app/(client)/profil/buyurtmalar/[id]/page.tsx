@@ -7,44 +7,19 @@ import styles from './page.module.css';
 import { createClient } from '@/app/utils/supabase/client';
 
 // This matches the status structure for future backend integration
-const ORDER_STATUSES = [
-    {
-        id: 'new',
-        label: 'Buyurtma qabul qilindi',
-        desc: 'Sizning buyurtmangiz tizimga tushdi',
-        icon: Check,
-    },
-    {
-        id: 'confirmed',
-        label: 'Tasdiqlandi',
-        desc: 'Buyurtmangiz menejer tomonidan tasdiqlandi',
-        icon: Clock,
-    },
-    {
-        id: 'preparing',
-        label: 'Tayyorlanmoqda',
-        desc: 'Sizning shirinligingiz pishirilmoqda',
-        icon: Package,
-    },
-    {
-        id: 'ready',
-        label: 'Tayyor',
-        desc: 'Buyurtmangiz qadoqlandi va tayyor holatga keldi',
-        icon: Check,
-    },
-    {
-        id: 'delivering',
-        label: 'Yo\'lda',
-        desc: 'Buyurtmangiz kuryerga topshirildi',
-        icon: Truck,
-    },
-    {
-        id: 'completed',
-        label: 'Yetkazildi',
-        desc: 'Buyurtmangiz muvaffaqiyatli yetkazildi',
-        icon: MapPin,
-    }
-];
+import { ORDER_STATUSES as CENTRAL_STATUSES } from '@/app/utils/orderConfig';
+
+// Map central statuses to UI Icons and display info
+const ORDER_STATUSES = CENTRAL_STATUSES.filter(s => s.id !== 'cancelled').map(s => ({
+    id: s.id,
+    label: s.label,
+    desc: s.desc,
+    icon: s.id === 'new' ? Check :
+        s.id === 'confirmed' ? Clock :
+            s.id === 'preparing' ? Package :
+                s.id === 'ready' ? Check :
+                    s.id === 'delivering' ? Truck : MapPin
+}));
 
 const getStatusStep = (status: string) => {
     switch (status) {

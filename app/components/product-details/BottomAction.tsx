@@ -18,9 +18,10 @@ export default function BottomAction({
   const [count, setCount] = useState(1);
   const [added, setAdded] = useState(false);
 
-  const displayPrice = typeof price === 'number'
-    ? `${price.toLocaleString('uz-UZ')} so'm`
-    : price;
+  // Calculate total price = unit price × quantity
+  const numericPrice = typeof price === 'number' ? price : parseInt(String(price).replace(/\D/g, ''), 10) || 0;
+  const totalPrice = numericPrice * count;
+  const displayPrice = `${totalPrice.toLocaleString('uz-UZ')} so'm`;
 
   const handleAdd = () => {
     if (added) {

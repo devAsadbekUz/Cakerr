@@ -78,30 +78,23 @@ export default function ContactSheet({ isOpen, onClose }: ContactSheetProps) {
                     <ContactItem
                         icon={<Phone size={24} />}
                         label="Telefon"
-                        value="+998 90 123 45 67"
+                        value="+998 88 956 57 00"
                         color="#4ADE80"
-                        href="tel:+998901234567"
+                        href="tel:+998889565700"
                     />
                     <ContactItem
                         icon={<Send size={24} />}
                         label="Telegram"
-                        value="@cakeordersuz"
+                        value="@buvaydamoidam"
                         color="#60A5FA"
-                        href="https://t.me/cakeordersuz"
-                    />
-                    <ContactItem
-                        icon={<MessageCircle size={24} />}
-                        label="WhatsApp"
-                        value="+998 90 123 45 67"
-                        color="#22C55E"
-                        href="https://wa.me/998901234567"
+                        href="https://t.me/buvaydamoidam"
                     />
                     <ContactItem
                         icon={<Instagram size={24} />}
                         label="Instagram"
-                        value="@cakeorders.uz"
+                        value="moida_cooking_house"
                         color="#E1306C"
-                        href="https://instagram.com/cakeorders.uz"
+                        href="https://www.instagram.com/moida_cooking_house/"
                     />
                 </div>
 

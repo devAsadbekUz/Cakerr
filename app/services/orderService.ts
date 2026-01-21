@@ -39,11 +39,15 @@ export const orderService = {
 
         // Sync status to Telegram bot message (fire and forget)
         if (!error) {
+            console.log(`[OrderService] Syncing status to TG: ${status} for ${orderId}`);
             fetch('/api/telegram/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ orderId, newStatus: status })
-            }).catch(err => console.error('Telegram sync error:', err));
+            })
+                .then(res => res.json())
+                .then(data => console.log('[OrderService] TG Sync result:', data))
+                .catch(err => console.error('[OrderService] TG Sync error:', err));
         }
 
         return { error };
