@@ -257,6 +257,84 @@
     cursor: pointer;
 }
 
+/* Telegram Login Button */
+.telegramBtn {
+    width: 100%;
+    background: linear-gradient(135deg, #0088cc 0%, #0077b5 100%);
+    color: white;
+    border: none;
+    border-radius: 16px;
+    padding: 18px;
+    font-size: 17px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(0, 136, 204, 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none;
+}
+
+.telegramBtn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #0077b5 0%, #006699 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(0, 136, 204, 0.4);
+}
+
+.telegramBtn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.telegramBtn:disabled {
+    background: #E5E7EB;
+    color: #9CA3AF;
+    box-shadow: none;
+    cursor: not-allowed;
+}
+
+.hint {
+    text-align: center;
+    font-size: 14px;
+    color: #6B7280;
+    line-height: 1.5;
+    margin-top: 8px;
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.resendRow {
+    text-align: center;
+    margin-top: 16px;
+}
+
+.resendBtn {
+    background: none;
+    border: none;
+    color: #0088cc;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 8px 16px;
+}
+
+.resendBtn:hover {
+    text-decoration: underline;
+}
+
 @keyframes fadeIn {
     from {
         opacity: 0;

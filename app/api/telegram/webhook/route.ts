@@ -18,45 +18,156 @@ export async function POST(request: NextRequest) {
         const update = await request.json();
         console.log('[Telegram Webhook] Update body keys:', Object.keys(update));
 
-        // Handle callback queries (button clicks)
+        // Handle regular messages (including /start and contact sharing)
+        if (update.message) {
+            const message = update.message;
+            const chatId = message.chat.id;
+            const userId = message.from?.id;
+            const firstName = message.from?.first_name || '';
+            const username = message.from?.username || '';
+
+            // Handle /start command
+            if (message.text?.startsWith('/start')) {
+                console.log('[Telegram Webhook] /start command from:', firstName);
+
+                await fetch(`${TELEGRAM_API}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: chatId,
+                        text: `🍰 *Xush kelibsiz, ${firstName}!*\n\nCakerr botiga xush kelibsiz! Buyurtma berish uchun telefon raqamingizni ulashing.\n\nQuyidagi tugmani bosing 👇`,
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            keyboard: [[{
+                                text: '📱 Telefon raqamni ulashish',
+                                request_contact: true
+                            }]],
+                            resize_keyboard: true,
+                            one_time_keyboard: true
+                        }
+                    })
+                });
+                return NextResponse.json({ ok: true });
+            }
+
+            // Handle contact sharing
+            if (message.contact) {
+                const contact = message.contact;
+                const phoneNumber = contact.phone_number;
+                const contactUserId = contact.user_id;
+
+                console.log('[Telegram Webhook] Contact shared:', phoneNumber, 'UserId:', contactUserId);
+
+                // Normalize phone number to +998 format
+                let normalizedPhone = phoneNumber.replace(/\s+/g, '');
+                if (!normalizedPhone.startsWith('+')) {
+                    normalizedPhone = '+' + normalizedPhone;
+                }
+
+                try {
+                    // Check if phone already exists
+                    const { data: existing } = await supabase
+                        .from('telegram_phone_links')
+                        .select('id')
+                        .eq('phone', normalizedPhone)
+                        .single();
+
+                    let saveError = null;
+
+                    if (existing) {
+                        // Update existing record
+                        const { error } = await supabase
+                            .from('telegram_phone_links')
+                            .update({
+                                telegram_id: contactUserId || userId,
+                                telegram_chat_id: chatId,
+                                telegram_username: username,
+                                first_name: firstName
+                            })
+                            .eq('phone', normalizedPhone);
+                        saveError = error;
+                    } else {
+                        // Insert new record
+                        const { error } = await supabase
+                            .from('telegram_phone_links')
+                            .insert({
+                                phone: normalizedPhone,
+                                telegram_id: contactUserId || userId,
+                                telegram_chat_id: chatId,
+                                telegram_username: username,
+                                first_name: firstName
+                            });
+                        saveError = error;
+                    }
+
+                    if (saveError) {
+                        console.error('[Telegram Webhook] Phone link save error:', saveError);
+                        throw saveError;
+                    }
+
+                    // Send success message
+                    await fetch(`${TELEGRAM_API}/sendMessage`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chat_id: chatId,
+                            text: `✅ *Rahmat, ${firstName}!*\n\nTelefon raqamingiz muvaffaqiyatli ulandi: \`${normalizedPhone}\`\n\n🎂 Endi cakerr.vercel.app saytida shu raqam orqali kirishingiz mumkin!`,
+                            parse_mode: 'Markdown',
+                            reply_markup: {
+                                inline_keyboard: [[{
+                                    text: '🍰 Buyurtma berish',
+                                    web_app: { url: 'https://cakerr.vercel.app' }
+                                }]]
+                            }
+                        })
+                    });
+
+                    console.log('[Telegram Webhook] Phone linked successfully:', normalizedPhone);
+
+                } catch (err: any) {
+                    console.error('[Telegram Webhook] Contact handling error:', err);
+                    await fetch(`${TELEGRAM_API}/sendMessage`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chat_id: chatId,
+                            text: `❌ Xatolik: ${err.message || 'Unknown'}`,
+                            reply_markup: { remove_keyboard: true }
+                        })
+                    });
+                }
+
+                return NextResponse.json({ ok: true });
+            }
+        }
+
+        // Handle callback queries (button clicks for orders)
         if (update.callback_query) {
             const callbackData = update.callback_query.data;
             const messageId = update.callback_query.message.message_id;
             const chatId = update.callback_query.message.chat.id;
 
-            console.log('[Telegram Webhook] Callback data:', callbackData, 'Chat ID:', chatId, 'Message ID:', messageId);
+            console.log('[Telegram Webhook] Callback data:', callbackData);
 
-            // Parse action and order ID
             const [action, orderId] = callbackData.split('_');
-            console.log('[Telegram Webhook] Action:', action, 'Order ID:', orderId);
+            let newStatus = action;
 
-            let newStatus = action; // Default to the action itself
-
-            // Special cases for initial buttons
             if (action === 'confirm') newStatus = 'confirmed';
             else if (action === 'cancel') newStatus = 'cancelled';
 
-            // Log incoming action
-            await supabase.from('debug_logs').insert({
-                message: `TG Action: ${action}`,
-                payload: { orderId, callbackData }
-            });
-
-            // 1. Update order in database
-            console.log('[Telegram Webhook] Updating order status to:', newStatus);
+            // Update order in database
             const { error: updateError } = await supabase
                 .from('orders')
                 .update({ status: newStatus, updated_at: new Date().toISOString() })
                 .eq('id', orderId);
 
             if (updateError) {
-                console.error('[Telegram Webhook] Supabase update error:', updateError);
-                await answerCallback(update.callback_query.id, 'Xatolik yuz berdi!', TELEGRAM_API);
+                console.error('[Telegram Webhook] Update error:', updateError);
+                await answerCallback(update.callback_query.id, 'Xatolik!', TELEGRAM_API);
                 return NextResponse.json({ ok: true });
             }
 
-            // 2. Fetch fresh order details
-            console.log('[Telegram Webhook] Fetching fresh order details...');
+            // Fetch fresh order details
             const { data: order, error: fetchError } = await supabase
                 .from('orders')
                 .select(`
@@ -76,21 +187,16 @@ export async function POST(request: NextRequest) {
                 .single();
 
             if (fetchError || !order) {
-                console.error('[Telegram Webhook] Fetch order error:', fetchError);
-                await answerCallback(update.callback_query.id, 'Ma\'lumotlarni yuklashda xatolik!', TELEGRAM_API);
+                await answerCallback(update.callback_query.id, 'Xatolik!', TELEGRAM_API);
                 return NextResponse.json({ ok: true });
             }
 
             const statusConfig = getStatusConfig(newStatus);
             const statusLabel = statusConfig.tgLabel;
-
-            // 3. Build the updated message using shared utility
             const updatedText = buildOrderMessage(order, statusLabel);
             const inline_keyboard = getTelegramButtons(newStatus, orderId);
 
-            // 4. Update the message in Telegram
-            console.log('[Telegram Webhook] Sending editMessageText...');
-            const tgResponse = await fetch(`${TELEGRAM_API}/editMessageText`, {
+            await fetch(`${TELEGRAM_API}/editMessageText`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -102,20 +208,14 @@ export async function POST(request: NextRequest) {
                 })
             });
 
-            const tgResult = await tgResponse.json();
-            console.log('[Telegram Webhook] TG Edit Result:', tgResult);
-
-            // Answer callback to remove loading state
-            await answerCallback(update.callback_query.id, `Holat yangilandi: ${statusLabel}`, TELEGRAM_API);
-        } else {
-            console.log('[Telegram Webhook] Not a callback query, ignoring.');
+            await answerCallback(update.callback_query.id, `Yangilandi: ${statusLabel}`, TELEGRAM_API);
         }
 
         return NextResponse.json({ ok: true });
 
     } catch (error) {
-        console.error('[Telegram Webhook] Catch error:', error);
-        return NextResponse.json({ ok: true }); // Always return 200 for Telegram
+        console.error('[Telegram Webhook] Error:', error);
+        return NextResponse.json({ ok: true });
     }
 }
 
@@ -131,11 +231,10 @@ async function answerCallback(callbackQueryId: string, text: string, telegramApi
             })
         });
     } catch (err) {
-        console.error('[Telegram Webhook] Error answering callback:', err);
+        console.error('[Telegram Webhook] Callback error:', err);
     }
 }
 
-// Verify webhook is set up correctly
 export async function GET() {
     return NextResponse.json({ status: 'Telegram webhook is active' });
 }

@@ -73,13 +73,18 @@ export default function PhotoUploadForm() {
             id: `custom-upload-${Date.now()}`,
             name: 'Rasmli Tort (Custom)',
             price: 350000,
-            image: uploadedImage, // Using the uploaded image as thumbnail
+            image: uploadedImage, // Fallback for cart display
             portion: 'Kelishilgan holda',
             flavor: 'Mijoz tanlovi',
             quantity: 1,
-            // We might want to pass the comment somewhere, for now context holds it
-            // Ideally cart item should handle custom attributes
-            customNote: uploadComment
+            customNote: uploadComment,
+            configuration: {
+                mode: 'upload',
+                uploaded_photo_url: uploadedImage,
+                custom_note: uploadComment,
+                pricing_type: 'hybrid',
+                estimated_total: 350000
+            }
         });
 
         router.push('/savat');

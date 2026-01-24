@@ -9,6 +9,7 @@ import CalendarModal from '@/app/components/checkout/CalendarModal';
 import AddressesModal from '@/app/components/checkout/AddressesModal';
 import SuccessModal from '@/app/components/checkout/SuccessModal';
 import { useSupabase } from '@/app/context/SupabaseContext';
+import { useTelegram } from '@/app/context/TelegramContext';
 import { createClient } from '@/app/utils/supabase/client';
 import { format } from 'date-fns';
 
@@ -24,7 +25,8 @@ const TIME_SLOTS = [
 export default function CheckoutPage() {
     const router = useRouter();
     const { cart, subtotal, totalItems, deliveryAddress, clearCart, savedAddresses } = useCart();
-    const { user } = useSupabase();
+    const { user, isTelegramUser } = useSupabase();
+    const { getAuthHeader } = useTelegram();
     const supabase = createClient();
 
     const [isAddressesOpen, setIsAddressesOpen] = useState(false);
@@ -97,34 +99,23 @@ export default function CheckoutPage() {
             // Find the selected address coordinates
             const selectedAddr = savedAddresses.find(a => a.address === deliveryAddress);
 
-            // 1. Create Order
-            const { data: orderData, error: orderError } = await supabase
-                .from('orders')
-                .insert({
-                    user_id: user.id,
-                    total_price: total,
-                    status: 'new',
-                    delivery_address: {
-                        label: selectedAddr?.label || 'Address',
-                        street: deliveryAddress,
-                        lat: selectedAddr?.lat || null,
-                        lng: selectedAddr?.lng || null,
-                    },
-                    delivery_time: selectedDateObj ? selectedDateObj.toISOString() : new Date().toISOString(),
-                    delivery_slot: selectedSlot,
-                    comment: comment
-                })
-                .select()
-                .single();
+            const orderData = {
+                total_price: total,
+                delivery_address: {
+                    label: selectedAddr?.label || 'Address',
+                    street: deliveryAddress,
+                    lat: selectedAddr?.lat || null,
+                    lng: selectedAddr?.lng || null,
+                },
+                delivery_time: selectedDateObj ? selectedDateObj.toISOString() : new Date().toISOString(),
+                delivery_slot: selectedSlot,
+                comment: comment
+            };
 
-            if (orderError) throw orderError;
-
-            // 2. Create Order Items
             const orderItems = cart.map(item => {
                 const isCustom = item.id.startsWith('custom-') || item.configuration?.pricing_type === 'hybrid';
 
                 return {
-                    order_id: orderData.id,
                     product_id: isCustom ? null : item.id,
                     name: item.name,
                     quantity: item.quantity,
@@ -137,11 +128,45 @@ export default function CheckoutPage() {
                 };
             });
 
-            const { error: itemsError } = await supabase
-                .from('order_items')
-                .insert(orderItems);
+            let createdOrder: { id: string };
 
-            if (itemsError) throw itemsError;
+            // Use API proxy for Telegram users, direct Supabase for admin/Google users
+            if (isTelegramUser) {
+                const response = await fetch('/api/user/orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeader()
+                    },
+                    body: JSON.stringify({ order: orderData, items: orderItems })
+                });
+
+                const result = await response.json();
+                if (result.error) throw new Error(result.error);
+                createdOrder = result.order;
+            } else {
+                // Direct Supabase for admin/Google users
+                const { data, error: orderError } = await supabase
+                    .from('orders')
+                    .insert({ ...orderData, user_id: user.id, status: 'new' })
+                    .select()
+                    .single();
+
+                if (orderError) throw orderError;
+                createdOrder = data;
+
+                // Create order items
+                const itemsWithOrderId = orderItems.map(item => ({
+                    ...item,
+                    order_id: createdOrder.id
+                }));
+
+                const { error: itemsError } = await supabase
+                    .from('order_items')
+                    .insert(itemsWithOrderId);
+
+                if (itemsError) throw itemsError;
+            }
 
             // 3. Send Telegram notification
             try {
@@ -161,9 +186,9 @@ export default function CheckoutPage() {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        orderId: orderData.id,
+                        orderId: createdOrder.id,
                         customerName: user.user_metadata?.full_name || 'Mijoz',
-                        customerPhone: user.phone || user.email || 'Noma\'lum',
+                        customerPhone: user.phone || 'Noma\'lum',
                         address: deliveryAddress,
                         locationUrl,
                         deliveryDate: deliveryDateFormatted,
@@ -183,7 +208,7 @@ export default function CheckoutPage() {
                 // Don't block order success if Telegram fails
             }
 
-            setNewOrderId(orderData.id);
+            setNewOrderId(createdOrder.id);
             setIsSuccessOpen(true);
         } catch (error) {
             console.error('Error creating order:', error);

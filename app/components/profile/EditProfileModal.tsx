@@ -4,12 +4,22 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Camera, X, Check, Loader2, User as UserIcon } from 'lucide-react';
 import styles from './EditProfileModal.module.css';
 import { createClient } from '@/app/utils/supabase/client';
-import { User } from '@supabase/supabase-js';
+
+// Compatible with both Supabase User and our UnifiedUser type
+interface ProfileUser {
+    id: string;
+    email?: string | null;
+    phone?: string | null;
+    user_metadata?: {
+        full_name?: string;
+        avatar_url?: string;
+    };
+}
 
 interface EditProfileModalProps {
     isOpen: boolean;
     onClose: () => void;
-    user: User;
+    user: ProfileUser;
     onUpdate: () => void;
 }
 
