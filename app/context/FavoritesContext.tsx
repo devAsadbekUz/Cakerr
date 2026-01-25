@@ -17,11 +17,17 @@ const FavoritesContext = createContext<FavoritesContextType | undefined>(undefin
 export function FavoritesProvider({ children }: { children: React.ReactNode }) {
     const [favorites, setFavorites] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
-    const { user, isTelegramUser } = useSupabase();
+    const { user, isTelegramUser, loading: authLoading } = useSupabase();
     const supabase = createClient();
 
-    // 1. Load favorites on mount or when user changes
+    // 1. Load favorites on mount or when user/auth state changes
+    // IMPORTANT: Wait for auth loading to complete before loading favorites
     useEffect(() => {
+        // Don't load favorites until auth state is determined
+        if (authLoading) {
+            return;
+        }
+
         async function loadFavorites() {
             setLoading(true);
 
@@ -29,15 +35,20 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
                 // Check if Telegram user - use API proxy
                 if (isTelegramUser) {
                     try {
+                        const authHeader = getAuthHeader();
+                        console.log('[Favorites] Loading for Telegram user, has auth:', !!authHeader.Authorization);
                         const response = await fetch('/api/user/favorites', {
-                            headers: getAuthHeader()
+                            headers: authHeader
                         });
                         const data = await response.json();
                         if (data.favorites) {
+                            console.log('[Favorites] Loaded from API:', data.favorites.length);
                             setFavorites(data.favorites);
+                        } else {
+                            console.log('[Favorites] API returned no favorites or error:', data);
                         }
                     } catch (error) {
-                        console.error('Error loading favorites via API:', error);
+                        console.error('[Favorites] Error loading via API:', error);
                     }
                 } else {
                     // Regular Supabase user (admin)
@@ -47,6 +58,7 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
                         .eq('user_id', user.id);
 
                     if (data && !error) {
+                        console.log('[Favorites] Loaded from Supabase:', data.length);
                         setFavorites(data.map(f => f.product_id));
                     }
                 }
@@ -55,17 +67,21 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
                 const saved = localStorage.getItem('favorites');
                 if (saved) {
                     try {
-                        setFavorites(JSON.parse(saved));
+                        const parsed = JSON.parse(saved);
+                        console.log('[Favorites] Loaded from localStorage:', parsed.length);
+                        setFavorites(parsed);
                     } catch (e) {
-                        console.error('Failed to parse favorites', e);
+                        console.error('[Favorites] Failed to parse localStorage:', e);
                     }
+                } else {
+                    console.log('[Favorites] No saved favorites in localStorage');
                 }
             }
             setLoading(false);
         }
 
         loadFavorites();
-    }, [user, isTelegramUser]);
+    }, [user, isTelegramUser, authLoading]);
 
     // 2. Save to LocalStorage if guest
     useEffect(() => {
