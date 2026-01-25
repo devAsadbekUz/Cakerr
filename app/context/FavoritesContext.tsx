@@ -40,15 +40,44 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
                         const response = await fetch('/api/user/favorites', {
                             headers: authHeader
                         });
+
+                        if (!response.ok) {
+                            console.warn('[Favorites] API returned error:', response.status);
+                            // Fall back to localStorage if API fails
+                            const saved = localStorage.getItem('favorites');
+                            if (saved) {
+                                try {
+                                    const parsed = JSON.parse(saved);
+                                    console.log('[Favorites] Loaded from localStorage fallback:', parsed.length);
+                                    setFavorites(parsed);
+                                } catch (e) {
+                                    console.error('[Favorites] Failed to parse localStorage:', e);
+                                }
+                            }
+                            setLoading(false);
+                            return;
+                        }
+
                         const data = await response.json();
                         if (data.favorites) {
                             console.log('[Favorites] Loaded from API:', data.favorites.length);
                             setFavorites(data.favorites);
                         } else {
-                            console.log('[Favorites] API returned no favorites or error:', data);
+                            console.log('[Favorites] API returned empty favorites');
                         }
                     } catch (error) {
                         console.error('[Favorites] Error loading via API:', error);
+                        // Fall back to localStorage on network error
+                        const saved = localStorage.getItem('favorites');
+                        if (saved) {
+                            try {
+                                const parsed = JSON.parse(saved);
+                                console.log('[Favorites] Loaded from localStorage fallback after error:', parsed.length);
+                                setFavorites(parsed);
+                            } catch (e) {
+                                console.error('[Favorites] Failed to parse localStorage:', e);
+                            }
+                        }
                     }
                 } else {
                     // Regular Supabase user (admin)
@@ -103,29 +132,35 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
             // Use API proxy for Telegram users
             if (isTelegramUser) {
                 try {
-                    if (isCurrentlyFavorite) {
-                        await fetch('/api/user/favorites', {
-                            method: 'DELETE',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                ...getAuthHeader()
-                            },
-                            body: JSON.stringify({ productId })
-                        });
+                    const response = await fetch('/api/user/favorites', {
+                        method: isCurrentlyFavorite ? 'DELETE' : 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...getAuthHeader()
+                        },
+                        body: JSON.stringify({ productId })
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+                        console.error('[Favorites] API error:', response.status, errorData);
+
+                        // If unauthorized (session expired), fall back to localStorage
+                        if (response.status === 401) {
+                            console.warn('[Favorites] Session expired, saving to localStorage as fallback');
+                            localStorage.setItem('favorites', JSON.stringify(newFavorites));
+                            return; // Don't revert - keep local state synced with localStorage
+                        }
+
+                        // For other errors, revert the optimistic update
+                        setFavorites(favorites);
                     } else {
-                        await fetch('/api/user/favorites', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                ...getAuthHeader()
-                            },
-                            body: JSON.stringify({ productId })
-                        });
+                        console.log('[Favorites] Successfully synced to server');
                     }
                 } catch (error) {
-                    console.error('Error syncing favorite via API:', error);
-                    // Revert on error
-                    setFavorites(favorites);
+                    console.error('[Favorites] Network error syncing favorite:', error);
+                    // Fall back to localStorage on network error (don't revert UI)
+                    localStorage.setItem('favorites', JSON.stringify(newFavorites));
                 }
             } else {
                 // Direct Supabase for admin users

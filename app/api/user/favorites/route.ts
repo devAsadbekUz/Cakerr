@@ -10,14 +10,32 @@ async function getUserFromToken(token: string): Promise<string | null> {
         process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    const { data: session } = await supabase
+    console.log('[Favorites API] Looking up token:', token.substring(0, 8) + '...');
+
+    const { data: session, error } = await supabase
         .from('telegram_sessions')
-        .select('profile_id')
+        .select('profile_id, expires_at')
         .eq('token', token)
-        .gt('expires_at', new Date().toISOString())
         .single();
 
-    return session?.profile_id || null;
+    if (error) {
+        console.error('[Favorites API] Session lookup error:', error.message);
+        return null;
+    }
+
+    if (!session) {
+        console.log('[Favorites API] No session found for token');
+        return null;
+    }
+
+    // Check expiry
+    if (new Date(session.expires_at) < new Date()) {
+        console.log('[Favorites API] Session expired at:', session.expires_at);
+        return null;
+    }
+
+    console.log('[Favorites API] Found valid session for profile:', session.profile_id);
+    return session.profile_id;
 }
 
 /**
