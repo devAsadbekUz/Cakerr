@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
 import { getStatusConfig, getTelegramButtons, buildOrderMessage } from '@/app/utils/orderConfig';
 
 export async function POST(request: NextRequest) {
@@ -28,14 +29,42 @@ export async function POST(request: NextRequest) {
 
             // Handle /start command
             if (message.text?.startsWith('/start')) {
-                console.log('[Telegram Webhook] /start command from:', firstName);
+                console.log('[Telegram Webhook] /start command from:', firstName, 'userId:', userId);
 
+                // Check if user already has a profile with phone number
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('id, phone_number')
+                    .eq('telegram_id', userId)
+                    .maybeSingle();
+
+                if (profile?.phone_number) {
+                    // Welcome back message - skip contact sharing
+                    await fetch(`${TELEGRAM_API}/sendMessage`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chat_id: chatId,
+                            text: `🍰 *Xush kelibsiz qaytib, ${firstName}! *\n\nSiz allaqachon ro'yxatdan o'tgansiz. Buyurtma berishni boshlang! 👇`,
+                            parse_mode: 'Markdown',
+                            reply_markup: {
+                                inline_keyboard: [[{
+                                    text: '🍰 Buyurtma berish',
+                                    web_app: { url: process.env.NEXT_PUBLIC_APP_URL || 'https://cakerr.vercel.app' }
+                                }]]
+                            }
+                        })
+                    });
+                    return NextResponse.json({ ok: true });
+                }
+
+                // New or incomplete user - ask for contact
                 await fetch(`${TELEGRAM_API}/sendMessage`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         chat_id: chatId,
-                        text: `🍰 *Xush kelibsiz, ${firstName}!*\n\nCakerr botiga xush kelibsiz! Buyurtma berish uchun telefon raqamingizni ulashing.\n\nQuyidagi tugmani bosing 👇`,
+                        text: `🍰 *Xush kelibsiz, ${firstName}! *\n\nCakerr botiga xush kelibsiz! Buyurtma berish uchun telefon raqamingizni ulashing.\n\nQuyidagi tugmani bosing 👇`,
                         parse_mode: 'Markdown',
                         reply_markup: {
                             keyboard: [[{
@@ -55,170 +84,69 @@ export async function POST(request: NextRequest) {
                 const contact = message.contact;
                 const phoneNumber = contact.phone_number;
                 const contactUserId = contact.user_id;
+                const telegramId = contactUserId || userId;
 
-                console.log('[Telegram Webhook] Contact shared:', phoneNumber, 'UserId:', contactUserId);
+                console.log('[Telegram Webhook] Contact shared:', phoneNumber, 'UserId:', telegramId);
 
-                // Normalize phone number to +998 format
+                // Normalize phone number
                 let normalizedPhone = phoneNumber.replace(/\s+/g, '');
                 if (!normalizedPhone.startsWith('+')) {
                     normalizedPhone = '+' + normalizedPhone;
                 }
 
                 try {
-                    // Check if phone already exists
-                    const { data: existing } = await supabase
-                        .from('telegram_phone_links')
-                        .select('id')
-                        .eq('phone', normalizedPhone)
-                        .single();
-
-                    let saveError = null;
-
-                    if (existing) {
-                        // Update existing record
-                        const { error } = await supabase
-                            .from('telegram_phone_links')
-                            .update({
-                                telegram_id: contactUserId || userId,
-                                telegram_chat_id: chatId,
-                                telegram_username: username,
-                                first_name: firstName
-                            })
-                            .eq('phone', normalizedPhone);
-                        saveError = error;
-                    } else {
-                        // Insert new record
-                        const { error } = await supabase
-                            .from('telegram_phone_links')
-                            .insert({
-                                phone: normalizedPhone,
-                                telegram_id: contactUserId || userId,
-                                telegram_chat_id: chatId,
-                                telegram_username: username,
-                                first_name: firstName
-                            });
-                        saveError = error;
-                    }
-
-                    if (saveError) {
-                        console.error('[Telegram Webhook] Phone link save error:', saveError);
-                        throw saveError;
-                    }
-
-                    // ============================================
-                    // NEW: Create or update profile and session
-                    // ============================================
-                    const telegramId = contactUserId || userId;
-
-                    // Check if profile exists
-                    const { data: existingProfile } = await supabase
+                    // 1. Update/Create profile
+                    const { data: profile, error: profileError } = await supabase
                         .from('profiles')
-                        .select('*')
-                        .eq('telegram_id', telegramId)
+                        .upsert({
+                            telegram_id: telegramId,
+                            phone_number: normalizedPhone,
+                            full_name: firstName,
+                            username: username,
+                            role: 'customer',
+                            updated_at: new Date().toISOString()
+                        }, { onConflict: 'telegram_id' })
+                        .select()
                         .single();
 
-                    let profile;
-
-                    if (existingProfile) {
-                        // Update existing profile
-                        const { data, error } = await supabase
-                            .from('profiles')
-                            .update({
-                                phone_number: normalizedPhone,
-                                full_name: existingProfile.full_name || firstName,
-                                updated_at: new Date().toISOString()
-                            })
-                            .eq('telegram_id', telegramId)
-                            .select()
-                            .single();
-
-                        if (error) {
-                            console.error('[Telegram Webhook] Profile update error:', error);
-                        } else {
-                            profile = data;
-                        }
-                    } else {
-                        // Create new profile
-                        const crypto = await import('crypto');
-                        const newId = crypto.randomUUID();
-
-                        const { data, error } = await supabase
-                            .from('profiles')
-                            .insert({
-                                id: newId,
-                                telegram_id: telegramId,
-                                phone_number: normalizedPhone,
-                                full_name: firstName || 'Mijoz',
-                                role: 'customer'
-                            })
-                            .select()
-                            .single();
-
-                        if (error) {
-                            console.error('[Telegram Webhook] Profile create error:', error);
-                        } else {
-                            profile = data;
-                            console.log('[Telegram Webhook] Created new profile:', profile.id);
-                        }
+                    if (profileError) {
+                        console.error('[Telegram Webhook] Profile upsert error:', profileError);
+                        throw profileError;
                     }
 
-                    // Create session if profile exists
-                    if (profile) {
-                        const crypto = await import('crypto');
-                        const token = crypto.randomUUID();
-                        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+                    // 2. Clear any legacy sessions for this user (cleanup)
+                    await supabase
+                        .from('telegram_sessions')
+                        .delete()
+                        .eq('telegram_id', telegramId);
 
-                        // Delete old sessions for this user
-                        await supabase
-                            .from('telegram_sessions')
-                            .delete()
-                            .eq('telegram_id', telegramId);
-
-                        // Create new session
-                        const { error: sessionError } = await supabase
-                            .from('telegram_sessions')
-                            .insert({
-                                profile_id: profile.id,
-                                token,
-                                telegram_id: telegramId,
-                                expires_at: expiresAt.toISOString()
-                            });
-
-                        if (sessionError) {
-                            console.error('[Telegram Webhook] Session create error:', sessionError);
-                        } else {
-                            console.log('[Telegram Webhook] Created session for:', profile.full_name);
-                        }
-                    }
-
-                    // Send success message
+                    // 3. Send success message
                     await fetch(`${TELEGRAM_API}/sendMessage`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             chat_id: chatId,
-                            text: `✅ *Rahmat, ${firstName}!*\n\nTelefon raqamingiz muvaffaqiyatli ulandi: \`${normalizedPhone}\`\n\n🎂 Endi cakerr.vercel.app saytida avtomatik kirishingiz mumkin!`,
+                            text: `✅ *Rahmat!*\n\nTelefon raqamingiz muvaffaqiyatli ulandi: \`${normalizedPhone}\`\n\n🎂 Endi store'da avtomatik kirishingiz mumkin!`,
                             parse_mode: 'Markdown',
                             reply_markup: {
                                 inline_keyboard: [[{
                                     text: '🍰 Buyurtma berish',
-                                    web_app: { url: 'https://cakerr.vercel.app' }
+                                    web_app: { url: process.env.NEXT_PUBLIC_APP_URL || 'https://cakerr.vercel.app' }
                                 }]]
                             }
                         })
                     });
 
-                    console.log('[Telegram Webhook] Phone linked and profile created:', normalizedPhone);
+                    console.log('[Telegram Webhook] Profile completed for:', normalizedPhone);
 
                 } catch (err: any) {
-                    console.error('[Telegram Webhook] Contact handling error:', err);
+                    console.error('[Telegram Webhook] Contact error:', err);
                     await fetch(`${TELEGRAM_API}/sendMessage`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             chat_id: chatId,
-                            text: `❌ Xatolik: ${err.message || 'Unknown'}`,
-                            reply_markup: { remove_keyboard: true }
+                            text: `❌ Xatolik yuz berdi. Iltimos keyinroq qayta urinib ko'ring.`
                         })
                     });
                 }

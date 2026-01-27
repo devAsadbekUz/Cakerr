@@ -123,7 +123,8 @@ export default function CheckoutPage() {
                     configuration: isCustom ? item.configuration : {
                         portion: item.portion,
                         flavor: item.flavor,
-                        custom_note: item.customNote
+                        custom_note: item.customNote,
+                        image_url: item.image // Store product image for profile display
                     }
                 };
             });
@@ -218,6 +219,7 @@ export default function CheckoutPage() {
         }
     };
 
+
     return (
         <div className={styles.container}>
             <header className={styles.header}>
@@ -226,6 +228,7 @@ export default function CheckoutPage() {
                 </button>
                 <h1 className={styles.title}>Buyurtmani rasmiylashtirish</h1>
             </header>
+
 
             {/* Address Section */}
             <div

@@ -78,7 +78,7 @@ export default function ProfilPage() {
                         date: new Date(o.created_at).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' }),
                         items: `${item?.name || 'Mahsulot'} (${item?.configuration?.portion || ''})`,
                         price: o.total_price,
-                        image: item?.configuration?.uploaded_photo_url || '/images/cake-placeholder.jpg',
+                        image: item?.configuration?.image_url || item?.configuration?.uploaded_photo_url || '/images/cake-placeholder.jpg',
                         productId: item?.product_id,
                         name: item?.name,
                         portion: item?.configuration?.portion,

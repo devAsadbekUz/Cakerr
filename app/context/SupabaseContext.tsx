@@ -39,27 +39,26 @@ export default function SupabaseProvider({ children }: { children: React.ReactNo
             return;
         }
 
-        // Check for Telegram session first
-        const tgSession = getStoredSession();
-        if (tgSession) {
-            console.log('[Auth] Telegram session found:', tgSession.user.full_name);
-            setUser({
-                id: tgSession.user.id,
-                phone: tgSession.user.phone_number,
-                user_metadata: {
-                    full_name: tgSession.user.full_name,
-                    avatar_url: tgSession.user.avatar_url
-                }
-            });
-            setIsTelegramUser(true);
-            setLoading(false);
-            return;
-        }
-
-        // Fall back to Supabase auth (for admin users)
         const supabase = createClient();
 
         const getUser = async () => {
+            // First check for legacy Telegram session (for OTP users or if initData fails)
+            const tgSession = getStoredSession();
+            if (tgSession) {
+                console.log('[SupabaseContext] Found Telegram session:', tgSession.user.full_name);
+                setUser({
+                    id: tgSession.user.id,
+                    phone: tgSession.user.phone_number,
+                    user_metadata: {
+                        full_name: tgSession.user.full_name,
+                        avatar_url: tgSession.user.avatar_url
+                    }
+                });
+                setIsTelegramUser(true);
+                setLoading(false);
+                return;
+            }
+
             const { data: { user: supabaseUser } } = await supabase.auth.getUser();
             if (supabaseUser) {
                 setUser({
@@ -70,27 +69,20 @@ export default function SupabaseProvider({ children }: { children: React.ReactNo
                 });
                 setIsTelegramUser(false);
             }
-            setLoading(false);
+            // We don't set loading false yet, as TelegramContext might still be verifying initData
         };
 
         getUser();
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             // Only handle Supabase auth if not a Telegram user
-            const storedTgSession = getStoredSession();
-            if (storedTgSession) {
-                return; // Telegram user, ignore Supabase auth changes
-            }
+            if (isTelegramUser) return;
 
             const newUser = session?.user ?? null;
 
             setUser(current => {
-                // If both are null, or both have same ID, don't trigger state update
                 if (!current && !newUser) return null;
-                if (current?.id === newUser?.id) {
-                    return current;
-                }
-                console.log('[Auth] Supabase user changed:', event, newUser?.id);
+                if (current?.id === newUser?.id) return current;
 
                 if (newUser) {
                     return {
@@ -102,38 +94,46 @@ export default function SupabaseProvider({ children }: { children: React.ReactNo
                 }
                 return null;
             });
-
-            setLoading(false);
         });
 
         return () => subscription.unsubscribe();
-    }, [canInit]);
+    }, [canInit, isTelegramUser]);
 
-    // Re-check Telegram session on storage changes (for logout)
+    // Listen for Telegram user updates
     useEffect(() => {
-        const handleStorageChange = (e: StorageEvent) => {
-            if (e.key === 'tg_session') {
-                const tgSession = getStoredSession();
-                if (tgSession) {
-                    setUser({
-                        id: tgSession.user.id,
-                        phone: tgSession.user.phone_number,
-                        user_metadata: {
-                            full_name: tgSession.user.full_name,
-                            avatar_url: tgSession.user.avatar_url
-                        }
-                    });
-                    setIsTelegramUser(true);
-                } else {
-                    // Session cleared, check Supabase
-                    setIsTelegramUser(false);
-                    setUser(null);
-                }
+        const handleUserUpdate = (e: any) => {
+            const tgUser = e.detail;
+            console.log('[SupabaseContext] Telegram user updated:', tgUser?.full_name);
+
+            if (tgUser) {
+                setUser({
+                    id: tgUser.id,
+                    phone: tgUser.phone_number,
+                    user_metadata: {
+                        full_name: tgUser.full_name,
+                        avatar_url: tgUser.avatar_url
+                    }
+                });
+                setIsTelegramUser(true);
+            } else {
+                // If TG user becomes null, we don't necessarily logout Supabase user
+                // but we clear the TG state
+                setIsTelegramUser(false);
             }
+            setLoading(false);
         };
 
-        window.addEventListener('storage', handleStorageChange);
-        return () => window.removeEventListener('storage', handleStorageChange);
+        window.addEventListener('tg_user_updated', handleUserUpdate as EventListener);
+
+        // Wait a bit for TelegramContext to initialize if it's going to
+        const timeout = setTimeout(() => {
+            setLoading(false);
+        }, 3000);
+
+        return () => {
+            window.removeEventListener('tg_user_updated', handleUserUpdate as EventListener);
+            clearTimeout(timeout);
+        };
     }, []);
 
     return (
