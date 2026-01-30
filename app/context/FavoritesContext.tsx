@@ -35,47 +35,37 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
                 // Check if Telegram user - use API proxy
                 if (isTelegramUser) {
                     try {
-                        const authHeader = getAuthHeader();
-                        console.log('[Favorites] Loading for Telegram user, has auth:', !!authHeader.Authorization);
+                        const authHeaders = getAuthHeader();
+                        const hasTGHeader = !!authHeaders['X-Telegram-Init-Data'];
+                        const hasAuthHeader = !!authHeaders['Authorization'];
+
+                        console.log('[Favorites] Loading via API. Headers:', { hasTGHeader, hasAuthHeader });
+
                         const response = await fetch('/api/user/favorites', {
-                            headers: authHeader
+                            headers: authHeaders
                         });
 
                         if (!response.ok) {
-                            console.warn('[Favorites] API returned error:', response.status);
-                            // Fall back to localStorage if API fails
-                            const saved = localStorage.getItem('favorites');
-                            if (saved) {
-                                try {
-                                    const parsed = JSON.parse(saved);
-                                    console.log('[Favorites] Loaded from localStorage fallback:', parsed.length);
-                                    setFavorites(parsed);
-                                } catch (e) {
-                                    console.error('[Favorites] Failed to parse localStorage:', e);
-                                }
-                            }
-                            setLoading(false);
-                            return;
+                            const errorText = await response.text();
+                            console.error(`[Favorites] API error (${response.status}):`, errorText);
+                            throw new Error(`API error: ${response.status}`);
                         }
 
                         const data = await response.json();
                         if (data.favorites) {
-                            console.log('[Favorites] Loaded from API:', data.favorites.length);
+                            console.log('[Favorites] Sync successful. Count:', data.favorites.length);
                             setFavorites(data.favorites);
-                        } else {
-                            console.log('[Favorites] API returned empty favorites');
                         }
                     } catch (error) {
-                        console.error('[Favorites] Error loading via API:', error);
-                        // Fall back to localStorage on network error
-                        const saved = localStorage.getItem('favorites');
-                        if (saved) {
-                            try {
-                                const parsed = JSON.parse(saved);
-                                console.log('[Favorites] Loaded from localStorage fallback after error:', parsed.length);
-                                setFavorites(parsed);
-                            } catch (e) {
-                                console.error('[Favorites] Failed to parse localStorage:', e);
+                        console.error('[Favorites] Sync failed:', error);
+                        // Only load from localStorage if we have nothing yet
+                        if (favorites.length === 0) {
+                            const saved = localStorage.getItem('favorites');
+                            if (saved) {
+                                try {
+                                    setFavorites(JSON.parse(saved));
+                                    console.log('[Favorites] Fallback to localStorage successful');
+                                } catch (e) { }
                             }
                         }
                     }

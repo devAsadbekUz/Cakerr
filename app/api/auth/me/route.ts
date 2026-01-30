@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
         // Get profile
         const { data: profile, error: profileError } = await supabase
             .from('profiles')
-            .select('id, full_name, phone_number, telegram_id, avatar_url, role')
+            .select('id, full_name, phone_number, telegram_id, username, avatar_url, role')
             .eq('id', session.profile_id)
             .single();
 

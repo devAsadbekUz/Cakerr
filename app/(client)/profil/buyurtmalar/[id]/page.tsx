@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { ChevronLeft, Package, Check, Clock, Truck, MapPin, Phone, User, AlertCircle } from 'lucide-react';
 import styles from './page.module.css';
 import { createClient } from '@/app/utils/supabase/client';
+import { getAuthHeader } from '@/app/utils/telegram';
 
 // This matches the status structure for future backend integration
 import { ORDER_STATUSES as CENTRAL_STATUSES } from '@/app/utils/orderConfig';
@@ -45,20 +46,19 @@ export default function TrackingPage() {
     const [realtimeStatus, setRealtimeStatus] = useState<string>('connecting');
 
     const fetchOrder = async () => {
-        // No setLoading(true) here! It's already true on mount.
-        // Subsequent re-fetches will be silent background updates.
-
         try {
-            const { data, error } = await supabase
-                .from('orders')
-                .select(`
-                    *,
-                    order_items (*)
-                `)
-                .eq('id', orderId)
-                .maybeSingle();
+            const response = await fetch(`/api/user/orders/${orderId}`, {
+                headers: getAuthHeader()
+            });
 
-            if (data && !error) {
+            if (!response.ok) {
+                if (response.status === 404) setOrder(null);
+                throw new Error('Failed to fetch order');
+            }
+
+            const { order: data } = await response.json();
+
+            if (data) {
                 setOrder({
                     id: data.id,
                     status: data.status,
@@ -79,6 +79,8 @@ export default function TrackingPage() {
                     }))
                 });
             }
+        } catch (error) {
+            console.error('[Tracking] Fetch error:', error);
         } finally {
             setLoading(false);
         }

@@ -133,17 +133,25 @@ export default function CheckoutPage() {
 
             // Use API proxy for Telegram users, direct Supabase for admin/Google users
             if (isTelegramUser) {
+                const authHeaders = getAuthHeader();
+                console.log('[Checkout] Sending headers:', Object.keys(authHeaders).join(', '));
+
                 const response = await fetch('/api/user/orders', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        ...getAuthHeader()
+                        ...authHeaders
                     },
                     body: JSON.stringify({ order: orderData, items: orderItems })
                 });
 
+                if (!response.ok) {
+                    const rawError = await response.text();
+                    console.error('[Checkout] API Fail:', response.status, rawError);
+                    throw new Error(`${response.status}: ${rawError || 'No detail'}`);
+                }
+
                 const result = await response.json();
-                if (result.error) throw new Error(result.error);
                 createdOrder = result.order;
             } else {
                 // Direct Supabase for admin/Google users

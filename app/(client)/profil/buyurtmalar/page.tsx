@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, RotateCcw, Check } from 'lucide-react';
 import styles from './page.module.css';
 import { useCart } from '@/app/context/CartContext';
 import { useSupabase } from '@/app/context/SupabaseContext';
-import { createClient } from '@/app/utils/supabase/client';
+import { getAuthHeader } from '@/app/utils/telegram';
 
 interface OrderItem {
     id: string;
@@ -32,7 +32,6 @@ export default function OrderHistoryPage() {
     const router = useRouter();
     const { addItem } = useCart();
     const { user, loading: authLoading } = useSupabase();
-    const supabase = createClient();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | 'pending' | 'completed' | 'cancelled'>('all');
@@ -42,41 +41,45 @@ export default function OrderHistoryPage() {
 
         async function fetchOrders() {
             setLoading(true);
-            const { data, error } = await supabase
-                .from('orders')
-                .select(`
-                    *,
-                    order_items (*)
-                `)
-                .eq('user_id', user?.id)
-                .order('created_at', { ascending: false });
+            try {
+                const response = await fetch('/api/user/orders', {
+                    headers: getAuthHeader()
+                });
 
-            if (!error && data) {
-                const mappedOrders: Order[] = data.map(o => ({
-                    id: o.id,
-                    date: new Date(o.created_at).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' }),
-                    total: o.total_price,
-                    status: o.status,
-                    statusLabel: o.status === 'new' ? 'Yangi' :
-                        o.status === 'confirmed' ? 'Tasdiqlandi' :
-                            o.status === 'preparing' ? 'Tayyorlanmoqda' :
-                                o.status === 'ready' ? 'Tayyor' :
-                                    o.status === 'delivering' ? 'Yetkazilmoqda' :
-                                        o.status === 'completed' ? 'Yetkazilgan' : 'Bekor qilingan',
-                    items: o.order_items.map((item: any) => ({
-                        id: item.id,
-                        productId: item.product_id,
-                        name: item.name,
-                        portion: item.configuration?.portion || '',
-                        flavor: item.configuration?.flavor || '',
-                        price: item.unit_price,
-                        image: item.configuration?.uploaded_photo_url || '/images/cake-placeholder.jpg',
-                        quantity: item.quantity
-                    }))
-                }));
-                setOrders(mappedOrders);
+                if (!response.ok) throw new Error('Failed to fetch orders');
+
+                const { orders: data } = await response.json();
+
+                if (data) {
+                    const mappedOrders: Order[] = data.map((o: any) => ({
+                        id: o.id,
+                        date: new Date(o.created_at).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' }),
+                        total: o.total_price,
+                        status: o.status,
+                        statusLabel: o.status === 'new' ? 'Yangi' :
+                            o.status === 'confirmed' ? 'Tasdiqlandi' :
+                                o.status === 'preparing' ? 'Tayyorlanmoqda' :
+                                    o.status === 'ready' ? 'Tayyor' :
+                                        o.status === 'delivering' ? 'Yetkazilmoqda' :
+                                            o.status === 'completed' ? 'Yetkazilgan' : 'Bekor qilingan',
+                        items: o.order_items.map((item: any) => ({
+                            id: item.id,
+                            productId: item.product_id,
+                            name: item.name,
+                            portion: item.configuration?.portion || '',
+                            flavor: item.configuration?.flavor || '',
+                            price: item.unit_price,
+                            image: item.configuration?.uploaded_photo_url || '/images/cake-placeholder.jpg',
+                            quantity: item.quantity
+                        }))
+                    }));
+                    setOrders(mappedOrders);
+                }
+            } catch (error) {
+                console.error('[Orders] Fetch error:', error);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         }
 
         fetchOrders();

@@ -10,7 +10,14 @@ export async function GET(request: NextRequest) {
     const userId = await getVerifiedUserId(request);
 
     if (!userId) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        const hasHeader = !!request.headers.get('x-telegram-init-data') || !!request.headers.get('X-Telegram-Init-Data');
+        const hasAuth = !!request.headers.get('authorization');
+        let detail = 'Authentication failed';
+        if (!hasHeader && !hasAuth) detail = 'No auth headers';
+        else if (!process.env.TELEGRAM_BOT_TOKEN) detail = 'Server Bot Token missing';
+        else detail = 'Invalid signature or user not found';
+
+        return NextResponse.json({ error: `Unauthorized: ${detail}` }, { status: 401 });
     }
 
     const supabase = createClient(
@@ -48,7 +55,14 @@ export async function POST(request: NextRequest) {
     const userId = await getVerifiedUserId(request);
 
     if (!userId) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        const hasHeader = !!request.headers.get('x-telegram-init-data') || !!request.headers.get('X-Telegram-Init-Data');
+        const hasAuth = !!request.headers.get('authorization');
+        let detail = 'Authentication failed';
+        if (!hasHeader && !hasAuth) detail = 'No auth headers';
+        else if (!process.env.TELEGRAM_BOT_TOKEN) detail = 'Server Bot Token missing';
+        else detail = 'Invalid signature or user not found';
+
+        return NextResponse.json({ error: `Unauthorized: ${detail}` }, { status: 401 });
     }
 
     const supabase = createClient(

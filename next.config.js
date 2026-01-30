@@ -37,18 +37,7 @@ const withPWA = require("@ducanh2912/next-pwa").default({
           },
         },
       },
-      {
-        urlPattern: /^\/api\/.*$/i,
-        handler: "NetworkFirst",
-        options: {
-          cacheName: "api-cache",
-          networkTimeoutSeconds: 10,
-          expiration: {
-            maxEntries: 50,
-            maxAgeSeconds: 60 * 5, // 5 Minutes
-          },
-        },
-      },
+      // Removed API caching to avoid stale auth errors
       {
         urlPattern: /^\/_next\/static\/.*/i,
         handler: "StaleWhileRevalidate",

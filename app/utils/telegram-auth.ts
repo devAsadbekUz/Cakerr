@@ -38,15 +38,20 @@ function parseInitData(initData: string): Record<string, string> {
  * 5. Verify hash = HMAC_SHA256(data_check_string, secret_key)
  */
 export function verifyTelegramInitData(initData: string): VerifiedTelegramUser | null {
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const botToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
 
     if (!botToken) {
-        console.error('[TelegramAuth] TELEGRAM_BOT_TOKEN not configured');
+        console.error('[TelegramAuth] TELEGRAM_BOT_TOKEN not configured in environment');
         return null;
     }
 
-    if (!initData || initData.length === 0) {
-        console.error('[TelegramAuth] Empty initData');
+    // Basic format check: should be "ID:Hash"
+    if (!/^\d+:[\w-]+$/.test(botToken)) {
+        console.warn(`[TelegramAuth] WARNING: TELEGRAM_BOT_TOKEN might be malformed. Prefix: ${botToken.substring(0, 5)}...`);
+    }
+
+    if (!initData) {
+        console.error('[TelegramAuth] Empty initData provided');
         return null;
     }
 
@@ -55,7 +60,7 @@ export function verifyTelegramInitData(initData: string): VerifiedTelegramUser |
         const hash = params.hash;
 
         if (!hash) {
-            console.error('[TelegramAuth] No hash in initData');
+            console.error('[TelegramAuth] No hash found in initData string');
             return null;
         }
 
@@ -69,38 +74,43 @@ export function verifyTelegramInitData(initData: string): VerifiedTelegramUser |
             });
         const dataCheckString = dataCheckArr.join('\n');
 
-        // Create secret key: HMAC_SHA256("WebAppData", bot_token)
+        // Verify using the official algorithm:
+        // 1. secret_key = HMAC_SHA256("WebAppData", bot_token)
         const secretKey = crypto
             .createHmac('sha256', 'WebAppData')
             .update(botToken)
             .digest();
 
-        // Calculate expected hash: HMAC_SHA256(data_check_string, secret_key)
+        // 2. hash = HMAC_SHA256(data_check_string, secret_key)
         const expectedHash = crypto
             .createHmac('sha256', secretKey)
             .update(dataCheckString)
             .digest('hex');
 
-        // Verify hash matches
         if (hash !== expectedHash) {
-            console.error('[TelegramAuth] Hash verification failed');
+            console.error('[TelegramAuth] Signature mismatch!');
+            console.error('[TelegramAuth] Received hash:', hash);
+            console.error('[TelegramAuth] Calculated hash:', expectedHash);
+            // DO NOT log dataCheckString in production as it contains user data, 
+            // but for debugging we can log keys
+            console.error('[TelegramAuth] Data keys:', Object.keys(params).sort().join(', '));
             return null;
         }
 
-        // Check auth_date is not too old (allow 30 days for Mini Apps)
+        // Check auth_date (allow 30 days for Mini Apps)
         const authDate = parseInt(params.auth_date || '0');
-        const ageSeconds = Date.now() / 1000 - authDate;
+        const now = Math.floor(Date.now() / 1000);
+        const ageSeconds = now - authDate;
         const thirtyDaysInSeconds = 30 * 24 * 60 * 60;
 
         if (ageSeconds > thirtyDaysInSeconds) {
-            console.error('[TelegramAuth] initData too old:', ageSeconds, 'seconds');
+            console.error('[TelegramAuth] initData expired. Age:', ageSeconds, 's');
             return null;
         }
 
-        // Parse user data from the 'user' JSON field
         const userJson = params.user;
         if (!userJson) {
-            console.error('[TelegramAuth] No user field in initData');
+            console.error('[TelegramAuth] Missing user field in verified data');
             return null;
         }
 
@@ -116,8 +126,8 @@ export function verifyTelegramInitData(initData: string): VerifiedTelegramUser |
             photo_url: user.photo_url,
             auth_date: authDate
         };
-    } catch (error) {
-        console.error('[TelegramAuth] Verification error:', error);
+    } catch (error: any) {
+        console.error('[TelegramAuth] Internal verification error:', error.message);
         return null;
     }
 }
@@ -127,7 +137,10 @@ export function verifyTelegramInitData(initData: string): VerifiedTelegramUser |
  * Expects: X-Telegram-Init-Data header
  */
 export function getInitDataFromRequest(request: Request): string | null {
-    return request.headers.get('X-Telegram-Init-Data');
+    // Check various casing just in case
+    return request.headers.get('x-telegram-init-data') ||
+        request.headers.get('X-Telegram-Init-Data') ||
+        request.headers.get('X-TELEGRAM-INIT-DATA');
 }
 
 /**
@@ -137,6 +150,7 @@ export function verifyTelegramRequest(request: Request): VerifiedTelegramUser | 
     const initData = getInitDataFromRequest(request);
 
     if (!initData) {
+        // No log here, some requests might be validly without it (legacy)
         return null;
     }
 
@@ -148,39 +162,58 @@ export function verifyTelegramRequest(request: Request): VerifiedTelegramUser | 
  * Checks for both X-Telegram-Init-Data (new) and Authorization header (legacy).
  */
 export async function getVerifiedUserId(request: Request): Promise<string | null> {
+    const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
     // 1. Try Telegram initData (new preferred mechanism)
+    const headerKeys = Array.from(request.headers.keys());
+    console.log('[AUTH] Incoming headers:', headerKeys.join(', '));
+
     const tgUser = verifyTelegramRequest(request);
     if (tgUser) {
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
-        const { data } = await supabase
+        console.log(`[AUTH] Telegram signature VALID for ${tgUser.telegram_id}. Looking for profile...`);
+        const { data, error } = await supabase
             .from('profiles')
             .select('id')
             .eq('telegram_id', tgUser.telegram_id)
             .maybeSingle();
 
-        if (data?.id) return data.id;
+        if (error) console.error('[AUTH] Profile lookup DB ERROR:', error.message);
+        if (data?.id) {
+            console.log(`[AUTH] SUCCESS: Found profile ${data.id} for Telegram user ${tgUser.telegram_id}`);
+            return data.id;
+        }
+
+        console.error(`[AUTH] FAIL: Telegram user ${tgUser.telegram_id} verified, but NO PROFILE in DB.`);
+    } else {
+        if (getInitDataFromRequest(request)) {
+            console.error('[AUTH] Telegram header present but SIGNATURE INVALID. Check TELEGRAM_BOT_TOKEN.');
+        }
     }
 
-    // 2. Try Bearer token (legacy / browser support)
+    // 2. Try Bearer token (fallback / browser / legacy)
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');
 
     if (token) {
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
-        const { data: session } = await supabase
+        console.log('[AUTH] Attempting legacy token verification...');
+        const { data, error } = await supabase
             .from('telegram_sessions')
             .select('profile_id, expires_at')
             .eq('token', token)
             .maybeSingle();
 
-        if (session && new Date(session.expires_at) > new Date()) {
-            return session.profile_id;
+        if (error) console.error('[AUTH] Legacy session DB ERROR:', error.message);
+
+        if (data && new Date(data.expires_at) > new Date()) {
+            console.log(`[AUTH] SUCCESS: Found valid legacy session for profile ${data.profile_id}`);
+            return data.profile_id;
+        } else if (data) {
+            console.error(`[AUTH] FAIL: Legacy session found for ${data.profile_id} but it is EXPIRED.`);
+        } else {
+            console.error('[AUTH] FAIL: Legacy token not found in database.');
         }
     }
 

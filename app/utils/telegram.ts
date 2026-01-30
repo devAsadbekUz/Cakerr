@@ -92,11 +92,22 @@ export function clearSession(): void {
 
 /**
  * Get auth header for API requests
+ * Includes both Telegram initData (preferred) and legacy Bearer token
  */
-export function getAuthHeader(): { Authorization: string } | Record<string, never> {
+export function getAuthHeader(): Record<string, string> {
+    const headers: Record<string, string> = {};
+
+    // 1. Add Telegram initData if we are in the bot
+    const initData = getTelegramInitData();
+    if (initData) {
+        headers['X-Telegram-Init-Data'] = initData;
+    }
+
+    // 2. Add legacy Bearer token if we have a stored session
     const session = getStoredSession();
     if (session?.token) {
-        return { Authorization: `Bearer ${session.token}` };
+        headers['Authorization'] = `Bearer ${session.token}`;
     }
-    return {};
+
+    return headers;
 }

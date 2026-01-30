@@ -140,13 +140,20 @@ export async function POST(request: NextRequest) {
                     console.log('[Telegram Webhook] Profile completed for:', normalizedPhone);
 
                 } catch (err: any) {
-                    console.error('[Telegram Webhook] Contact error:', err);
+                    console.error('[Telegram Webhook] Contact error details:', {
+                        error: err,
+                        message: err.message,
+                        code: err.code,
+                        details: err.details,
+                        hint: err.hint
+                    });
+
                     await fetch(`${TELEGRAM_API}/sendMessage`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             chat_id: chatId,
-                            text: `❌ Xatolik yuz berdi. Iltimos keyinroq qayta urinib ko'ring.`
+                            text: `❌ Xatolik yuz berdi. Iltimos keyinroq qayta urinib ko'ring.\n\nError: ${err.message || 'Unknown error'}`
                         })
                     });
                 }

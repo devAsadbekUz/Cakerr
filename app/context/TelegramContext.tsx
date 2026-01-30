@@ -170,18 +170,21 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const getAuthHeader = useCallback((): { 'X-Telegram-Init-Data'?: string; Authorization?: string } => {
+        const headers: { 'X-Telegram-Init-Data'?: string; Authorization?: string } = {};
+
+        // 1. Add Telegram initData if we are in the bot
         const initData = getTelegramInitData();
         if (initData) {
-            return { 'X-Telegram-Init-Data': initData };
+            headers['X-Telegram-Init-Data'] = initData;
         }
 
-        // Fallback for non-telegram users (if they have a legacy session)
+        // 2. Add legacy Bearer token if we have a stored session
         const stored = getStoredSession();
         if (stored?.token) {
-            return { Authorization: `Bearer ${stored.token}` };
+            headers['Authorization'] = `Bearer ${stored.token}`;
         }
 
-        return {};
+        return headers;
     }, []);
 
     const value: TelegramContextType = {
