@@ -71,20 +71,72 @@ export async function POST(request: NextRequest) {
     );
 
     try {
-        const { order, items } = await request.json();
+        const { order, items, coins_spent = 0 } = await request.json();
 
-        // Create order with user_id
+        // 1. If coins being spent, verify and deduct
+        if (coins_spent > 0) {
+            const { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('coins')
+                .eq('id', userId)
+                .single();
+
+            if (profileError || !profile) throw new Error('Could not verify coin balance');
+            if (profile.coins < coins_spent) {
+                return NextResponse.json({ error: 'InSufficient coins balance' }, { status: 400 });
+            }
+
+            // Deduct coins
+            const { error: deductError } = await supabase
+                .rpc('deduct_coins', { p_user_id: userId, p_amount: coins_spent });
+
+            // If RPC doesn't exist yet, we'll use a manual update (trigger will handle transactions if we added it, but let's be careful)
+            // Actually, let's use a manual update for now to be safe, or I'll add the RPC to the migration.
+            // Let's add the RPC to a new migration or update the existing one.
+            // For now, I'll do a manual update + transaction insert.
+
+            if (deductError) {
+                const { error: manualError } = await supabase
+                    .from('profiles')
+                    .update({ coins: profile.coins - coins_spent })
+                    .eq('id', userId);
+
+                if (manualError) throw manualError;
+
+                await supabase.from('coin_transactions').insert({
+                    user_id: userId,
+                    amount: -coins_spent,
+                    type: 'spend',
+                    description: `Spent on order checkout`
+                });
+            }
+        }
+
+        // 2. Create order with user_id and coins_spent
         const { data: orderData, error: orderError } = await supabase
             .from('orders')
             .insert({
                 ...order,
                 user_id: userId,
-                status: 'new'
+                status: 'new',
+                coins_spent: coins_spent
             })
             .select()
             .single();
 
         if (orderError) throw orderError;
+
+        // 3. Update transaction with order_id if we created it
+        if (coins_spent > 0) {
+            await supabase
+                .from('coin_transactions')
+                .update({ order_id: orderData.id })
+                .eq('user_id', userId)
+                .eq('type', 'spend')
+                .eq('order_id', null) // Target the one we just inserted
+                .order('created_at', { ascending: false })
+                .limit(1);
+        }
 
         // Create order items
         if (items && items.length > 0) {

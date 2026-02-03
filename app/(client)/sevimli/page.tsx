@@ -31,7 +31,7 @@ export default function SevimliPage() {
 
             if (data && !error) {
                 // Map to match ProductGrid interface
-                const mappedProducts = data.map(p => ({
+                const mappedProducts = data.map((p: { id: string; title: string; base_price: number; image_url: string; category: string; variants: any; is_ready: boolean }) => ({
                     id: p.id,
                     title: p.title,
                     price: p.base_price,

@@ -41,19 +41,32 @@ export default function TrackingPage() {
     const orderId = params.id as string;
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const supabase = React.useMemo(() => createClient(), []);
 
     const [realtimeStatus, setRealtimeStatus] = useState<string>('connecting');
 
     const fetchOrder = async () => {
         try {
+            setErrorMsg(null);
             const response = await fetch(`/api/user/orders/${orderId}`, {
                 headers: getAuthHeader()
             });
 
             if (!response.ok) {
-                if (response.status === 404) setOrder(null);
-                throw new Error('Failed to fetch order');
+                const errorData = await response.json().catch(() => ({}));
+                console.error('[Tracking] API Error:', response.status, errorData);
+
+                if (response.status === 404) {
+                    setOrder(null);
+                    setErrorMsg('Buyurtma topilmadi');
+                } else if (response.status === 401) {
+                    setErrorMsg('Avtorizatsiyadan o\'ting');
+                    // router.push(`/profil/login?redirectTo=/profil/buyurtmalar/${orderId}`);
+                } else {
+                    setErrorMsg(`Xatolik: ${response.status}`);
+                }
+                return;
             }
 
             const { order: data } = await response.json();
@@ -115,7 +128,7 @@ export default function TrackingPage() {
                     fetchOrder();
                 }
             )
-            .subscribe((status) => {
+            .subscribe((status: string) => {
                 setRealtimeStatus(status);
                 console.log('[Realtime] Subscription Status:', status);
 
@@ -155,8 +168,16 @@ export default function TrackingPage() {
             ) : !order ? (
                 <div style={{ padding: '80px 40px', textAlign: 'center', color: '#6B7280' }}>
                     <AlertCircle size={48} style={{ margin: '0 auto 16px', opacity: 0.5 }} />
-                    <p style={{ fontWeight: 500 }}>Buyurtma topilmadi</p>
+                    <p style={{ fontWeight: 500 }}>{errorMsg || 'Buyurtma topilmadi'}</p>
                     <button onClick={() => router.push('/')} style={{ marginTop: '20px', color: '#BE185D', fontWeight: 600 }}>Asosiy sahifaga qaytish</button>
+                    {errorMsg === 'Avtorizatsiyadan o\'ting' && (
+                        <button
+                            onClick={() => router.push(`/profil/login?redirectTo=/profil/buyurtmalar/${orderId}`)}
+                            style={{ display: 'block', margin: '12px auto', background: '#BE185D', color: 'white', padding: '8px 16px', borderRadius: 8 }}
+                        >
+                            Kirish
+                        </button>
+                    )}
                 </div>
             ) : (
                 <>

@@ -21,9 +21,23 @@ import AddressesModal from '@/app/components/checkout/AddressesModal';
 import ActiveOrderCard from '@/app/components/home/ActiveOrderCard';
 import ComingSoonModal from '@/app/components/profile/ComingSoonModal';
 import EditProfileModal from '@/app/components/profile/EditProfileModal';
+import { orderService } from '@/app/services/orderService';
 
 import { useSupabase } from '@/app/context/SupabaseContext';
 import { createClient } from '@/app/utils/supabase/client';
+import { getAuthHeader } from '@/app/utils/telegram';
+
+const getProgressValue = (status: string) => {
+    switch (status) {
+        case 'new': return 15;
+        case 'confirmed': return 30;
+        case 'preparing': return 50;
+        case 'ready': return 75;
+        case 'delivering': return 90;
+        case 'completed': return 100;
+        default: return 0;
+    }
+};
 
 export default function ProfilPage() {
     const router = useRouter();
@@ -49,51 +63,51 @@ export default function ProfilPage() {
         if (!user) return;
         if (isInitialLoad) setLoading(true);
 
-        const { data: ordersData } = await supabase
-            .from('orders')
-            .select(`
-                *,
-                order_items (*)
-            `)
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false });
-
-        if (ordersData) {
-            // Set stats
-            setStats({
-                orderCount: ordersData.length,
-                coins: 0
-            });
-
-            const active = ordersData.find(o => !['completed', 'cancelled'].includes(o.status));
-            setActiveOrder(active || null);
-
-            // Map past orders for "Tez buyurtma" (completed ones)
-            const completed = ordersData
-                .filter(o => o.status === 'completed')
-                .map(o => {
-                    const item = o.order_items?.[0];
-                    return {
-                        id: o.id,
-                        date: new Date(o.created_at).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' }),
-                        items: `${item?.name || 'Mahsulot'} (${item?.configuration?.portion || ''})`,
-                        price: o.total_price,
-                        image: item?.configuration?.image_url || item?.configuration?.uploaded_photo_url || '/images/cake-placeholder.jpg',
-                        productId: item?.product_id,
-                        name: item?.name,
-                        portion: item?.configuration?.portion,
-                        flavor: item?.configuration?.flavor
-                    };
+        try {
+            const ordersData = await orderService.getUserOrders();
+            if (ordersData) {
+                // Set stats - order count from ordersData, coins from SupabaseContext user object
+                setStats({
+                    orderCount: ordersData.length,
+                    coins: user.coins || 0
                 });
-            setOrders(completed);
+
+                const active = ordersData.find((o: any) => !['completed', 'cancelled'].includes(o.status));
+                setActiveOrder(active || null);
+
+                // Map past orders for "Tez buyurtma" (completed ones)
+                const completed = ordersData
+                    .filter((o: any) => o.status === 'completed')
+                    .map((o: any) => {
+                        const item = o.order_items?.[0];
+                        return {
+                            id: o.id,
+                            date: new Date(o.created_at).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' }),
+                            items: `${item?.name || 'Mahsulot'} (${item?.configuration?.portion || ''})`,
+                            price: o.total_price,
+                            image: item?.configuration?.image_url || item?.configuration?.uploaded_photo_url || '/images/cake-placeholder.jpg',
+                            productId: item?.product_id,
+                            name: item?.name,
+                            portion: item?.configuration?.portion,
+                            flavor: item?.configuration?.flavor
+                        };
+                    });
+                setOrders(completed);
+            }
+        } catch (err) {
+            console.error('[Profile] Fetch profile data fail:', err);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     useEffect(() => {
         fetchProfileData(true); // Initial load shows loading state
 
         if (user) {
+            // Update stats when user.coins changes (synced by SupabaseContext)
+            setStats(prev => ({ ...prev, coins: user.coins || 0 }));
+
             // Subscribe to real-time updates for user's orders to keep profile in sync
             const channel = supabase
                 .channel(`profile-orders-${user.id}`)
@@ -123,7 +137,7 @@ export default function ProfilPage() {
                         }
                     }
                 )
-                .subscribe((status, err) => {
+                .subscribe((status: string, err: Error | null) => {
                     console.log('[Realtime] Profile Subscription:', status);
                     if (err) console.error('[Realtime] Error:', err);
                 });
@@ -208,6 +222,7 @@ export default function ProfilPage() {
                                     activeOrder.status === 'preparing' ? 'Tayyorlanmoqda' :
                                         activeOrder.status === 'ready' ? 'Tayyor' :
                                             activeOrder.status === 'delivering' ? 'Yetkazilmoqda' : activeOrder.status}
+                            progress={getProgressValue(activeOrder.status)}
                         />
                     </div>
                 )}

@@ -9,6 +9,20 @@ import ActiveOrderCard from '@/app/components/home/ActiveOrderCard';
 import { useSupabase } from '@/app/context/SupabaseContext';
 import { createClient } from '@/app/utils/supabase/client';
 import { productService } from '@/app/services/productService';
+import { orderService } from '@/app/services/orderService';
+import { getAuthHeader } from '@/app/utils/telegram';
+
+const getProgressValue = (status: string) => {
+  switch (status) {
+    case 'new': return 15;
+    case 'confirmed': return 30;
+    case 'preparing': return 50;
+    case 'ready': return 75;
+    case 'delivering': return 90;
+    case 'completed': return 100;
+    default: return 0;
+  }
+};
 
 export default function HomePage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -45,19 +59,9 @@ export default function HomePage() {
 
       // 3. Fetch Active Order (Only if user exists)
       if (user) {
-        const { data: oData } = await supabase
-          .from('orders')
-          .select('*, order_items(*)')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(5);
-
-        if (oData) {
-          const active = oData.find(o => !['completed', 'cancelled'].includes(o.status));
-          setActiveOrder(active || null);
-        } else {
-          setActiveOrder(null);
-        }
+        const oData = await orderService.getUserOrders();
+        const active = oData.find((o: any) => !['completed', 'cancelled'].includes(o.status));
+        setActiveOrder(active || null);
       }
     } finally {
       setLoading(false);
@@ -66,17 +70,9 @@ export default function HomePage() {
 
   const fetchActiveOrder = async () => {
     if (!user) return;
-    const { data: oData } = await supabase
-      .from('orders')
-      .select('*, order_items(*)')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(5);
-
-    if (oData) {
-      const active = oData.find(o => !['completed', 'cancelled'].includes(o.status));
-      setActiveOrder(active || null);
-    }
+    const oData = await orderService.getUserOrders();
+    const active = oData.find((o: any) => !['completed', 'cancelled'].includes(o.status));
+    setActiveOrder(active || null);
   };
 
   useEffect(() => {
@@ -108,7 +104,7 @@ export default function HomePage() {
             }
           }
         )
-        .subscribe((status, err) => {
+        .subscribe((status: string, err: Error | null) => {
           setRealtimeStatus(status);
           if (err) console.error('[Realtime] Error:', err);
         });
@@ -212,6 +208,7 @@ export default function HomePage() {
                   activeOrder.status === 'preparing' ? 'Tayyorlanmoqda' :
                     activeOrder.status === 'ready' ? 'Tayyor' :
                       activeOrder.status === 'delivering' ? 'Yetkazilmoqda' : activeOrder.status}
+              progress={getProgressValue(activeOrder.status)}
             />
           </div>
         )}
@@ -222,7 +219,7 @@ export default function HomePage() {
             <p style={{ fontSize: '14px', marginTop: '8px' }}>Pishiriqlarimizni tayyorlayapmiz ✨</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '40px', marginTop: '20px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginTop: '20px' }}>
             <HeroBanner />
 
             {categories.filter(c => c.id !== 'custom').map((cat) => {

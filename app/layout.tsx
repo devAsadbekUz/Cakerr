@@ -30,7 +30,7 @@ export default function RootLayout({
           rel="stylesheet"
           href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         />
-        <script src="https://telegram.org/js/telegram-web-app.js" async></script>
+        <script src="https://telegram.org/js/telegram-web-app.js"></script>
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <SupabaseProvider>

@@ -1,21 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/app/utils/supabase/client';
 import { Plus, Edit2, Trash2, FolderOpen } from 'lucide-react';
 import CategoryForm from '@/app/components/admin/CategoryForm';
+import { adminFetch, adminDelete } from '@/app/utils/adminApi';
 
 export default function CategoriesPage() {
     const [categories, setCategories] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState<any>(null);
-    const supabase = createClient();
 
     const fetchCategories = async () => {
         setLoading(true);
-        const { data } = await supabase.from('categories').select('*').order('created_at', { ascending: true });
-        setCategories(data || []);
+        const data = await adminFetch({ table: 'categories', orderBy: 'created_at', orderAsc: true });
+        setCategories(data);
         setLoading(false);
     };
 
@@ -26,12 +25,11 @@ export default function CategoriesPage() {
     const handleDelete = async (id: string) => {
         if (!confirm('Rostdan ham o\'chirmoqchimisiz?')) return;
 
-        const { error } = await supabase.from('categories').delete().eq('id', id);
-        if (error) {
-            console.error('Delete error:', error);
-            alert('Xatolik: ' + error.message);
-        } else {
+        const success = await adminDelete('categories', id);
+        if (success) {
             fetchCategories();
+        } else {
+            alert('Xatolik yuz berdi');
         }
     };
 

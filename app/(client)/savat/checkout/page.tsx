@@ -40,11 +40,16 @@ export default function CheckoutPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [newOrderId, setNewOrderId] = useState<string | null>(null);
 
+    // Shirin Tangalar State
+    const [useCoins, setUseCoins] = useState(false);
+    const [coinsToSpend, setCoinsToSpend] = useState(0);
+
     const [overrides, setOverrides] = useState<any[]>([]);
     const [loadingAvailability, setLoadingAvailability] = useState(false);
 
     const deliveryFee = totalItems > 0 ? 25000 : 0;
-    const total = subtotal + deliveryFee;
+    const initialTotal = subtotal + deliveryFee;
+    const total = initialTotal - (useCoins ? coinsToSpend : 0);
 
     const fetchAvailability = async () => {
         setLoadingAvailability(true);
@@ -109,7 +114,8 @@ export default function CheckoutPage() {
                 },
                 delivery_time: selectedDateObj ? selectedDateObj.toISOString() : new Date().toISOString(),
                 delivery_slot: selectedSlot,
-                comment: comment
+                comment: comment,
+                coins_spent: useCoins ? coinsToSpend : 0
             };
 
             const orderItems = cart.map(item => {
@@ -142,7 +148,11 @@ export default function CheckoutPage() {
                         'Content-Type': 'application/json',
                         ...authHeaders
                     },
-                    body: JSON.stringify({ order: orderData, items: orderItems })
+                    body: JSON.stringify({
+                        order: orderData,
+                        items: orderItems,
+                        coins_spent: orderData.coins_spent
+                    })
                 });
 
                 if (!response.ok) {
@@ -319,6 +329,61 @@ export default function CheckoutPage() {
                 />
             </div>
 
+            {/* Loyalty Program (Shirin Tangalar) */}
+            {user && (user.coins || 0) > 0 && (
+                <div className={styles.card}>
+                    <div className={styles.loyaltyHeader}>
+                        <div className={styles.loyaltyTitleGroup}>
+                            <h2 className={styles.cardTitle}>Shirin Tangalar</h2>
+                            <p className={styles.loyaltyBalance}>
+                                Balans: <strong>{(user.coins || 0).toLocaleString('uz-UZ')}</strong>
+                            </p>
+                        </div>
+                        <label className={styles.toggle}>
+                            <input
+                                type="checkbox"
+                                checked={useCoins}
+                                onChange={(e) => {
+                                    setUseCoins(e.target.checked);
+                                    if (e.target.checked) setCoinsToSpend(Math.min(user.coins || 0, initialTotal));
+                                    else setCoinsToSpend(0);
+                                }}
+                            />
+                            <span className={styles.slider} />
+                        </label>
+                    </div>
+
+                    {useCoins && (
+                        <div className={styles.coinInputArea}>
+                            <div className={styles.coinSliderRow}>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max={Math.min(user.coins || 0, initialTotal)}
+                                    value={coinsToSpend}
+                                    onChange={(e) => setCoinsToSpend(parseInt(e.target.value))}
+                                    className={styles.coinRange}
+                                />
+                            </div>
+                            <div className={styles.coinValueRow}>
+                                <span className={styles.coinSpentText}>
+                                    Ishlatilmoqda: <strong>{coinsToSpend.toLocaleString('uz-UZ')}</strong> tanga
+                                </span>
+                                <button
+                                    className={styles.maxBtn}
+                                    onClick={() => setCoinsToSpend(Math.min(user.coins || 0, initialTotal))}
+                                >
+                                    MAX
+                                </button>
+                            </div>
+                            <p className={styles.discountHelp}>
+                                -{coinsToSpend.toLocaleString('uz-UZ')} so'm chegirma
+                            </p>
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* Payment Method Section */}
             <div className={styles.card}>
                 <h2 className={styles.cardTitle}>To'lov usuli</h2>
@@ -354,6 +419,12 @@ export default function CheckoutPage() {
                         <span>Yetkazib berish:</span>
                         <span>{deliveryFee.toLocaleString('uz-UZ')} so'm</span>
                     </div>
+                    {useCoins && coinsToSpend > 0 && (
+                        <div className={`${styles.summaryRow} ${styles.discountRow}`}>
+                            <span>Sadalat chegirmasi:</span>
+                            <span>-{coinsToSpend.toLocaleString('uz-UZ')} so'm</span>
+                        </div>
+                    )}
                     <div className={styles.totalRow}>
                         <span>Jami:</span>
                         <span>{total.toLocaleString('uz-UZ')} so'm</span>
@@ -377,6 +448,6 @@ export default function CheckoutPage() {
                     router.push(`/savat/checkout/success?orderId=${newOrderId}`);
                 }}
             />
-        </div>
+        </div >
     );
 }

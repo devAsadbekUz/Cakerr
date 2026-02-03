@@ -1,5 +1,6 @@
 import { createClient } from '@/app/utils/supabase/client';
 import { Product } from '@/app/types';
+import { adminFetch, adminUpdate, adminDelete } from '@/app/utils/adminApi';
 
 export const productService = {
     async getActiveProducts(): Promise<Product[]> {
@@ -23,17 +24,13 @@ export const productService = {
             title: item.title,
             subtitle: item.subtitle,
             description: item.description,
-
             base_price: item.base_price || 0,
-            price: item.base_price || 0, // Default display price
-
+            price: item.base_price || 0,
             image_url: item.image_url || '',
-            image: item.image_url || '', // Map for UI compatibility
-
+            image: item.image_url || '',
             category_id: item.category_id,
-            category: item.categories?.label || item.category || 'Boshqa', // Prefer joined label
-            categoryId: item.category_id, // Map for UI compatibility
-
+            category: item.categories?.label || item.category || 'Boshqa',
+            categoryId: item.category_id,
             is_available: item.is_available,
             is_ready: item.is_ready || false,
             variants: Array.isArray(item.variants) ? item.variants : [],
@@ -41,51 +38,42 @@ export const productService = {
         }));
     },
 
+    // Admin-only: Uses API route with Service Role Key (bypasses RLS)
     async getAllProductsAdmin(): Promise<Product[]> {
-        const supabase = createClient();
-        const { data, error } = await supabase
-            .from('products')
-            .select('*')
-            .is('deleted_at', null) // Only fetch non-deleted
-            .order('created_at', { ascending: false });
+        try {
+            const allProducts = await adminFetch({
+                table: 'products',
+                orderBy: 'created_at',
+                orderAsc: false
+            });
 
-        if (error) return [];
+            // Filter out deleted products client-side (IS NULL not supported)
+            const filtered = allProducts.filter((item: any) => !item.deleted_at);
 
-        return data.map((item: any) => ({
-            ...item,
-            image: item.image_url,
-            price: item.base_price,
-            is_ready: item.is_ready || false
-        }));
+            return filtered.map((item: any) => ({
+                ...item,
+                image: item.image_url,
+                price: item.base_price,
+                is_ready: item.is_ready || false
+            }));
+        } catch (err) {
+            console.error('[productService] Admin fetch error:', err);
+            return [];
+        }
     },
 
-    // Hard Delete for Products
     async deleteProduct(id: string): Promise<{ error: any }> {
-        const supabase = createClient();
-        const { error } = await supabase
-            .from('products')
-            .delete()
-            .eq('id', id);
-        return { error };
+        const success = await adminDelete('products', id);
+        return { error: success ? null : { message: 'Delete failed' } };
     },
 
     async toggleProductAvailability(id: string, isAvailable: boolean): Promise<{ data: any; error: any }> {
-        const supabase = createClient();
-        const { data, error } = await supabase
-            .from('products')
-            .update({ is_available: isAvailable })
-            .eq('id', id)
-            .select();
-        return { data, error };
+        const data = await adminUpdate('products', id, { is_available: isAvailable });
+        return { data, error: data ? null : { message: 'Update failed' } };
     },
 
     async toggleProductReady(id: string, isReady: boolean): Promise<{ data: any; error: any }> {
-        const supabase = createClient();
-        const { data, error } = await supabase
-            .from('products')
-            .update({ is_ready: isReady })
-            .eq('id', id)
-            .select();
-        return { data, error };
+        const data = await adminUpdate('products', id, { is_ready: isReady });
+        return { data, error: data ? null : { message: 'Update failed' } };
     }
 };

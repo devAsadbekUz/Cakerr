@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
-    ShoppingBag, Clock, AlertCircle, CheckCircle2,
-    TrendingUp, Users, DollarSign, Calendar
+    ShoppingBag, Clock, AlertCircle,
+    TrendingUp, Users, DollarSign
 } from 'lucide-react';
 import { orderService } from '@/app/services/orderService';
 import {
@@ -13,12 +13,13 @@ import styles from './AdminDashboard.module.css';
 import { StatCard } from '@/app/components/admin/DashboardComponents';
 import { createClient } from '@/app/utils/supabase/client';
 
+// Move supabase client outside component (singleton pattern)
+const supabase = createClient();
+
 export default function AdminAnalyticsPage() {
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
-
-    const supabase = createClient();
 
     useEffect(() => {
         setMounted(true);
@@ -37,40 +38,70 @@ export default function AdminAnalyticsPage() {
             })
             .subscribe();
 
-        // Fallback Polling (Every 10s) to handle connection issues
-        const interval = setInterval(fetchData, 10000);
-
         return () => {
             supabase.removeChannel(channel);
-            clearInterval(interval);
         };
     }, []);
 
-    if (!mounted) return null;
+    // Memoize all analytics calculations to avoid recalculating on every render
+    const analytics = useMemo(() => {
+        const newOrders: any[] = [];
+        const todaysOrders: any[] = [];
+        let totalRevenue = 0;
+        const userIds = new Set<string>();
 
-    // Analytics Logic
-    const newOrders = orders.filter(o => o.status === 'new');
-    const todaysOrders = orders.filter(o => isToday(new Date(o.delivery_time)) && o.status !== 'completed' && o.status !== 'cancelled');
-    const totalRevenue = orders
-        .filter(o => o.status === 'completed')
-        .reduce((sum, o) => sum + Number(o.total_price), 0);
+        // Single pass through orders for all metrics
+        for (const o of orders) {
+            userIds.add(o.user_id);
 
-    // Weekly Bar Graph Logic
-    const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
-    const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
-    const daysOfCurrentWeek = eachDayOfInterval({ start: weekStart, end: weekEnd });
+            if (o.status === 'new') {
+                newOrders.push(o);
+            }
 
-    const weeklyData = daysOfCurrentWeek.map(day => {
-        const dayOrders = orders.filter(o => isSameDay(new Date(o.delivery_time), day));
+            if (o.status === 'completed') {
+                totalRevenue += Number(o.total_price) || 0;
+            }
+
+            const deliveryDate = new Date(o.delivery_time);
+            if (isToday(deliveryDate) && o.status !== 'completed' && o.status !== 'cancelled') {
+                todaysOrders.push(o);
+            }
+        }
+
         return {
-            label: format(day, 'EEE'),
-            date: format(day, 'd-MMM'),
-            count: dayOrders.length,
-            isToday: isToday(day)
+            newOrdersCount: newOrders.length,
+            todaysOrdersCount: todaysOrders.length,
+            totalRevenue,
+            uniqueCustomers: userIds.size
         };
-    });
+    }, [orders]);
 
-    const maxOrders = Math.max(...weeklyData.map(d => d.count), 5); // Minimum scale of 5
+    // Memoize weekly data calculation
+    const weeklyData = useMemo(() => {
+        const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+        const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
+        const days = eachDayOfInterval({ start: weekStart, end: weekEnd });
+
+        return days.map(day => {
+            const count = orders.filter(o => isSameDay(new Date(o.delivery_time), day)).length;
+            return {
+                label: format(day, 'EEE'),
+                date: format(day, 'd-MMM'),
+                count,
+                isToday: isToday(day)
+            };
+        });
+    }, [orders]);
+
+    const maxOrders = useMemo(() =>
+        Math.max(...weeklyData.map(d => d.count), 5),
+        [weeklyData]
+    );
+
+    // Memoize recent orders slice
+    const recentOrders = useMemo(() => orders.slice(0, 5), [orders]);
+
+    if (!mounted) return null;
 
     return (
         <div className={styles.container}>
@@ -81,10 +112,10 @@ export default function AdminAnalyticsPage() {
 
             {/* Main Stats Grid */}
             <div className={styles.statsGrid}>
-                <StatCard title="Yangi" value={newOrders.length} icon={AlertCircle} color="orange" />
-                <StatCard title="Bugun" value={todaysOrders.length} icon={Clock} color="blue" />
-                <StatCard title="Daromat" value={`${(totalRevenue / 1000000).toFixed(1)}M`} icon={DollarSign} color="green" />
-                <StatCard title="Mijozlar" value={new Set(orders.map(o => o.user_id)).size} icon={Users} color="purple" />
+                <StatCard title="Yangi" value={analytics.newOrdersCount} icon={AlertCircle} color="orange" />
+                <StatCard title="Bugun" value={analytics.todaysOrdersCount} icon={Clock} color="blue" />
+                <StatCard title="Daromat" value={`${(analytics.totalRevenue / 1000000).toFixed(1)}M`} icon={DollarSign} color="green" />
+                <StatCard title="Mijozlar" value={analytics.uniqueCustomers} icon={Users} color="purple" />
             </div>
 
             {loading ? (
@@ -122,11 +153,11 @@ export default function AdminAnalyticsPage() {
                         </div>
                     </div>
 
-                    {/* Additional Analytics - Popular Products etc could go here */}
+                    {/* Recent Activity */}
                     <div className={styles.recentActivity}>
                         <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '20px' }}>So'nggi harakatlar</h2>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                            {orders.slice(0, 5).map(o => (
+                            {recentOrders.map(o => (
                                 <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'white', borderRadius: '16px', border: '1px solid #F3F4F6' }}>
                                     <div style={{ padding: '8px', background: '#FDF2F8', borderRadius: '10px', color: '#BE185D' }}>
                                         <ShoppingBag size={16} />

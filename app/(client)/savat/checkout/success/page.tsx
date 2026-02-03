@@ -6,6 +6,7 @@ import { ChevronLeft, Check, Calendar, MapPin, MessageSquare, Banknote, Shopping
 import styles from './page.module.css';
 import { useCart } from '@/app/context/CartContext';
 import { createClient } from '@/app/utils/supabase/client';
+import { getAuthHeader } from '@/app/utils/telegram';
 
 const MONTHS = [
     "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
@@ -41,19 +42,22 @@ function SuccessContent() {
 
         async function fetchOrder() {
             setLoading(true);
-            const { data, error } = await supabase
-                .from('orders')
-                .select(`
-                    *,
-                    order_items (*)
-                `)
-                .eq('id', orderId)
-                .maybeSingle();
+            try {
+                const response = await fetch(`/api/user/orders/${orderId}`, {
+                    headers: getAuthHeader()
+                });
 
-            if (data && !error) {
-                setOrder(data);
+                if (response.ok) {
+                    const { order: data } = await response.json();
+                    if (data) setOrder(data);
+                } else {
+                    console.error('[Success] API Error:', response.status);
+                }
+            } catch (err) {
+                console.error('[Success] Fetch fail:', err);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         }
 
         fetchOrder();
@@ -70,13 +74,13 @@ function SuccessContent() {
                     schema: 'public',
                     filter: `id=eq.${orderId}`
                 },
-                (payload) => {
+                (payload: any) => {
                     console.log('[Realtime] Order updated:', payload);
                     // Re-fetch the full order including items when an update occurs
                     fetchOrder();
                 }
             )
-            .subscribe((status) => {
+            .subscribe((status: string) => {
                 console.log('[Realtime] Subscription status:', status);
             });
 

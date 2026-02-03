@@ -41,66 +41,75 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
 
     // Initialize on mount
     useEffect(() => {
-        // Check if running in Telegram
-        const inTelegram = isTelegramWebApp();
-        setIsTelegram(inTelegram);
+        let isMounted = true;
+        let retryCount = 0;
+        const maxRetries = 10; // 2 seconds total
 
-        if (inTelegram) {
-            const WebApp = getTelegramWebApp();
-            WebApp?.ready();
-            WebApp?.expand();
+        const checkTelegram = () => {
+            const inTelegram = isTelegramWebApp();
 
-            const initData = getTelegramInitData();
+            if (inTelegram) {
+                setIsTelegram(true);
+                const WebApp = getTelegramWebApp();
+                WebApp?.ready();
+                WebApp?.expand();
 
-            if (initData) {
-                console.log('[TelegramContext] Attempting auth via initData');
+                const initData = getTelegramInitData();
+                if (initData && isMounted) {
+                    console.log('[TelegramContext] Auth via initData');
+                    fetch('/api/user/me', {
+                        method: 'GET',
+                        headers: { 'X-Telegram-Init-Data': initData }
+                    })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.authenticated && data.user && isMounted) {
+                                setUser(data.user);
+                                window.dispatchEvent(new CustomEvent('tg_user_updated', { detail: data.user }));
+                            }
+                            setLoading(false);
+                        })
+                        .catch(err => {
+                            console.error('[TelegramContext] Auth error:', err);
+                            setLoading(false);
+                        });
+                } else {
+                    setLoading(false);
+                }
+                return true;
+            }
+            return false;
+        };
 
-                // Get user info and auto-register if needed
-                fetch('/api/user/me', {
-                    method: 'GET',
-                    headers: {
-                        'X-Telegram-Init-Data': initData
-                    }
-                })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.authenticated && data.user) {
-                            console.log('[TelegramContext] Auth successful:', data.user.full_name);
-                            setUser(data.user);
-
-                            // Dispatch event for other contexts (like SupabaseContext)
-                            window.dispatchEvent(new CustomEvent('tg_user_updated', { detail: data.user }));
-                        } else {
-                            console.log('[TelegramContext] Auth failed or user not found:', data.error);
-                            setUser(null);
+        // Try immediate detection
+        if (!checkTelegram()) {
+            // Poll for Telegram object if script loads late
+            const interval = setInterval(() => {
+                retryCount++;
+                if (checkTelegram() || retryCount >= maxRetries) {
+                    clearInterval(interval);
+                    if (retryCount >= maxRetries) {
+                        console.log('[TelegramContext] Not in Telegram or script failed');
+                        // Not in Telegram - check for legacy session
+                        const stored = getStoredSession();
+                        if (stored && isMounted) {
+                            setUser(stored.user);
+                            window.dispatchEvent(new CustomEvent('tg_user_updated', { detail: stored.user }));
                         }
                         setLoading(false);
-                    })
-                    .catch(err => {
-                        console.error('[TelegramContext] Auth API error:', err);
-                        setUser(null);
-                        setLoading(false);
-                    });
-            } else {
-                console.log('[TelegramContext] No initData available');
-                setUser(null);
-                setLoading(false);
-            }
-        } else {
-            // Not in Telegram - check for legacy session or just stay unauthenticated
-            const stored = getStoredSession();
-            if (stored) {
-                console.log('[TelegramContext] Found legacy session for:', stored.user.full_name);
-                setUser(stored.user);
-                // Dispatch event so SupabaseContext picks it up
-                window.dispatchEvent(new CustomEvent('tg_user_updated', { detail: stored.user }));
-            }
-            setLoading(false);
+                    }
+                }
+            }, 200);
+            return () => {
+                isMounted = false;
+                clearInterval(interval);
+            };
         }
+
+        return () => { isMounted = false; };
     }, []);
 
     const login = useCallback(async () => {
-        // If not in Telegram, redirect to bot to start the flow
         if (!isTelegramWebApp()) {
             window.location.href = 'https://t.me/moida_zakaz_bot';
             return;
@@ -109,24 +118,17 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
         const WebApp = getTelegramWebApp()!;
         const initData = getTelegramInitData();
 
-        if (!initData) {
-            throw new Error('Telegram maʼlumotlari topilmadi');
-        }
+        if (!initData) throw new Error('Telegram maʼlumotlari topilmadi');
 
         return new Promise<void>((resolve, reject) => {
-            // Request phone number from user
             WebApp.requestContact((sent, event) => {
-                if (!sent || !event) {
+                if (!sent || !event?.responseUnsafe?.contact) {
                     reject(new Error('Telefon raqami ulashilmadi'));
                     return;
                 }
 
                 const contact = event.responseUnsafe.contact;
-                console.log('[TelegramContext] Contact received:', contact.phone_number);
 
-                // Update user profile with phone number via webhook or special profile API
-                // We'll use the existing /api/auth/telegram but update it later 
-                // to just verify initData and update phone
                 fetch('/api/auth/telegram', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -138,26 +140,21 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
                 })
                     .then(res => res.json())
                     .then(data => {
-                        if (data.error) {
-                            reject(new Error(data.error));
-                            return;
-                        }
+                        if (data.error) throw new Error(data.error);
 
-                        // Refresh user data
-                        fetch('/api/user/me', {
-                            headers: { 'X-Telegram-Init-Data': initData }
-                        })
-                            .then(r => r.json())
-                            .then(meData => {
-                                if (meData.user) {
-                                    setUser(meData.user);
-                                    window.dispatchEvent(new CustomEvent('tg_user_updated', { detail: meData.user }));
-                                }
-                                resolve();
-                            });
+                        // Store session for persistence
+                        storeSession({
+                            token: data.token || 'tg-auto-session', // Fallback for auto-flow
+                            user: data.user,
+                            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+                        });
+
+                        setUser(data.user);
+                        window.dispatchEvent(new CustomEvent('tg_user_updated', { detail: data.user }));
+                        resolve();
                     })
                     .catch(err => {
-                        console.error('[TelegramContext] Update error:', err);
+                        console.error('[TelegramContext] Login error:', err);
                         reject(err);
                     });
             });

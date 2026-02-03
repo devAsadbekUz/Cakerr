@@ -78,7 +78,7 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
 
                     if (data && !error) {
                         console.log('[Favorites] Loaded from Supabase:', data.length);
-                        setFavorites(data.map(f => f.product_id));
+                        setFavorites(data.map((f: { product_id: string }) => f.product_id));
                     }
                 }
             } else {

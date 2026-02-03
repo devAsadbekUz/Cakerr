@@ -8,16 +8,24 @@ export async function GET(request: Request) {
     const next = searchParams.get('next') ?? '/profil';
 
     if (code) {
-        const isAdminPath = next.startsWith('/admin');
-        const { createAdminServerClient } = await import('@/app/utils/supabase/admin-server');
-
-        const supabase = isAdminPath ? await createAdminServerClient() : await createClient();
+        // Standardize: Everyone uses the same secure client
+        const supabase = await createClient();
         const { error } = await supabase.auth.exchangeCodeForSession(code);
 
         if (!error) {
             const { data: { user } } = await supabase.auth.getUser();
-            const isAdmin = user?.email === 'moida.buvayda@gmail.com';
-            const finalRedirect = (isAdmin && next.startsWith('/admin')) ? '/admin' : next;
+
+            // Centralized Admin Check (Master Backdoor)
+            const OWNER_EMAIL = 'moida.buvayda@gmail.com';
+            const isMasterAdmin = user?.email === OWNER_EMAIL;
+
+            // Determine final redirect
+            let finalRedirect = next;
+
+            // If they are master admin, they can ALWAYS go to admin
+            if (isMasterAdmin && next.startsWith('/admin')) {
+                finalRedirect = '/admin';
+            }
 
             const forwardedHost = request.headers.get('x-forwarded-host');
             const isLocalEnv = process.env.NODE_ENV === 'development';
@@ -32,6 +40,6 @@ export async function GET(request: Request) {
         }
     }
 
-    // return the user to an error page with instructions
+    // Default error redirect
     return NextResponse.redirect(`${origin}/profil/login?error=auth-code-error`);
 }

@@ -9,9 +9,10 @@ interface ActiveOrderCardProps {
     orderId: string;
     itemName: string;
     status: string;
+    progress?: number; // Added progress percentage
 }
 
-export default function ActiveOrderCard({ orderId, itemName, status }: ActiveOrderCardProps) {
+export default function ActiveOrderCard({ orderId, itemName, status, progress }: ActiveOrderCardProps) {
     return (
         <div className={styles.container}>
             <div className={styles.iconWrapper}>
@@ -27,6 +28,16 @@ export default function ActiveOrderCard({ orderId, itemName, status }: ActiveOrd
                     <div className={styles.infoRow}>
                         <span className={styles.itemLabel}>Mahsulot:</span>
                         <span className={styles.itemName}>{itemName}</span>
+                    </div>
+
+                    {/* Mini Progress Bar */}
+                    <div className={styles.progressContainer}>
+                        <div className={styles.progressBar}>
+                            <div
+                                className={styles.progressFill}
+                                style={{ width: `${progress || 0}%` }}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>

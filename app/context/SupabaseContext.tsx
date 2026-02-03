@@ -1,18 +1,26 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { createClient } from '@/app/utils/supabase/client';
-import { User } from '@supabase/supabase-js';
-import { getStoredSession, TelegramSession } from '@/app/utils/telegram';
+import {
+    isTelegramWebApp,
+    getTelegramWebApp,
+    getTelegramInitData,
+    getStoredSession,
+    getAuthHeader
+} from '@/app/utils/telegram';
 
 // Unified user type that works for both Supabase and Telegram users
 type UnifiedUser = {
     id: string;
     phone?: string | null;
     email?: string | null;
+    role?: string;
+    coins?: number;
     user_metadata?: {
         full_name?: string;
         avatar_url?: string;
+        email?: string;
     };
 };
 
@@ -24,100 +32,196 @@ type SupabaseContext = {
 
 const Context = createContext<SupabaseContext | undefined>(undefined);
 
+// Create client outside component (singleton)
+const supabase = createClient();
+
+const OWNER_EMAIL = 'moida.buvayda@gmail.com'.toLowerCase();
+
 export default function SupabaseProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<UnifiedUser | null>(null);
     const [loading, setLoading] = useState(true);
     const [isTelegramUser, setIsTelegramUser] = useState(false);
 
+    // Use ref to track if we've already initialized
+    const initializedRef = useRef(false);
+    const subscriptionRef = useRef<any>(null);
+
     // Guard against missing environment variables
     const canInit = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    useEffect(() => {
-        if (!canInit) {
-            console.warn('Supabase keys are missing. Please add them to .env.local to enable backend features.');
-            setLoading(false);
-            return;
+    // Helper to set up coin subscription
+    const setupCoinSubscription = (userId: string) => {
+        // Clean up existing subscription
+        if (subscriptionRef.current) {
+            supabase.removeChannel(subscriptionRef.current);
+            subscriptionRef.current = null;
         }
 
-        const supabase = createClient();
+        subscriptionRef.current = supabase
+            .channel(`coins-sync-${userId}`)
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'profiles',
+                filter: `id=eq.${userId}`
+            }, (payload: any) => {
+                console.log('[SupabaseContext] Coins updated:', payload.new?.coins);
+                setUser(current => {
+                    if (!current) return null;
+                    return { ...current, coins: payload.new?.coins || 0 };
+                });
+            })
+            .subscribe();
+    };
 
-        const getUser = async () => {
-            // First check for legacy Telegram session (for OTP users or if initData fails)
+    // SINGLE AUTH EFFECT - runs once on mount
+    useEffect(() => {
+        if (!canInit || initializedRef.current) return;
+        initializedRef.current = true;
+
+        let isMounted = true;
+
+        const initAuth = async () => {
+            // Check for Telegram session FIRST
             const tgSession = getStoredSession();
+
+            // If we are in Telegram (or likely to be), wait a bit for TelegramContext to settle
+            if (isTelegramWebApp()) {
+                console.log('[SupabaseContext] Detected Telegram, waiting for TelegramContext...');
+                // We'll let the event listener handle it
+                return;
+            }
+
             if (tgSession) {
-                console.log('[SupabaseContext] Found Telegram session:', tgSession.user.full_name);
+                console.log('[SupabaseContext] Found Telegram session');
                 setUser({
-                    id: tgSession.user.id,
-                    phone: tgSession.user.phone_number,
+                    ...tgSession.user,
+                    role: (tgSession.user as any).role || 'customer',
                     user_metadata: {
                         full_name: tgSession.user.full_name,
                         avatar_url: tgSession.user.avatar_url
                     }
                 });
+                setupCoinSubscription(tgSession.user.id);
                 setIsTelegramUser(true);
                 setLoading(false);
                 return;
             }
 
+            // Browser auth
             const { data: { user: supabaseUser } } = await supabase.auth.getUser();
-            if (supabaseUser) {
-                setUser({
-                    id: supabaseUser.id,
-                    email: supabaseUser.email,
-                    phone: supabaseUser.phone,
-                    user_metadata: supabaseUser.user_metadata as UnifiedUser['user_metadata']
-                });
-                setIsTelegramUser(false);
+            if (supabaseUser && isMounted) {
+                const userEmail = (supabaseUser.email || '').toLowerCase().trim();
+                const metadataEmail = (supabaseUser.user_metadata?.email || '').toLowerCase().trim();
+                const isOwner = userEmail === OWNER_EMAIL || metadataEmail === OWNER_EMAIL;
+
+                // For owner, skip profile fetch
+                if (isOwner) {
+                    setUser({
+                        id: supabaseUser.id,
+                        email: supabaseUser.email,
+                        phone: supabaseUser.phone,
+                        coins: 0,
+                        role: 'admin',
+                        user_metadata: supabaseUser.user_metadata as UnifiedUser['user_metadata']
+                    });
+                    setupCoinSubscription(supabaseUser.id);
+                } else {
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('coins, full_name, avatar_url, role')
+                        .eq('id', supabaseUser.id)
+                        .maybeSingle();
+
+                    setUser({
+                        id: supabaseUser.id,
+                        email: supabaseUser.email,
+                        phone: supabaseUser.phone,
+                        coins: profile?.coins || 0,
+                        role: profile?.role || 'user',
+                        user_metadata: {
+                            ...supabaseUser.user_metadata,
+                            full_name: profile?.full_name || supabaseUser.user_metadata?.full_name,
+                            avatar_url: profile?.avatar_url || supabaseUser.user_metadata?.avatar_url,
+                            email: (supabaseUser.user_metadata?.email as string) || supabaseUser.email
+                        } as UnifiedUser['user_metadata']
+                    });
+                    setupCoinSubscription(supabaseUser.id);
+                }
             }
-            // We don't set loading false yet, as TelegramContext might still be verifying initData
+            if (isMounted) setLoading(false);
         };
 
-        getUser();
+        initAuth();
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            // Only handle Supabase auth if not a Telegram user
-            if (isTelegramUser) return;
-
+        // Auth state change listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
+            if (!isMounted) return;
             const newUser = session?.user ?? null;
+            if (newUser) {
+                const userEmail = (newUser.email || '').toLowerCase().trim();
+                const metadataEmail = (newUser.user_metadata?.email || '').toLowerCase().trim();
+                const isOwner = userEmail === OWNER_EMAIL || metadataEmail === OWNER_EMAIL;
 
-            setUser(current => {
-                if (!current && !newUser) return null;
-                if (current?.id === newUser?.id) return current;
-
-                if (newUser) {
-                    return {
+                if (isOwner) {
+                    setUser({
                         id: newUser.id,
                         email: newUser.email,
                         phone: newUser.phone,
+                        coins: 0,
+                        role: 'admin',
                         user_metadata: newUser.user_metadata as UnifiedUser['user_metadata']
-                    };
+                    });
+                } else {
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('coins, role')
+                        .eq('id', newUser.id)
+                        .maybeSingle();
+                    setUser({
+                        id: newUser.id,
+                        email: newUser.email,
+                        phone: newUser.phone,
+                        coins: profile?.coins || 0,
+                        role: profile?.role || 'user',
+                        user_metadata: newUser.user_metadata as UnifiedUser['user_metadata']
+                    });
                 }
-                return null;
-            });
+                setupCoinSubscription(newUser.id);
+            } else {
+                setUser(null);
+                if (subscriptionRef.current) {
+                    supabase.removeChannel(subscriptionRef.current);
+                    subscriptionRef.current = null;
+                }
+            }
         });
 
-        return () => subscription.unsubscribe();
-    }, [canInit, isTelegramUser]);
+        return () => {
+            isMounted = false;
+            subscription.unsubscribe();
+            if (subscriptionRef.current) {
+                supabase.removeChannel(subscriptionRef.current);
+            }
+        };
+    }, [canInit]);
 
-    // Listen for Telegram user updates
+    // Telegram user update listener - CRITICAL: Don't re-fetch, use details directly!
     useEffect(() => {
         const handleUserUpdate = (e: any) => {
-            const tgUser = e.detail;
-            console.log('[SupabaseContext] Telegram user updated:', tgUser?.full_name);
-
-            if (tgUser) {
+            const profileData = e.detail;
+            if (profileData) {
+                console.log('[SupabaseContext] Syncing with Telegram user:', profileData.full_name);
                 setUser({
-                    id: tgUser.id,
-                    phone: tgUser.phone_number,
+                    ...profileData,
                     user_metadata: {
-                        full_name: tgUser.full_name,
-                        avatar_url: tgUser.avatar_url
+                        full_name: profileData.full_name,
+                        avatar_url: profileData.avatar_url
                     }
                 });
+                setupCoinSubscription(profileData.id);
                 setIsTelegramUser(true);
             } else {
-                // If TG user becomes null, we don't necessarily logout Supabase user
-                // but we clear the TG state
                 setIsTelegramUser(false);
             }
             setLoading(false);
@@ -125,9 +229,9 @@ export default function SupabaseProvider({ children }: { children: React.ReactNo
 
         window.addEventListener('tg_user_updated', handleUserUpdate as EventListener);
 
-        // Wait a bit for TelegramContext to initialize if it's going to
+        // Safety timeout for loading state
         const timeout = setTimeout(() => {
-            setLoading(false);
+            if (loading) setLoading(false);
         }, 3000);
 
         return () => {

@@ -79,6 +79,7 @@ export async function GET(request: NextRequest) {
                 telegram_id: profile.telegram_id,
                 username: profile.username,
                 role: profile.role,
+                coins: profile.coins || 0,
                 has_phone: !!profile.phone_number
             }
         });

@@ -1,15 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
     ShoppingBag, Calendar as CalendarIcon,
     ChevronLeft, ChevronRight, Clock, AlertCircle
 } from 'lucide-react';
 import { orderService } from '@/app/services/orderService';
 import { format, isToday, isTomorrow, isSameDay, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
-import { createAdminBrowserClient } from '@/app/utils/supabase/admin-client';
+import { createClient } from '@/app/utils/supabase/client';
 import styles from '../AdminDashboard.module.css';
 import { Section, OrderCard, OrderDetailsModal } from '@/app/components/admin/DashboardComponents';
+
+// Supabase client outside component (singleton)
+const supabase = createClient();
 
 export default function AdminOrdersPage() {
     const [orders, setOrders] = useState<any[]>([]);
@@ -17,7 +20,6 @@ export default function AdminOrdersPage() {
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const [viewMode, setViewMode] = useState<'inbox' | 'calendar'>('inbox');
     const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
-    const supabase = createAdminBrowserClient();
     const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
     const [newOrderNotify, setNewOrderNotify] = useState(false);
     const [mounted, setMounted] = useState(false);
@@ -41,16 +43,15 @@ export default function AdminOrdersPage() {
             .on('postgres_changes', { event: 'UPDATE', table: 'orders', schema: 'public' }, () => {
                 fetchData();
             })
-            .subscribe((status, err) => {
+            .subscribe((status: string, err: Error | null) => {
                 console.log('[Realtime] Admin Orders Subscription:', status);
                 if (err) console.error('[Realtime] Error:', err);
             });
 
-        // Realtime subscription handles updates - no polling needed
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [supabase]);
+    }, []); // FIXED: Empty deps - supabase is now stable singleton
 
     const handleUpdateStatus = async (orderId: string, newStatus: string) => {
         const { error } = await orderService.updateOrderStatus(orderId, newStatus, true);
@@ -61,19 +62,28 @@ export default function AdminOrdersPage() {
         }
     };
 
-    // Chronological Grouping for Inbox
-    const activeOrders = orders.filter(o => o.status !== 'completed' && o.status !== 'cancelled');
+    // Memoize active orders filtering
+    const activeOrders = useMemo(() =>
+        orders.filter(o => o.status !== 'completed' && o.status !== 'cancelled'),
+        [orders]
+    );
 
-    // Grouping by date
-    const groupedOrders: { [key: string]: any[] } = activeOrders.reduce((groups: any, order) => {
-        const date = format(new Date(order.delivery_time), 'yyyy-MM-dd');
-        if (!groups[date]) groups[date] = [];
-        groups[date].push(order);
-        return groups;
-    }, {});
+    // Memoize grouped orders
+    const groupedOrders = useMemo(() => {
+        return activeOrders.reduce((groups: any, order) => {
+            const date = format(new Date(order.delivery_time), 'yyyy-MM-dd');
+            if (!groups[date]) groups[date] = [];
+            groups[date].push(order);
+            return groups;
+        }, {});
+    }, [activeOrders]);
 
-    const sortedDates = Object.keys(groupedOrders).sort();
-    const filteredByDate = orders.filter(o => isSameDay(new Date(o.delivery_time), selectedDate));
+    const sortedDates = useMemo(() => Object.keys(groupedOrders).sort(), [groupedOrders]);
+
+    const filteredByDate = useMemo(() =>
+        orders.filter(o => isSameDay(new Date(o.delivery_time), selectedDate)),
+        [orders, selectedDate]
+    );
 
     if (!mounted) return null;
 
@@ -140,7 +150,7 @@ export default function AdminOrdersPage() {
                                     count={dayOrders.length}
                                     highlight={isToday(date)}
                                 >
-                                    {dayOrders.map(order => (
+                                    {dayOrders.map((order: any) => (
                                         <OrderCard
                                             key={order.id}
                                             order={order}
