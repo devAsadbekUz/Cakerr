@@ -137,55 +137,31 @@ export default function CheckoutPage() {
 
             let createdOrder: { id: string };
 
-            // Use API proxy for Telegram users, direct Supabase for admin/Google users
-            if (isTelegramUser) {
-                const authHeaders = getAuthHeader();
-                console.log('[Checkout] Sending headers:', Object.keys(authHeaders).join(', '));
+            // Use API for ALL users (bypasses RLS, handles both Telegram and browser auth)
+            const authHeaders = getAuthHeader();
+            console.log('[Checkout] Sending headers:', Object.keys(authHeaders).join(', '));
 
-                const response = await fetch('/api/user/orders', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...authHeaders
-                    },
-                    body: JSON.stringify({
-                        order: orderData,
-                        items: orderItems,
-                        coins_spent: orderData.coins_spent
-                    })
-                });
+            const response = await fetch('/api/user/orders', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...authHeaders
+                },
+                body: JSON.stringify({
+                    order: orderData,
+                    items: orderItems,
+                    coins_spent: orderData.coins_spent
+                })
+            });
 
-                if (!response.ok) {
-                    const rawError = await response.text();
-                    console.error('[Checkout] API Fail:', response.status, rawError);
-                    throw new Error(`${response.status}: ${rawError || 'No detail'}`);
-                }
-
-                const result = await response.json();
-                createdOrder = result.order;
-            } else {
-                // Direct Supabase for admin/Google users
-                const { data, error: orderError } = await supabase
-                    .from('orders')
-                    .insert({ ...orderData, user_id: user.id, status: 'new' })
-                    .select()
-                    .single();
-
-                if (orderError) throw orderError;
-                createdOrder = data;
-
-                // Create order items
-                const itemsWithOrderId = orderItems.map(item => ({
-                    ...item,
-                    order_id: createdOrder.id
-                }));
-
-                const { error: itemsError } = await supabase
-                    .from('order_items')
-                    .insert(itemsWithOrderId);
-
-                if (itemsError) throw itemsError;
+            if (!response.ok) {
+                const rawError = await response.text();
+                console.error('[Checkout] API Fail:', response.status, rawError);
+                throw new Error(`Xatolik: ${rawError || 'Buyurtma yaratilmadi'}`);
             }
+
+            const result = await response.json();
+            createdOrder = result.order;
 
             // 3. Send Telegram notification
             try {
@@ -207,7 +183,7 @@ export default function CheckoutPage() {
                     body: JSON.stringify({
                         orderId: createdOrder.id,
                         customerName: user.user_metadata?.full_name || 'Mijoz',
-                        customerPhone: user.phone || 'Noma\'lum',
+                        customerPhone: user.phone_number || user.phone || 'Noma\'lum',
                         address: deliveryAddress,
                         locationUrl,
                         deliveryDate: deliveryDateFormatted,

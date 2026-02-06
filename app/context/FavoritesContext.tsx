@@ -102,12 +102,17 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
         loadFavorites();
     }, [user, isTelegramUser, authLoading]);
 
-    // 2. Save to LocalStorage if guest
+    // 2. ALWAYS save to localStorage as backup (for both guests AND logged-in users)
+    // This ensures favorites persist even if API call fails on next app load
+    // Also saves empty arrays to clear stale data when user removes all favorites
     useEffect(() => {
-        if (!user) {
+        if (!loading) {
             localStorage.setItem('favorites', JSON.stringify(favorites));
+            if (favorites.length > 0) {
+                console.log('[Favorites] Backed up to localStorage:', favorites.length);
+            }
         }
-    }, [favorites, user]);
+    }, [favorites, loading]);
 
     const toggleFavorite = useCallback(async (productId: string) => {
         // Optimistic UI update

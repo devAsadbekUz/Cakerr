@@ -94,7 +94,10 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid table' }, { status: 400 });
     }
 
-    const { data, error } = await serviceClient.from(table).update(updateData).eq('id', id).select();
+    // Special handling for app_settings which uses 'key' as primary key
+    const primaryKeyColumn = table === 'app_settings' ? 'key' : 'id';
+
+    const { data, error } = await serviceClient.from(table).update(updateData).eq(primaryKeyColumn, id).select();
 
     if (error) {
         console.error(`[Admin API] Error updating ${table}:`, error);

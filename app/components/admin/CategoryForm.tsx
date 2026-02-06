@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { createClient } from '@/app/utils/supabase/client';
 import { X, Loader2, Save } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import ImageUpload from '@/app/components/admin/ImageUpload';
 import { useEffect } from 'react';
+import { adminInsert, adminUpdate } from '@/app/utils/adminApi';
 
 interface CategoryFormProps {
     isOpen: boolean;
@@ -19,7 +19,6 @@ export default function CategoryForm({ isOpen, onClose, category, onSuccess }: C
     const [icon, setIcon] = useState('🎂');
     const [imageUrl, setImageUrl] = useState('');
     const [loading, setLoading] = useState(false);
-    const supabase = createClient();
     const router = useRouter();
 
     useEffect(() => {
@@ -49,17 +48,12 @@ export default function CategoryForm({ isOpen, onClose, category, onSuccess }: C
         try {
             if (category?.id) {
                 // Update
-                const { error } = await supabase
-                    .from('categories')
-                    .update(categoryData)
-                    .eq('id', category.id);
-                if (error) throw error;
+                const result = await adminUpdate('categories', category.id, categoryData);
+                if (!result) throw new Error('Update failed via Admin API');
             } else {
                 // Create
-                const { error } = await supabase
-                    .from('categories')
-                    .insert([categoryData]);
-                if (error) throw error;
+                const result = await adminInsert('categories', categoryData);
+                if (!result) throw new Error('Insert failed via Admin API');
             }
 
             onSuccess();

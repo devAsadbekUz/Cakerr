@@ -79,8 +79,10 @@ export default function HomePage() {
     fetchData();
 
     if (user) {
+      console.log('[Realtime] Initializing subscription for user:', user.id);
+
       const channel = supabase
-        .channel(`user-orders-${user.id}`)
+        .channel(`user-sync-${user.id}`)
         .on(
           'postgres_changes',
           {
@@ -90,26 +92,22 @@ export default function HomePage() {
             filter: `user_id=eq.${user.id}`
           },
           (payload: any) => {
-            console.log('[Realtime] Order change:', payload.eventType, payload.new?.status);
-            if (payload.eventType === 'UPDATE') {
-              setActiveOrder((prev: any) => {
-                if (!prev) return null;
-                if (prev.id === payload.new.id) {
-                  return { ...prev, status: payload.new.status };
-                }
-                return prev;
-              });
-            } else if (payload.eventType === 'INSERT') {
-              fetchActiveOrder();
-            }
+            console.log('[Realtime] Order event received:', payload.eventType, payload.new?.status);
+            // Robust approach: any change to user's orders triggers a full refetch.
+            // This ensures we get joined data like order_items correctly.
+            fetchActiveOrder();
           }
         )
         .subscribe((status: string, err: Error | null) => {
           setRealtimeStatus(status);
-          if (err) console.error('[Realtime] Error:', err);
+          if (err) console.error('[Realtime] Channel error:', err);
+          if (status === 'SUBSCRIBED') {
+            console.log('[Realtime] Successfully subscribed to order updates');
+          }
         });
 
       return () => {
+        console.log('[Realtime] Cleaning up subscription for:', user.id);
         supabase.removeChannel(channel);
       };
     }

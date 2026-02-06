@@ -14,6 +14,7 @@ import {
 type UnifiedUser = {
     id: string;
     phone?: string | null;
+    phone_number?: string | null; // Added for Telegram consistency
     email?: string | null;
     role?: string;
     coins?: number;
@@ -121,6 +122,7 @@ export default function SupabaseProvider({ children }: { children: React.ReactNo
                         id: supabaseUser.id,
                         email: supabaseUser.email,
                         phone: supabaseUser.phone,
+                        phone_number: supabaseUser.phone, // Map phone to phone_number
                         coins: 0,
                         role: 'admin',
                         user_metadata: supabaseUser.user_metadata as UnifiedUser['user_metadata']
@@ -129,7 +131,7 @@ export default function SupabaseProvider({ children }: { children: React.ReactNo
                 } else {
                     const { data: profile } = await supabase
                         .from('profiles')
-                        .select('coins, full_name, avatar_url, role')
+                        .select('coins, full_name, avatar_url, role, phone_number')
                         .eq('id', supabaseUser.id)
                         .maybeSingle();
 
@@ -137,6 +139,7 @@ export default function SupabaseProvider({ children }: { children: React.ReactNo
                         id: supabaseUser.id,
                         email: supabaseUser.email,
                         phone: supabaseUser.phone,
+                        phone_number: profile?.phone_number || supabaseUser.phone, // Map phone to phone_number
                         coins: profile?.coins || 0,
                         role: profile?.role || 'user',
                         user_metadata: {
@@ -211,18 +214,29 @@ export default function SupabaseProvider({ children }: { children: React.ReactNo
         const handleUserUpdate = (e: any) => {
             const profileData = e.detail;
             if (profileData) {
-                console.log('[SupabaseContext] Syncing with Telegram user:', profileData.full_name);
-                setUser({
-                    ...profileData,
-                    user_metadata: {
-                        full_name: profileData.full_name,
-                        avatar_url: profileData.avatar_url
-                    }
+                console.log('[SupabaseContext] Syncing user data:', profileData.full_name);
+                setUser((prev: any) => {
+                    if (!prev) return {
+                        ...profileData,
+                        phone: profileData.phone_number,
+                        user_metadata: {
+                            full_name: profileData.full_name,
+                            avatar_url: profileData.avatar_url
+                        }
+                    };
+
+                    return {
+                        ...prev,
+                        ...profileData,
+                        phone: profileData.phone_number || prev.phone,
+                        user_metadata: {
+                            ...prev.user_metadata,
+                            full_name: profileData.full_name || prev.user_metadata?.full_name,
+                            avatar_url: profileData.avatar_url || prev.user_metadata?.avatar_url
+                        }
+                    };
                 });
                 setupCoinSubscription(profileData.id);
-                setIsTelegramUser(true);
-            } else {
-                setIsTelegramUser(false);
             }
             setLoading(false);
         };

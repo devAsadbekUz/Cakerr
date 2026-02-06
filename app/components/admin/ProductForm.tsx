@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/app/utils/supabase/client';
 import { X, Loader2, Save, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import ImageUpload from '@/app/components/admin/ImageUpload';
 import { Product } from '@/app/types';
+import { adminInsert, adminUpdate } from '@/app/utils/adminApi';
 
 interface ProductFormProps {
     isOpen: boolean;
@@ -35,7 +35,6 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
 
     const [loading, setLoading] = useState(false);
     const [showErrors, setShowErrors] = useState(false);
-    const supabase = createClient();
     const router = useRouter();
 
     useEffect(() => {
@@ -145,11 +144,11 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
 
         try {
             if (product?.id) {
-                const { error } = await supabase.from('products').update(productData).eq('id', product.id);
-                if (error) throw error;
+                const result = await adminUpdate('products', product.id, productData);
+                if (!result) throw new Error('Update failed via Admin API');
             } else {
-                const { error } = await supabase.from('products').insert([productData]);
-                if (error) throw error;
+                const result = await adminInsert('products', productData);
+                if (!result) throw new Error('Insert failed via Admin API');
             }
             onSuccess();
             onClose();

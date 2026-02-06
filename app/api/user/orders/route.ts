@@ -73,6 +73,25 @@ export async function POST(request: NextRequest) {
     try {
         const { order, items, coins_spent = 0 } = await request.json();
 
+        /* --- OPTIMIZED ATOMIC CHECKOUT (V2) --- */
+        const { data: orderData, error: rpcError } = await supabase.rpc('create_order_v2', {
+            p_user_id: userId,
+            p_order_data: order,
+            p_items: items,
+            p_coins_spent: coins_spent
+        });
+
+        if (rpcError) {
+            console.error('[Orders API] RPC V2 Error:', rpcError);
+            // Fallback: If RPC fails, try the original multi-step logic if appropriate, 
+            // or just throw to be safe. For the presentation, we want accuracy.
+            throw rpcError;
+        }
+
+        console.log('[Orders API] Order created via RPC V2:', orderData.id, 'for user:', userId);
+        return NextResponse.json({ order: orderData });
+
+        /* --- FALLBACK: ORIGINAL MULTI-STEP LOGIC (Commented for safety) ---
         // 1. If coins being spent, verify and deduct
         if (coins_spent > 0) {
             const { data: profile, error: profileError } = await supabase
@@ -89,11 +108,6 @@ export async function POST(request: NextRequest) {
             // Deduct coins
             const { error: deductError } = await supabase
                 .rpc('deduct_coins', { p_user_id: userId, p_amount: coins_spent });
-
-            // If RPC doesn't exist yet, we'll use a manual update (trigger will handle transactions if we added it, but let's be careful)
-            // Actually, let's use a manual update for now to be safe, or I'll add the RPC to the migration.
-            // Let's add the RPC to a new migration or update the existing one.
-            // For now, I'll do a manual update + transaction insert.
 
             if (deductError) {
                 const { error: manualError } = await supabase
@@ -133,7 +147,7 @@ export async function POST(request: NextRequest) {
                 .update({ order_id: orderData.id })
                 .eq('user_id', userId)
                 .eq('type', 'spend')
-                .eq('order_id', null) // Target the one we just inserted
+                .eq('order_id', null)
                 .order('created_at', { ascending: false })
                 .limit(1);
         }
@@ -152,9 +166,8 @@ export async function POST(request: NextRequest) {
             if (itemsError) throw itemsError;
         }
 
-        console.log('[Orders API] Order created:', orderData.id, 'for user:', userId);
-
         return NextResponse.json({ order: orderData });
+        */
     } catch (error: any) {
         console.error('[Orders API] POST error:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });

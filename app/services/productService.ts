@@ -8,7 +8,7 @@ export const productService = {
 
         const { data, error } = await supabase
             .from('products')
-            .select('*')
+            .select('id, title, subtitle, description, base_price, image_url, category_id, is_available, is_ready, variants, details')
             .eq('is_available', true)
             .is('deleted_at', null)
             .order('created_at', { ascending: false });

@@ -18,28 +18,50 @@ const supabase = createClient();
 
 export default function AdminAnalyticsPage() {
     const [orders, setOrders] = useState<any[]>([]);
+    const [totalUsers, setTotalUsers] = useState(0);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
 
+    const fetchData = async () => {
+        // Fetch orders for revenue and active buyers
+        const data = await orderService.getAllOrdersAdmin();
+        setOrders(data || []);
+
+        // Fetch total profiles count for industry standard "Customers" metric
+        const { count, error } = await supabase
+            .from('profiles')
+            .select('*', { count: 'exact', head: true });
+
+        if (!error && count !== null) {
+            setTotalUsers(count);
+        }
+
+        setLoading(false);
+    };
+
     useEffect(() => {
         setMounted(true);
-        const fetchData = async () => {
-            const data = await orderService.getAllOrdersAdmin();
-            setOrders(data || []);
-            setLoading(false);
-        };
         fetchData();
 
-        // Realtime Subscription
-        const channel = supabase
-            .channel('admin-dashboard')
+        // Realtime Subscription for orders
+        const ordersChannel = supabase
+            .channel('admin-orders')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
                 fetchData();
             })
             .subscribe();
 
+        // Realtime Subscription for new user registrations
+        const profilesChannel = supabase
+            .channel('admin-profiles')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profiles' }, () => {
+                fetchData();
+            })
+            .subscribe();
+
         return () => {
-            supabase.removeChannel(channel);
+            supabase.removeChannel(ordersChannel);
+            supabase.removeChannel(profilesChannel);
         };
     }, []);
 
@@ -48,11 +70,11 @@ export default function AdminAnalyticsPage() {
         const newOrders: any[] = [];
         const todaysOrders: any[] = [];
         let totalRevenue = 0;
-        const userIds = new Set<string>();
+        const activeBuyerIds = new Set<string>();
 
         // Single pass through orders for all metrics
         for (const o of orders) {
-            userIds.add(o.user_id);
+            activeBuyerIds.add(o.user_id);
 
             if (o.status === 'new') {
                 newOrders.push(o);
@@ -72,9 +94,10 @@ export default function AdminAnalyticsPage() {
             newOrdersCount: newOrders.length,
             todaysOrdersCount: todaysOrders.length,
             totalRevenue,
-            uniqueCustomers: userIds.size
+            totalCustomers: totalUsers,
+            activeBuyers: activeBuyerIds.size
         };
-    }, [orders]);
+    }, [orders, totalUsers]);
 
     // Memoize weekly data calculation
     const weeklyData = useMemo(() => {
@@ -115,7 +138,13 @@ export default function AdminAnalyticsPage() {
                 <StatCard title="Yangi" value={analytics.newOrdersCount} icon={AlertCircle} color="orange" />
                 <StatCard title="Bugun" value={analytics.todaysOrdersCount} icon={Clock} color="blue" />
                 <StatCard title="Daromat" value={`${(analytics.totalRevenue / 1000000).toFixed(1)}M`} icon={DollarSign} color="green" />
-                <StatCard title="Mijozlar" value={analytics.uniqueCustomers} icon={Users} color="purple" />
+                <StatCard
+                    title="Mijozlar"
+                    value={analytics.totalCustomers}
+                    icon={Users}
+                    color="purple"
+                    subtitle={`${analytics.activeBuyers} faol xaridor`}
+                />
             </div>
 
             {loading ? (

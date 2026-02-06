@@ -191,7 +191,12 @@ export default function ProfilPage() {
                     </div>
                     <div className={styles.userInfo}>
                         <h2>{user.user_metadata?.full_name || 'Mijoz'}</h2>
-                        <p>{user.email || user.phone}</p>
+                        <div className={styles.contactInfo}>
+                            {user.email && <p className={styles.userEmail}>{user.email}</p>}
+                            {(user.phone || user.phone_number) && (
+                                <p className={styles.userPhone}>{user.phone || user.phone_number}</p>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -285,12 +290,6 @@ export default function ProfilPage() {
                         label="Yordam markazi"
                         color="#6B7280"
                         onClick={() => router.push('/profil/yordam')}
-                    />
-                    <MenuItem
-                        icon={Settings}
-                        label="Sozlamalar"
-                        color="#374151"
-                        onClick={() => router.push('/profil/sozlamalar')}
                     />
                     <MenuItem
                         icon={LogOut}
