@@ -140,6 +140,10 @@ export function OrderCard({ order, compact, onUpdate, onClick }: any) {
                         <CalendarIcon size={14} style={{ marginRight: 4, verticalAlign: 'text-bottom' }} />
                         {isToday(deliveryDate) ? 'Bugun' : format(deliveryDate, 'd-MMM')}, {order.delivery_slot}
                     </p>
+                    <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#9CA3AF' }}>
+                        <Clock size={12} style={{ marginRight: 4, verticalAlign: 'text-bottom' }} />
+                        Buyurtma: {format(new Date(order.created_at), 'HH:mm, d-MMM')}
+                    </p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                     <div style={{ fontWeight: 800, fontSize: '16px', color: '#BE185D' }}>{order.total_price.toLocaleString()} so'm</div>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ShoppingBag, Package, Calendar } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Package, Calendar, MessageSquare } from 'lucide-react';
 import styles from './AdminBottomNav.module.css';
 
 const MENU = [
@@ -11,6 +11,7 @@ const MENU = [
     { path: '/admin/orders', label: 'Buyurtma', icon: ShoppingBag },
     { path: '/admin/products', label: 'Mahsulot', icon: Package },
     { path: '/admin/schedule', label: 'Vaqt', icon: Calendar },
+    { path: '/admin/messages', label: 'Xabar', icon: MessageSquare },
 ];
 
 export default function AdminBottomNav() {

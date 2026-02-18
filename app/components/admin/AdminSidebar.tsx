@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, ShoppingBag, Package, Calendar, Settings, LogOut, Tags, Menu, X, Wand2, Coins } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Package, Calendar, Settings, LogOut, Tags, Menu, X, Wand2, Coins, MessageSquare } from 'lucide-react';
 import { createClient } from '@/app/utils/supabase/client';
 import styles from './AdminSidebar.module.css';
 
@@ -16,6 +16,7 @@ const MENU = [
     { path: '/admin/schedule', label: 'Vaqtlar', icon: Calendar },
     { path: '/admin/custom', label: 'Maxsus', icon: Wand2 },
     { path: '/admin/loyalty', label: 'Loyallik', icon: Coins },
+    { path: '/admin/messages', label: 'Xabarlar', icon: MessageSquare },
     { path: '/admin/settings', label: 'Sozlamalar', icon: Settings },
 ];
 

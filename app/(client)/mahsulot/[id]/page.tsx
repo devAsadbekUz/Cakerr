@@ -107,6 +107,62 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
     toggleFavorite(product.id);
   };
 
+  const handleShare = async () => {
+    const shareData = {
+      title: product.title,
+      text: product.subtitle || `${product.title} - Cakerr`,
+      url: window.location.href
+    };
+
+    try {
+      // Try native share API first (works on mobile and modern browsers)
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        // Fallback: copy to clipboard
+        await navigator.clipboard.writeText(window.location.href);
+        // Show a simple alert as toast (you can replace with a proper toast component)
+        const toast = document.createElement('div');
+        toast.textContent = 'Havola nusxalandi!';
+        toast.style.cssText = `
+          position: fixed;
+          bottom: 100px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: #1F2937;
+          color: white;
+          padding: 12px 24px;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 500;
+          z-index: 1000;
+          animation: fadeInOut 2s forwards;
+        `;
+
+        // Add animation styles
+        const style = document.createElement('style');
+        style.textContent = `
+          @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+          }
+        `;
+        document.head.appendChild(style);
+        document.body.appendChild(toast);
+
+        // Remove toast after animation
+        setTimeout(() => {
+          toast.remove();
+          style.remove();
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Share failed:', error);
+    }
+  };
+
   return (
     <div className={styles.container}>
       {/* Top Navigation Overlay */}
@@ -135,7 +191,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
           <button className={styles.iconBtn} onClick={handleToggleFavorite} style={{ transition: 'all 0.2s active' }}>
             <Heart size={24} color={favorited ? "#E91E63" : "#1F2937"} fill={favorited ? "#E91E63" : "none"} />
           </button>
-          <button className={styles.iconBtn}>
+          <button className={styles.iconBtn} onClick={handleShare}>
             <Share2 size={24} color="#1F2937" />
           </button>
         </div>

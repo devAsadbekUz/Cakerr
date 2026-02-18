@@ -37,6 +37,15 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
     const [showErrors, setShowErrors] = useState(false);
     const router = useRouter();
 
+    // Reset form when modal opens for a new product (product is null)
+    // This ensures the form is always clean when creating a new product
+    useEffect(() => {
+        if (isOpen && !product) {
+            resetForm();
+        }
+    }, [isOpen, product]);
+
+    // Populate form when editing an existing product
     useEffect(() => {
         setShowErrors(false);
         if (product) {
@@ -64,8 +73,6 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
             }
             setIsAvailable(product.is_available ?? true);
             setIsReady(product.is_ready ?? false);
-        } else {
-            resetForm();
         }
     }, [product]);
 
