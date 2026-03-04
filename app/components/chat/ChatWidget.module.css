@@ -1,0 +1,343 @@
+/* ===== Chat Toggle Button ===== */
+.toggleButton {
+    position: fixed;
+    bottom: 85px;
+    right: 16px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, hsl(340, 82%, 52%), hsl(340, 82%, 42%));
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(233, 30, 99, 0.4);
+    z-index: 1000;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.toggleButton:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 24px rgba(233, 30, 99, 0.5);
+}
+
+.toggleButton:active {
+    transform: scale(0.95);
+}
+
+.toggleButtonOpen {
+    background: linear-gradient(135deg, hsl(220, 10%, 35%), hsl(220, 10%, 25%));
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.toggleButtonOpen:hover {
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* Unread badge on the toggle button */
+.unreadBadge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: hsl(24, 100%, 50%);
+    border: 2px solid white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: white;
+}
+
+/* ===== Chat Window ===== */
+.chatWindow {
+    position: fixed;
+    bottom: 150px;
+    right: 16px;
+    width: 340px;
+    max-height: 460px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Mobile responsive */
+@media (max-width: 400px) {
+    .chatWindow {
+        right: 8px;
+        left: 8px;
+        width: auto;
+        bottom: 140px;
+        max-height: 420px;
+    }
+}
+
+/* ===== Chat Header ===== */
+.chatHeader {
+    padding: 16px;
+    background: linear-gradient(135deg, hsl(340, 82%, 52%), hsl(340, 82%, 42%));
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.botAvatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.headerInfo {
+    flex: 1;
+    min-width: 0;
+}
+
+.headerTitle {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.headerSubtitle {
+    font-size: 11px;
+    opacity: 0.85;
+    line-height: 1.2;
+    margin-top: 2px;
+}
+
+/* ===== Messages Area ===== */
+.messagesContainer {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: hsl(30, 20%, 97%);
+    min-height: 200px;
+    max-height: 300px;
+    scroll-behavior: smooth;
+}
+
+.messagesContainer::-webkit-scrollbar {
+    width: 4px;
+}
+
+.messagesContainer::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+/* ===== Message Bubbles ===== */
+.message {
+    max-width: 85%;
+    padding: 10px 14px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.5;
+    word-wrap: break-word;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.userMessage {
+    align-self: flex-end;
+    background: linear-gradient(135deg, hsl(340, 82%, 52%), hsl(340, 82%, 46%));
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.botMessage {
+    align-self: flex-start;
+    background: white;
+    color: hsl(220, 10%, 20%);
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* ===== Typing Indicator ===== */
+.typingIndicator {
+    align-self: flex-start;
+    display: flex;
+    gap: 4px;
+    padding: 12px 16px;
+    background: white;
+    border-radius: 16px;
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.typingDot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: hsl(340, 82%, 52%);
+    opacity: 0.4;
+    animation: typingPulse 1.4s infinite;
+}
+
+.typingDot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typingDot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typingPulse {
+
+    0%,
+    60%,
+    100% {
+        opacity: 0.4;
+        transform: scale(1);
+    }
+
+    30% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+}
+
+/* ===== Quick Actions (Suggestion chips) ===== */
+.quickActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 0 16px 8px;
+    background: hsl(30, 20%, 97%);
+}
+
+.quickAction {
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid hsl(340, 82%, 88%);
+    background: white;
+    color: hsl(340, 82%, 42%);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.quickAction:hover {
+    background: hsl(340, 100%, 96%);
+    border-color: hsl(340, 82%, 52%);
+}
+
+.quickAction:active {
+    transform: scale(0.95);
+}
+
+/* ===== Input Area ===== */
+.inputArea {
+    display: flex;
+    padding: 12px;
+    gap: 8px;
+    border-top: 1px solid hsl(0, 0%, 92%);
+    background: white;
+    flex-shrink: 0;
+}
+
+.input {
+    flex: 1;
+    padding: 10px 14px;
+    border-radius: 20px;
+    border: 1.5px solid hsl(0, 0%, 88%);
+    font-size: 14px;
+    font-family: var(--font-primary);
+    outline: none;
+    transition: border-color 0.2s ease;
+    background: hsl(0, 0%, 98%);
+}
+
+.input:focus {
+    border-color: hsl(340, 82%, 52%);
+    background: white;
+}
+
+.input::placeholder {
+    color: hsl(220, 10%, 60%);
+}
+
+.sendButton {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, hsl(340, 82%, 52%), hsl(340, 82%, 42%));
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+    flex-shrink: 0;
+}
+
+.sendButton:hover {
+    transform: scale(1.05);
+}
+
+.sendButton:active {
+    transform: scale(0.9);
+}
+
+.sendButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ===== Error message ===== */
+.errorMessage {
+    align-self: center;
+    padding: 8px 14px;
+    background: hsl(0, 80%, 95%);
+    color: hsl(0, 60%, 40%);
+    border-radius: 12px;
+    font-size: 12px;
+    text-align: center;
+}

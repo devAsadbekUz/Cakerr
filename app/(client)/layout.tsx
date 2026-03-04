@@ -2,6 +2,7 @@ import { CartProvider } from '@/app/context/CartContext';
 import { FavoritesProvider } from '@/app/context/FavoritesContext';
 import { TelegramProvider } from '@/app/context/TelegramContext';
 import BottomNav from "../components/layout/BottomNav";
+import ChatWidget from "../components/chat/ChatWidget";
 
 export default function ClientLayout({
     children,
@@ -16,6 +17,7 @@ export default function ClientLayout({
                         {children}
                     </div>
                     <BottomNav />
+                    <ChatWidget />
                 </CartProvider>
             </FavoritesProvider>
         </TelegramProvider>
