@@ -1,7 +1,7 @@
 /* ===== Chat Toggle Button ===== */
 .toggleButton {
     position: fixed;
-    bottom: 85px;
+    bottom: 110px;
     right: 16px;
     width: 56px;
     height: 56px;
@@ -90,10 +90,11 @@
         right: 8px;
         left: 8px;
         width: auto;
-        bottom: 140px;
+        bottom: 120px;
         max-height: 420px;
     }
 }
+
 
 /* ===== Chat Header ===== */
 .chatHeader {

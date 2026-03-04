@@ -144,12 +144,18 @@ export default function TrackingPage() {
         };
     }, [orderId, supabase]);
 
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const progressValue = order ? ((order.currentStep + 1) / order.totalSteps) * 100 : 0;
 
     return (
         <div className={styles.container}>
             {/* Debug: Realtime Status Indicator */}
-            {process.env.NODE_ENV === 'development' && (
+            {mounted && process.env.NODE_ENV === 'development' && (
                 <div style={{
                     position: 'fixed', bottom: 80, right: 10,
                     background: realtimeStatus === 'SUBSCRIBED' ? '#10B981' : realtimeStatus === 'CHANNEL_ERROR' ? '#EF4444' : '#F59E0B',

@@ -171,9 +171,15 @@ export default function HomePage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [categories, lastScrollY, isHeaderCollapsed]);
 
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   return (
     <main style={{ paddingBottom: '100px', backgroundColor: '#F9FAFB', minHeight: '100vh', paddingTop: '260px' }}>
-      {process.env.NODE_ENV === 'development' && (
+      {mounted && process.env.NODE_ENV === 'development' && (
         <div style={{
           position: 'fixed', bottom: 80, right: 10,
           background: realtimeStatus === 'SUBSCRIBED' ? '#10B981' : realtimeStatus === 'CHANNEL_ERROR' ? '#EF4444' : '#F59E0B',
