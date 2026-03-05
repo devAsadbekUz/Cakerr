@@ -1,10 +1,10 @@
-import { createClient } from '@/app/utils/supabase/client';
+import { createClient as createBrowserClient } from '@/app/utils/supabase/client';
 import { Product } from '@/app/types';
 import { adminFetch, adminUpdate, adminDelete } from '@/app/utils/adminApi';
 
 export const productService = {
-    async getActiveProducts(): Promise<Product[]> {
-        const supabase = createClient();
+    async getActiveProducts(supabaseClient?: any): Promise<Product[]> {
+        const supabase = supabaseClient || createBrowserClient();
 
         const { data, error } = await supabase
             .from('products')

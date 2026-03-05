@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { Plus, Heart } from 'lucide-react';
+import { ShoppingCart, Heart } from 'lucide-react';
 import styles from './ProductCard.module.css';
 import { useCart } from '@/app/context/CartContext';
 import { useFavorites } from '@/app/context/FavoritesContext';
 import { Variant } from '@/app/types';
+import { flyToCart } from '@/app/utils/animations';
 
 interface ProductProps {
     id: string;
@@ -39,6 +40,9 @@ export default function ProductCard({ id, title, price, image, tag, isReady, var
             portion: variants?.[0]?.value || '2',
             flavor: 'Shokoladli'
         });
+
+        // Trigger the flying animation
+        flyToCart(e, image || '');
     };
 
     const handleToggleFavorite = (e: React.MouseEvent) => {
@@ -93,7 +97,7 @@ export default function ProductCard({ id, title, price, image, tag, isReady, var
                     </div>
 
                     <button className={styles.addButton} onClick={handleQuickAdd}>
-                        <Plus size={20} color="white" />
+                        <ShoppingCart size={20} color="white" />
                     </button>
                 </div>
             </div>

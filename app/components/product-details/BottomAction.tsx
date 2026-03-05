@@ -2,35 +2,28 @@
 
 import { ShoppingCart, Minus, Plus } from 'lucide-react';
 import styles from './BottomAction.module.css';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 
 export default function BottomAction({
   price,
-  onAdd,
+  quantity,
+  isAdded,
+  onIncrement,
+  onDecrement,
+  onMainAction,
   inline = false
 }: {
   price: number | string;
-  onAdd: (quantity: number) => void;
+  quantity: number;
+  isAdded: boolean;
+  onIncrement: (e: React.MouseEvent) => void;
+  onDecrement: () => void;
+  onMainAction: (e: React.MouseEvent) => void;
   inline?: boolean;
 }) {
-  const router = useRouter();
-  const [count, setCount] = useState(1);
-  const [added, setAdded] = useState(false);
-
   // Calculate total price = unit price × quantity
   const numericPrice = typeof price === 'number' ? price : parseInt(String(price).replace(/\D/g, ''), 10) || 0;
-  const totalPrice = numericPrice * count;
+  const totalPrice = numericPrice * quantity;
   const displayPrice = `${totalPrice.toLocaleString('uz-UZ')} so'm`;
-
-  const handleAdd = () => {
-    if (added) {
-      router.push('/savat');
-    } else {
-      onAdd(count);
-      setAdded(true);
-    }
-  };
 
   return (
     <div className={`${styles.bar} ${inline ? styles.inline : ''}`}>
@@ -43,24 +36,24 @@ export default function BottomAction({
         <div className={styles.stepper}>
           <button
             className={styles.stepperBtn}
-            onClick={() => setCount(Math.max(1, count - 1))}
+            onClick={onDecrement}
           >
             <Minus size={16} />
           </button>
-          <span className={styles.count}>{count}</span>
+          <span className={styles.count}>{quantity}</span>
           <button
             className={styles.stepperBtn}
-            onClick={() => setCount(count + 1)}
+            onClick={onIncrement}
           >
             <Plus size={16} />
           </button>
         </div>
 
         <button
-          className={`${styles.addButton} ${added ? styles.added : ''}`}
-          onClick={handleAdd}
+          className={`${styles.addButton} ${isAdded ? styles.added : ''}`}
+          onClick={onMainAction}
         >
-          {added ? (
+          {isAdded ? (
             <>
               <ShoppingCart size={20} className={styles.cartIcon} />
               <span>Savat</span>

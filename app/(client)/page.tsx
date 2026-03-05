@@ -54,7 +54,7 @@ export default function HomePage() {
       setCategories(loadedCategories);
 
       // 2. Fetch Products via Service
-      const pData = await productService.getActiveProducts();
+      const pData = await productService.getActiveProducts(supabase);
       setProducts(pData);
 
       // 3. Fetch Active Order (Only if user exists)

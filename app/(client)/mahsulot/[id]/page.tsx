@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Heart, Share2, CircleAlert } from 'lucide-react';
 import PortionSelector from '@/app/components/product-details/PortionSelector';
@@ -11,6 +12,7 @@ import { useFavorites } from '@/app/context/FavoritesContext';
 import { createClient } from '@/app/utils/supabase/client';
 import React from 'react';
 import { Product, Variant } from '@/app/types';
+import { flyToCart } from '@/app/utils/animations';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -33,9 +35,11 @@ function Chip({ label, color }: { label: string; color: string }) {
 
 export default function ProductDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = React.use(params);
+  const router = useRouter();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [portion, setPortion] = useState<string>('');
+  const [localQuantity, setLocalQuantity] = useState(1);
   const supabase = createClient();
 
   useEffect(() => {
@@ -77,7 +81,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
     fetchProduct();
   }, [id]);
 
-  const { addItem } = useCart();
+  const { addItem, cart, updateQuantity, removeItem } = useCart();
   const { toggleFavorite, isFavorite } = useFavorites();
 
   if (loading) return <div className={styles.container} style={{ padding: '100px', textAlign: 'center' }}>Yuklanmoqda...</div>;
@@ -87,20 +91,61 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
   const selectedVariant = product.variants?.find((v: Variant) => v.value === portion) || product.variants?.[0];
   const currentPrice = selectedVariant?.price || product.price;
 
-  const handleAddToCart = (quantity: number) => {
-    // Defensive coding: Ensure flavors is an array and access safely
-    const flavors = product.details?.flavors;
-    const firstFlavor = (Array.isArray(flavors) && flavors.length > 0) ? flavors[0] : 'Klassik';
+  // Find if variant is in cart
+  const flavors = product?.details?.flavors;
+  const firstFlavor = (Array.isArray(flavors) && flavors.length > 0) ? flavors[0] : 'Klassik';
+  const cartItem = cart.find(
+    (item) => item.id === product.id && item.portion === portion && item.flavor === firstFlavor
+  );
 
-    addItem({
-      id: product.id,
-      name: product.title,
-      price: currentPrice,
-      image: product.image,
-      quantity,
-      portion: portion,
-      flavor: firstFlavor
-    });
+  const isAdded = !!cartItem;
+  const displayQuantity = isAdded ? cartItem.quantity : localQuantity;
+
+  const handleIncrement = (e: React.MouseEvent) => {
+    if (isAdded && cartItem) {
+      updateQuantity(cartItem.cartId, cartItem.quantity + 1);
+    } else {
+      addItem({
+        id: product.id,
+        name: product.title,
+        price: currentPrice,
+        image: product.image,
+        quantity: localQuantity + 1,
+        portion: portion,
+        flavor: firstFlavor
+      });
+    }
+    if (product?.image) flyToCart(e, product.image);
+  };
+
+  const handleDecrement = () => {
+    if (isAdded && cartItem) {
+      if (cartItem.quantity > 1) {
+        updateQuantity(cartItem.cartId, cartItem.quantity - 1);
+      } else {
+        removeItem(cartItem.cartId); // remove completely
+        setLocalQuantity(1); // reset local prep state
+      }
+    } else {
+      setLocalQuantity(prev => Math.max(1, prev - 1));
+    }
+  };
+
+  const handleMainAction = (e: React.MouseEvent) => {
+    if (isAdded) {
+      router.push('/savat');
+    } else {
+      addItem({
+        id: product.id,
+        name: product.title,
+        price: currentPrice,
+        image: product.image,
+        quantity: localQuantity,
+        portion: portion,
+        flavor: firstFlavor
+      });
+      if (product?.image) flyToCart(e, product.image);
+    }
   };
 
   const handleToggleFavorite = () => {
@@ -261,7 +306,11 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
 
         <BottomAction
           price={currentPrice}
-          onAdd={handleAddToCart}
+          quantity={displayQuantity}
+          isAdded={isAdded}
+          onIncrement={handleIncrement}
+          onDecrement={handleDecrement}
+          onMainAction={handleMainAction}
           inline={true}
         />
 
@@ -269,8 +318,14 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
         <div style={{ height: '100px' }} />
       </div>
 
-      {/* Bottom Action */}
-      <BottomAction price={currentPrice} onAdd={handleAddToCart} />
+      <BottomAction
+        price={currentPrice}
+        quantity={displayQuantity}
+        isAdded={isAdded}
+        onIncrement={handleIncrement}
+        onDecrement={handleDecrement}
+        onMainAction={handleMainAction}
+      />
     </div>
   );
 }

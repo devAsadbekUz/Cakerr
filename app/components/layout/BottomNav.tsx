@@ -6,10 +6,23 @@ import { usePathname } from 'next/navigation';
 import { Home, Heart, ShoppingCart, User, Plus } from 'lucide-react';
 import styles from './BottomNav.module.css';
 import { useCart } from '@/app/context/CartContext';
+import { useState, useEffect } from 'react';
 
 export default function BottomNav() {
     const pathname = usePathname();
     const { totalItems } = useCart();
+    const [isBumping, setIsBumping] = useState(false);
+    const [prevTotal, setPrevTotal] = useState(totalItems);
+
+    useEffect(() => {
+        if (totalItems > prevTotal) {
+            setIsBumping(true);
+            const timer = setTimeout(() => setIsBumping(false), 300);
+            return () => clearTimeout(timer);
+        }
+        setPrevTotal(totalItems);
+    }, [totalItems, prevTotal]);
+
 
     const isActive = (path: string) => pathname === path;
 
@@ -33,7 +46,7 @@ export default function BottomNav() {
             </div>
 
             <Link href="/savat" className={`${styles.item} ${isActive('/savat') ? styles.active : ''}`}>
-                <div className={styles.iconWrapper}>
+                <div id="cart-nav-icon" className={`${styles.iconWrapper} ${isBumping ? styles.bump : ''}`}>
                     <ShoppingCart size={24} />
                     {totalItems > 0 && <span className={styles.badge}>{totalItems}</span>}
                 </div>
