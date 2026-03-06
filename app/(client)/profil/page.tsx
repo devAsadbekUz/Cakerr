@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import styles from './page.module.css';
 import {
     MapPin,
@@ -184,7 +185,9 @@ export default function ProfilPage() {
                         onClick={() => setIsEditModalOpen(true)}
                     >
                         {user.user_metadata?.avatar_url ? (
-                            <img src={user.user_metadata.avatar_url} alt="Profile" />
+                            <div className={styles.avatarImageWrapper}>
+                                <Image src={user.user_metadata.avatar_url} alt="Profile" fill style={{ objectFit: 'cover' }} />
+                            </div>
                         ) : (
                             user.user_metadata?.full_name?.charAt(0) || user.email?.charAt(0) || user.phone?.charAt(4) || 'U'
                         )}

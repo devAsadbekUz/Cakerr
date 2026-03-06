@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Plus, Edit2, Trash2, FolderOpen } from 'lucide-react';
 import CategoryForm from '@/app/components/admin/CategoryForm';
 import { adminFetch, adminDelete } from '@/app/utils/adminApi';
@@ -80,8 +81,8 @@ export default function CategoriesPage() {
                                 <tr key={cat.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
                                     <td style={{ padding: '16px', fontSize: '24px' }}>
                                         {cat.image_url ? (
-                                            <div style={{ width: '40px', height: '40px', borderRadius: '8px', overflow: 'hidden', background: '#F3F4F6' }}>
-                                                <img src={cat.image_url} alt={cat.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            <div style={{ width: '40px', height: '40px', borderRadius: '8px', overflow: 'hidden', background: '#F3F4F6', position: 'relative' }}>
+                                                <Image src={cat.image_url} alt={cat.label} fill style={{ objectFit: 'cover' }} sizes="40px" />
                                             </div>
                                         ) : (
                                             <span>{cat.icon}</span>

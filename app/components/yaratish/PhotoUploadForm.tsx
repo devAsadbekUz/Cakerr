@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
+import Image from 'next/image';
 import { useCustomCake } from '@/app/context/CustomCakeContext';
 import { useCart } from '@/app/context/CartContext';
 import { useRouter } from 'next/navigation';
@@ -124,7 +125,9 @@ export default function PhotoUploadForm() {
                     </div>
                 ) : (
                     <div className={styles.previewContainer}>
-                        <img src={uploadedImage} alt="Preview" className={styles.previewImage} />
+                        <div className={styles.previewImageWrapper}>
+                            <Image src={uploadedImage} alt="Preview" fill className={styles.previewImage} unoptimized style={{ objectFit: 'contain' }} />
+                        </div>
                         <button className={styles.removeBtn} onClick={handleRemoveImage}>
                             <X size={20} />
                         </button>

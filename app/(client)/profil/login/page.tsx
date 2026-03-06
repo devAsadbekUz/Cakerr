@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, Suspense, useEffect } from 'react';
+import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft, Send, Phone, ArrowRight, Loader2 } from 'lucide-react';
 import { useTelegram } from '@/app/context/TelegramContext';
@@ -154,7 +155,7 @@ function LoginContent() {
             <div className={styles.container}>
                 <div className={styles.heroSection}>
                     <div className={styles.heroImageWrapper}>
-                        <img src="/auth-hero.png" alt="Cakerr" className={styles.heroImage} />
+                        <Image src="/auth-hero.png" alt="Cakerr" fill className={styles.heroImage} priority style={{ objectFit: 'cover' }} />
                         <div className={styles.heroOverlay}></div>
                     </div>
                     <button className={styles.backBtn} onClick={() => router.back()}>
@@ -198,7 +199,7 @@ function LoginContent() {
         <div className={styles.container}>
             <div className={styles.heroSection}>
                 <div className={styles.heroImageWrapper}>
-                    <img src="/auth-hero.png" alt="Cakerr" className={styles.heroImage} />
+                    <Image src="/auth-hero.png" alt="Cakerr" fill className={styles.heroImage} priority style={{ objectFit: 'cover' }} />
                     <div className={styles.heroOverlay}></div>
                 </div>
                 <button className={styles.backBtn} onClick={() => router.back()}>

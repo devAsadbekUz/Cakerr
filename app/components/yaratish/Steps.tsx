@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { useCustomCake } from '@/app/context/CustomCakeContext';
 import styles from './Steps.module.css';
 import {
@@ -139,7 +140,7 @@ export function CreamStep() {
                         onClick={() => setCream(c.id)}
                     >
                         {c.image_url ? (
-                            <img src={c.image_url} alt={c.label} className={styles.cardImage} style={{ width: 60, height: 60, borderRadius: '50%', objectFit: 'cover' }} />
+                            <Image src={c.image_url} alt={c.label} className={styles.cardImage} style={{ borderRadius: '50%', objectFit: 'cover' }} width={60} height={60} />
                         ) : (
                             <div className={styles.iconWrapper}>
                                 <Droplets size={32} />
@@ -178,7 +179,7 @@ export function DecorationStep() {
                 context.strokeStyle = color;
 
                 if (drawingData) {
-                    const img = new Image();
+                    const img = new window.Image();
                     img.onload = () => context.drawImage(img, 0, 0);
                     img.src = drawingData;
                 }
@@ -392,7 +393,9 @@ export function ReviewStep() {
                 {drawingData && (
                     <div className={styles.summarySection}>
                         <h4 className={styles.summarySubTitle}>Chizilgan Rasm:</h4>
-                        <img src={drawingData} alt="Custom Drawing" style={{ width: '100%', borderRadius: 8, border: '1px solid #eee' }} />
+                        <div className={styles.summaryDrawingWrapper}>
+                            <Image src={drawingData} alt="Custom Drawing" fill unoptimized style={{ objectFit: 'contain' }} />
+                        </div>
                     </div>
                 )}
 

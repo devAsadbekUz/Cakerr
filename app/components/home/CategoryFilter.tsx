@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useEffect } from 'react';
+import Image from 'next/image';
 import styles from './CategoryFilter.module.css';
 import { useRouter } from 'next/navigation';
 
@@ -50,7 +51,7 @@ export default function CategoryFilter({ activeCategory, onSelectCategory, categ
                 >
                     <div className={styles.imageWrapper}>
                         {cat.image_url ? (
-                            <img src={cat.image_url} alt={cat.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <Image src={cat.image_url} alt={cat.label} fill style={{ objectFit: 'cover' }} sizes="80px" />
                         ) : (
                             <span style={{ fontSize: '24px' }}>
                                 {cat.icon || '🍰'}

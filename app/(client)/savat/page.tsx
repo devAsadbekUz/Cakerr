@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useCart } from '@/app/context/CartContext';
 import styles from './page.module.css';
 import { Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
@@ -40,7 +41,9 @@ export default function SavatPage() {
                     <div className={styles.list}>
                         {cart.map((item) => (
                             <div key={item.cartId} className={styles.item}>
-                                <img src={item.image} alt={item.name} className={styles.image} />
+                                <div className={styles.imageWrapper}>
+                                    <Image src={item.image} alt={item.name} fill className={styles.image} sizes="80px" style={{ objectFit: 'cover' }} />
+                                </div>
                                 <div className={styles.itemContent}>
                                     <div className={styles.itemHeader}>
                                         <h3 className={styles.itemName}>{item.name}</h3>

@@ -85,12 +85,17 @@
     color: #BE185D;
 }
 
-.cardImage {
+.cardImageWrapper {
     width: 64px;
     height: 64px;
+    position: relative;
     border-radius: 12px;
-    object-fit: cover;
+    overflow: hidden;
     background: #F3F4F6;
+}
+
+.cardImage {
+    border-radius: 12px;
 }
 
 .cardTitle {

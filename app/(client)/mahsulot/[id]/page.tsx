@@ -1,5 +1,5 @@
 'use client';
-
+import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -217,13 +217,15 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
         </Link>
       </div>
 
-      {/* Main Image */}
       <div className={styles.imageSection}>
-        <img
+        <Image
           src={product.image}
           alt={product.title}
           className={styles.productImage}
-          loading="eager"
+          fill
+          priority
+          sizes="(max-width: 768px) 100vw, 50vw"
+          style={{ objectFit: 'cover' }}
         />
 
         {product.is_ready && (

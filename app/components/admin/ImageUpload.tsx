@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { createClient } from '@/app/utils/supabase/client';
+import Image from 'next/image';
 import { Image as ImageIcon, Upload, X, Loader2 } from 'lucide-react';
 
 interface ImageUploadProps {
@@ -46,7 +47,7 @@ export default function ImageUpload({ value, onChange, bucket = 'images' }: Imag
         <div style={{ width: '100%' }}>
             {value && value.startsWith('http') ? (
                 <div style={{ position: 'relative', width: '100%', height: '200px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #E5E7EB' }}>
-                    <img src={value} alt="Uploaded" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <Image src={value} alt="Uploaded" fill style={{ objectFit: 'cover' }} sizes="(max-width: 768px) 100vw, 33vw" />
                     <button
                         type="button"
                         onClick={() => onChange('')}

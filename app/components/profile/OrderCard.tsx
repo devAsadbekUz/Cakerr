@@ -3,6 +3,7 @@ import styles from './OrderCard.module.css';
 import { RotateCw } from 'lucide-react';
 import { useCart } from '@/app/context/CartContext';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 interface OrderCardProps {
     id: string;
@@ -35,7 +36,7 @@ export default function OrderCard({ date, items, price, image, productId, name, 
     return (
         <div className={styles.card}>
             <div className={styles.content}>
-                <img src={image || '/images/cake-placeholder.jpg'} alt="Order item" className={styles.image} />
+                <Image src={image || '/images/cake-placeholder.jpg'} alt="Order item" className={styles.image} width={64} height={64} />
                 <div className={styles.info}>
                     <p className={styles.date}>{date}</p>
                     <h4 className={styles.items}>{items}</h4>

@@ -124,11 +124,15 @@
     margin-bottom: 16px;
 }
 
-.productImage {
+.productImageWrapper {
     width: 70px;
     height: 70px;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.productImage {
     border-radius: 12px;
-    object-fit: cover;
 }
 
 .productInfo {

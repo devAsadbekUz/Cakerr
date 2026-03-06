@@ -97,12 +97,14 @@
     background: white;
 }
 
-.previewImage {
+.previewImageWrapper {
     width: 100%;
-    height: auto;
+    height: 400px;
+    position: relative;
+}
+
+.previewImage {
     display: block;
-    max-height: 500px;
-    object-fit: cover;
 }
 
 .removeBtn {

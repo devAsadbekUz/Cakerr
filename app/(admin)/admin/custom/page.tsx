@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import {
     Plus, Edit2, Trash2, Save, X,
     Maximize2, Cookie, Droplets, Palette,
@@ -122,7 +123,9 @@ export default function AdminCustomPage() {
                                     {option.sub_label && <span className={styles.cardSubLabel}>{option.sub_label}</span>}
                                 </div>
                                 {option.image_url ? (
-                                    <img src={option.image_url} alt={option.label} className={styles.cardImage} />
+                                    <div className={styles.cardImageWrapper}>
+                                        <Image src={option.image_url} alt={option.label} fill className={styles.cardImage} style={{ objectFit: 'cover' }} />
+                                    </div>
                                 ) : (
                                     <div className={styles.cardIcon}>{getTabIcon(option.type)}</div>
                                 )}

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { X, Check, Loader2, User as UserIcon } from 'lucide-react';
 import styles from './EditProfileModal.module.css';
 import { createClient } from '@/app/utils/supabase/client';
@@ -115,7 +116,7 @@ export default function EditProfileModal({ isOpen, onClose, user, onUpdate }: Ed
                 <div className={styles.avatarSectionSimple}>
                     <div className={styles.avatarWrapperSimple}>
                         {avatarUrl ? (
-                            <img src={avatarUrl} alt="Avatar" className={styles.avatarImage} />
+                            <Image src={avatarUrl} alt="Avatar" fill className={styles.avatarImage} style={{ objectFit: 'cover' }} />
                         ) : (
                             <div className={styles.avatarPlaceholder}>
                                 <UserIcon size={48} />

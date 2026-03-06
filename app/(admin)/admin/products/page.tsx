@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { createClient } from '@/app/utils/supabase/client';
 import { Plus, Edit2, Trash2, Package as PackageIcon, LayoutGrid, List, Eye, EyeOff } from 'lucide-react';
 import ProductForm from '@/app/components/admin/ProductForm';
@@ -178,9 +179,9 @@ export default function ProductsPage() {
                             {products.map((p) => (
                                 <tr key={p.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
                                     <td style={{ padding: '16px' }}>
-                                        <div style={{ width: '48px', height: '48px', borderRadius: '8px', overflow: 'hidden', background: '#F3F4F6' }}>
+                                        <div style={{ width: '48px', height: '48px', borderRadius: '8px', overflow: 'hidden', background: '#F3F4F6', position: 'relative' }}>
                                             {p.image_url ? (
-                                                <img src={p.image_url} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                <Image src={p.image_url} alt={p.title} fill style={{ objectFit: 'cover' }} sizes="48px" />
                                             ) : (
                                                 <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🍰</div>
                                             )}
@@ -271,7 +272,7 @@ export default function ProductsPage() {
                         <div key={p.id} style={{ background: 'white', borderRadius: '16px', border: '1px solid #E5E7EB', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                             <div style={{ position: 'relative', paddingTop: '75%', background: '#F3F4F6' }}>
                                 {p.image_url ? (
-                                    <img src={p.image_url} alt={p.title} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    <Image src={p.image_url} alt={p.title} fill style={{ objectFit: 'cover' }} sizes="(max-width: 640px) 50vw, 25vw" />
                                 ) : (
                                     <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px' }}>🍰</div>
                                 )}

@@ -258,11 +258,15 @@
     align-items: center;
 }
 
-.productImage {
+.productImageWrapper {
     width: 60px;
     height: 60px;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.productImage {
     border-radius: 12px;
-    object-fit: cover;
 }
 
 .productInfo {

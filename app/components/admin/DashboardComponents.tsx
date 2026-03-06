@@ -5,6 +5,7 @@ import {
     Calendar as CalendarIcon, CheckCircle2,
     XCircle, Info, MapPinned, Clock, AlertCircle, ShoppingBag, Truck, PackageCheck, ZoomIn, X, MessageSquare
 } from 'lucide-react';
+import Image from 'next/image';
 import { format, isToday } from 'date-fns';
 import styles from '@/app/(admin)/admin/AdminDashboard.module.css';
 
@@ -18,10 +19,6 @@ function ImagePreviewModal({ imageUrl, onClose }: { imageUrl: string; onClose: (
                 inset: 0,
                 background: 'rgba(0,0,0,0.9)',
                 zIndex: 10000,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '20px',
                 cursor: 'zoom-out'
             }}
         >
@@ -40,23 +37,26 @@ function ImagePreviewModal({ imageUrl, onClose }: { imageUrl: string; onClose: (
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    zIndex: 10001
                 }}
             >
                 <X size={24} />
             </button>
-            <img
-                src={imageUrl}
-                alt="Preview"
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                    maxWidth: '90vw',
-                    maxHeight: '90vh',
-                    objectFit: 'contain',
-                    borderRadius: '12px',
-                    cursor: 'default'
-                }}
-            />
+            <div style={{ position: 'absolute', inset: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Image
+                    src={imageUrl}
+                    alt="Preview"
+                    onClick={(e) => e.stopPropagation()}
+                    fill
+                    style={{
+                        objectFit: 'contain',
+                        borderRadius: '12px',
+                        cursor: 'default'
+                    }}
+                    unoptimized
+                />
+            </div>
         </div>
     );
 }
@@ -296,11 +296,13 @@ export function OrderDetailsModal({ order, onClose, onUpdate }: { order: any, on
                                                 if (imgUrl) setPreviewImage(imgUrl);
                                             }}
                                         >
-                                            <img
+                                            <Image
                                                 src={item.configuration?.uploaded_photo_url || item.configuration?.drawing || item.products?.image_url || '/placeholder.png'}
                                                 alt={item.name}
                                                 className={styles.itemImage}
                                                 style={{ cursor: 'pointer' }}
+                                                width={90}
+                                                height={90}
                                             />
                                             {(item.configuration?.uploaded_photo_url || item.configuration?.drawing) && (
                                                 <div style={{

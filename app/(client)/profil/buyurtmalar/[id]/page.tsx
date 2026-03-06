@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
 import { ChevronLeft, Package, Check, Clock, Truck, MapPin, Phone, User, AlertCircle } from 'lucide-react';
 import styles from './page.module.css';
@@ -276,7 +277,9 @@ export default function TrackingPage() {
                         <div className={styles.itemsList}>
                             {order.items.map((item: any) => (
                                 <div key={item.id} className={styles.productRow}>
-                                    <img src={item.image} alt={item.name} className={styles.productImage} />
+                                    <div className={styles.productImageWrapper}>
+                                        <Image src={item.image} alt={item.name} fill className={styles.productImage} sizes="60px" style={{ objectFit: 'cover' }} />
+                                    </div>
                                     <div className={styles.productInfo}>
                                         <h3 className={styles.productName}>{item.name}</h3>
                                         <span className={styles.productQty}>Soni: {item.qty} ta</span>

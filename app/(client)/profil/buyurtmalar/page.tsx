@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, RotateCcw, Check } from 'lucide-react';
 import styles from './page.module.css';
@@ -172,7 +173,9 @@ export default function OrderHistoryPage() {
 
                         {order.items.map((item, idx) => (
                             <div key={idx} className={styles.orderContent}>
-                                <img src={item.image} alt={item.name} className={styles.productImage} />
+                                <div className={styles.productImageWrapper}>
+                                    <Image src={item.image} alt={item.name} fill className={styles.productImage} sizes="60px" style={{ objectFit: 'cover' }} />
+                                </div>
                                 <div className={styles.productInfo}>
                                     <h4 className={styles.productName}>{item.name}</h4>
                                     <p className={styles.productMeta}>Soni: {item.quantity}</p>

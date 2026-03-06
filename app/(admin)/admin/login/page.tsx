@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/app/utils/supabase/client';
 import { Lock, ArrowRight, Mail, Key, Loader2 } from 'lucide-react';
@@ -113,7 +114,7 @@ export default function AdminLoginPage() {
                         e.currentTarget.style.borderColor = '#E5E7EB';
                     }}
                 >
-                    <img src="https://www.google.com/favicon.ico" alt="Google" width={20} height={20} />
+                    <Image src="https://www.google.com/favicon.ico" alt="Google" width={20} height={20} unoptimized />
                     {loading ? 'Yuklanmoqda...' : 'Google bilan kirish'}
                 </button>
 

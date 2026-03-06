@@ -53,11 +53,15 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
 }
 
-.image {
+.imageWrapper {
     width: 100px;
     height: 100px;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.image {
     border-radius: 16px;
-    object-fit: cover;
     background-color: #F3F4F6;
 }
 

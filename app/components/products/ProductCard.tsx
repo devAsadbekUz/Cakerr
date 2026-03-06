@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { ShoppingCart, Heart } from 'lucide-react';
 import styles from './ProductCard.module.css';
 import { useCart } from '@/app/context/CartContext';
@@ -55,11 +56,12 @@ export default function ProductCard({ id, title, price, image, tag, isReady, var
         <Link href={`/mahsulot/${id}`} className={`${styles.card} ${favorited ? styles.favoritedCard : ''}`}>
             <div className={styles.imageContainer}>
                 {image ? (
-                    <img
+                    <Image
                         src={image}
                         alt={title}
                         className={styles.productImage}
-                        loading="lazy"
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     />
                 ) : (
                     <div className={styles.productImage} style={{
