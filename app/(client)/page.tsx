@@ -12,7 +12,7 @@ export default async function HomePage() {
 
   // --- Server-side data fetching (parallel) ---
   const [categoriesResult, productsResult, bannersResult] = await Promise.all([
-    supabase.from('categories').select('*'),
+    supabase.from('categories').select('*').order('sort_order', { ascending: true }),
     supabase
       .from('products')
       .select('id, title, subtitle, description, base_price, image_url, category_id, is_available, is_ready, variants, details')

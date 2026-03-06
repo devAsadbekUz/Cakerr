@@ -175,85 +175,93 @@ export default function ChatWidget() {
 
             {/* Chat window */}
             {isOpen && (
-                <div className={styles.chatWindow} id="chat-window">
-                    {/* Header */}
-                    <div className={styles.chatHeader}>
-                        <div className={styles.botAvatar}>🎂</div>
-                        <div className={styles.headerInfo}>
-                            <div className={styles.headerTitle}>Cakerr Yordamchi</div>
-                            <div className={styles.headerSubtitle}>AI bilan ishlaydi • Doim online</div>
+                <>
+                    {/* Backdrop — tap outside to close */}
+                    <div
+                        className={styles.backdrop}
+                        onClick={() => setIsOpen(false)}
+                        aria-hidden="true"
+                    />
+                    <div className={styles.chatWindow} id="chat-window">
+                        {/* Header */}
+                        <div className={styles.chatHeader}>
+                            <div className={styles.botAvatar}>🎂</div>
+                            <div className={styles.headerInfo}>
+                                <div className={styles.headerTitle}>Cakerr Yordamchi</div>
+                                <div className={styles.headerSubtitle}>AI bilan ishlaydi • Doim online</div>
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Messages */}
-                    <div className={styles.messagesContainer} id="chat-messages">
-                        {messages.map(message => (
-                            <div
-                                key={message.id}
-                                className={`${styles.message} ${message.role === 'user' ? styles.userMessage : styles.botMessage
-                                    }`}
-                            >
-                                {message.content}
-                            </div>
-                        ))}
-
-                        {isLoading && (
-                            <div className={styles.typingIndicator}>
-                                <div className={styles.typingDot} />
-                                <div className={styles.typingDot} />
-                                <div className={styles.typingDot} />
-                            </div>
-                        )}
-
-                        {error && (
-                            <div className={styles.errorMessage}>
-                                {error}
-                            </div>
-                        )}
-
-                        <div ref={messagesEndRef} />
-                    </div>
-
-                    {/* Quick action chips */}
-                    {showQuickActions && (
-                        <div className={styles.quickActions}>
-                            {QUICK_ACTIONS.map(action => (
-                                <button
-                                    key={action}
-                                    className={styles.quickAction}
-                                    onClick={() => handleQuickAction(action)}
+                        {/* Messages */}
+                        <div className={styles.messagesContainer} id="chat-messages">
+                            {messages.map(message => (
+                                <div
+                                    key={message.id}
+                                    className={`${styles.message} ${message.role === 'user' ? styles.userMessage : styles.botMessage
+                                        }`}
                                 >
-                                    {action}
-                                </button>
+                                    {message.content}
+                                </div>
                             ))}
-                        </div>
-                    )}
 
-                    {/* Input area */}
-                    <form className={styles.inputArea} onSubmit={handleSubmit}>
-                        <input
-                            ref={inputRef}
-                            className={styles.input}
-                            type="text"
-                            value={input}
-                            onChange={e => setInput(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                            placeholder="Savolingizni yozing..."
-                            disabled={isLoading}
-                            id="chat-input"
-                            autoComplete="off"
-                        />
-                        <button
-                            className={styles.sendButton}
-                            type="submit"
-                            disabled={!input.trim() || isLoading}
-                            aria-label="Yuborish"
-                            id="chat-send-btn"
-                        >
-                            <Send size={18} />
-                        </button>
-                    </form>
-                </div>
+                            {isLoading && (
+                                <div className={styles.typingIndicator}>
+                                    <div className={styles.typingDot} />
+                                    <div className={styles.typingDot} />
+                                    <div className={styles.typingDot} />
+                                </div>
+                            )}
+
+                            {error && (
+                                <div className={styles.errorMessage}>
+                                    {error}
+                                </div>
+                            )}
+
+                            <div ref={messagesEndRef} />
+                        </div>
+
+                        {/* Quick action chips */}
+                        {showQuickActions && (
+                            <div className={styles.quickActions}>
+                                {QUICK_ACTIONS.map(action => (
+                                    <button
+                                        key={action}
+                                        className={styles.quickAction}
+                                        onClick={() => handleQuickAction(action)}
+                                    >
+                                        {action}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Input area */}
+                        <form className={styles.inputArea} onSubmit={handleSubmit}>
+                            <input
+                                ref={inputRef}
+                                className={styles.input}
+                                type="text"
+                                value={input}
+                                onChange={e => setInput(e.target.value)}
+                                onKeyDown={handleKeyDown}
+                                placeholder="Savolingizni yozing..."
+                                disabled={isLoading}
+                                id="chat-input"
+                                autoComplete="off"
+                            />
+                            <button
+                                className={styles.sendButton}
+                                type="submit"
+                                disabled={!input.trim() || isLoading}
+                                aria-label="Yuborish"
+                                id="chat-send-btn"
+                            >
+                                <Send size={18} />
+                            </button>
+                        </form>
+                    </div>
+                </>
             )}
         </>
     );

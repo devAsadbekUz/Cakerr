@@ -55,6 +55,15 @@
     color: white;
 }
 
+/* ===== Backdrop (tap outside to close) ===== */
+.backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    background: rgba(0, 0, 0, 0.15);
+    -webkit-tap-highlight-color: transparent;
+}
+
 /* ===== Chat Window ===== */
 .chatWindow {
     position: fixed;
