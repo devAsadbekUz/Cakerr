@@ -243,6 +243,25 @@
     margin: 0 0 6px 0;
 }
 
+.miniBtn {
+    padding: 6px 14px;
+    background: #FDF2F8;
+    color: #BE185D;
+    border: 1px solid #FBCFE8;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.miniBtn:hover {
+    background: #BE185D;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(190, 24, 93, 0.2);
+}
+
 .itemConfig {
     font-size: 14px;
     color: #6B7280;

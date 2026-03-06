@@ -26,7 +26,7 @@ export async function GET() {
             profiles (full_name, phone_number),
             order_items (
                 *,
-                products (image_url)
+                products (image_url, category_id)
             )
         `)
         .order('delivery_time', { ascending: true });

@@ -14,6 +14,8 @@ import {
 import styles from './AdminDashboard.module.css';
 import { StatCard } from '@/app/components/admin/DashboardComponents';
 import { createClient } from '@/app/utils/supabase/client';
+import ABCAnalysisModal from '@/app/components/admin/ABCAnalysisModal';
+import { CategoryDonutChart, RetentionFunnel, RevenueLineChart } from '@/app/components/admin/DashboardCharts';
 
 const supabase = createClient();
 
@@ -32,18 +34,20 @@ export default function AdminAnalyticsPage() {
     const [totalUsers, setTotalUsers] = useState(0);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
+    const [showABCModal, setShowABCModal] = useState(false);
+    const [categories, setCategories] = useState<any[]>([]);
 
     const fetchData = async () => {
         const data = await orderService.getAllOrdersAdmin();
         setOrders(data || []);
 
-        const { count, error } = await supabase
-            .from('profiles')
-            .select('*', { count: 'exact', head: true });
+        const [profilesRes, categoriesRes] = await Promise.all([
+            supabase.from('profiles').select('*', { count: 'exact', head: true }),
+            supabase.from('categories').select('id, label')
+        ]);
 
-        if (!error && count !== null) {
-            setTotalUsers(count);
-        }
+        if (profilesRes.count !== null) setTotalUsers(profilesRes.count);
+        if (categoriesRes.data) setCategories(categoriesRes.data);
 
         setLoading(false);
     };
@@ -84,12 +88,19 @@ export default function AdminAnalyticsPage() {
         const statusCounts = new Map<string, number>();
         const hourCounts = new Array(24).fill(0);
         const productSales = new Map<string, { name: string; quantity: number; revenue: number }>();
+        const categoryRevenue = new Map<string, number>();
 
-        // Revenue per day for last 7 days
+        // Revenue per day for last 6 days + Today + Next 10 days
         const today = new Date();
-        const revenueDays = Array.from({ length: 7 }, (_, i) => {
+        const revenueDays = Array.from({ length: 17 }, (_, i) => {
             const d = subDays(today, 6 - i);
-            return { date: d, label: format(d, 'dd/MM'), revenue: 0, count: 0 };
+            return {
+                date: d,
+                label: format(d, 'dd/MM'),
+                revenue: 0,
+                count: 0,
+                isFuture: i > 6 // 0-6 are past/today, 7-16 are future
+            };
         });
 
         for (const o of orders) {
@@ -107,16 +118,31 @@ export default function AdminAnalyticsPage() {
                 newOrders.push(o);
             }
 
-            // Revenue from completed orders
+            // Past Revenue (from completed orders, using creation date)
+            const orderCreatedAt = new Date(o.created_at);
             if (o.status === 'completed') {
                 const price = Number(o.total_price) || 0;
                 totalRevenue += price;
                 completedCount++;
 
-                // Revenue trend - match to day
-                const orderDate = new Date(o.created_at);
-                for (const day of revenueDays) {
-                    if (isSameDay(orderDate, day.date)) {
+                for (let i = 0; i <= 6; i++) {
+                    const day = revenueDays[i];
+                    if (isSameDay(orderCreatedAt, day.date)) {
+                        day.revenue += price;
+                        day.count++;
+                        break;
+                    }
+                }
+            }
+
+            // Future Projection (from non-cancelled orders, using delivery date)
+            const orderDeliveryDate = new Date(o.delivery_time);
+            if (o.status !== 'cancelled') {
+                const price = Number(o.total_price) || 0;
+                // Only count for index 7 and above (future days)
+                for (let i = 7; i < revenueDays.length; i++) {
+                    const day = revenueDays[i];
+                    if (isSameDay(orderDeliveryDate, day.date)) {
                         day.revenue += price;
                         day.count++;
                         break;
@@ -146,6 +172,12 @@ export default function AdminAnalyticsPage() {
                         existing.revenue += rev;
                     } else {
                         productSales.set(key, { name: item.name, quantity: qty, revenue: rev });
+                    }
+
+                    // Category revenue tracking
+                    if (o.status === 'completed') {
+                        const catId = item.products?.category_id || 'other';
+                        categoryRevenue.set(catId, (categoryRevenue.get(catId) || 0) + rev);
                     }
                 }
             }
@@ -178,6 +210,20 @@ export default function AdminAnalyticsPage() {
                 ...(STATUS_COLORS[status] || { bg: '#F3F4F6', text: '#6B7280', label: status })
             }));
 
+        // Category revenue makeup
+        const categoryColors = ['#BE185D', '#EC4899', '#DB2777', '#9D174D', '#F472B6', '#FBCFE8'];
+        const categoryMix = Array.from(categoryRevenue.entries())
+            .map(([id, revenue], idx) => {
+                const cat = categories.find(c => c.id === id);
+                return {
+                    label: cat ? cat.label : (id === 'other' ? 'Boshqa' : 'Noma\'lum'),
+                    value: revenue,
+                    color: categoryColors[idx % categoryColors.length],
+                    percent: totalRevenue > 0 ? (revenue / totalRevenue) * 100 : 0
+                };
+            })
+            .sort((a, b) => b.value - a.value);
+
         return {
             newOrdersCount: newOrders.length,
             todaysOrdersCount: todaysOrders.length,
@@ -193,9 +239,12 @@ export default function AdminAnalyticsPage() {
             peakHours,
             statusBreakdown,
             revenueTrend: revenueDays,
-            totalOrders: orders.length
+            totalOrders: orders.length,
+            allProductSales: Array.from(productSales.values()),
+            categoryMix,
+            newCustomers: activeBuyerIds.size - repeatCustomers
         };
-    }, [orders, totalUsers]);
+    }, [orders, totalUsers, categories]);
 
     // Weekly data
     const weeklyData = useMemo(() => {
@@ -278,6 +327,19 @@ export default function AdminAnalyticsPage() {
                 <div style={{ textAlign: 'center', padding: '60px', color: '#6B7280' }}>Yuklanmoqda...</div>
             ) : (
                 <>
+                    {/* ==================== ROW: Revenue & Sales Trend Line Chart ==================== */}
+                    <div className={styles.analyticsLayout} style={{ marginBottom: '32px' }}>
+                        <RevenueLineChart
+                            title="Daromad va Sotuvlar Trendi (O'tmish va Kelajak)"
+                            data={analytics.revenueTrend.map(d => ({
+                                label: d.label,
+                                revenue: d.revenue,
+                                sales: d.count,
+                                isFuture: d.isFuture
+                            }))}
+                        />
+                    </div>
+
                     {/* ==================== ROW 1: Weekly Orders + Order Status ==================== */}
                     <div className={styles.analyticsLayout}>
                         {/* Weekly Orders Bar Graph */}
@@ -340,7 +402,12 @@ export default function AdminAnalyticsPage() {
                                     <Package size={20} color="#BE185D" />
                                     <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>Eng mashhur mahsulotlar</h2>
                                 </div>
-                                <span style={{ fontSize: '12px', color: '#6B7280', fontWeight: 600 }}>Top 5</span>
+                                <button
+                                    onClick={() => setShowABCModal(true)}
+                                    className={styles.miniBtn}
+                                >
+                                    Batafsil stats
+                                </button>
                             </div>
 
                             {analytics.topProducts.length === 0 ? (
@@ -476,8 +543,28 @@ export default function AdminAnalyticsPage() {
                             </div>
                         </div>
                     </div>
+
+                    {/* ==================== ROW 4: Category Mix + Customer Retention ==================== */}
+                    <div className={styles.analyticsLayout} style={{ marginTop: '32px' }}>
+                        <CategoryDonutChart
+                            title="Yo'nalishlar bo'yicha daromad"
+                            data={analytics.categoryMix}
+                        />
+
+                        <RetentionFunnel
+                            totalActive={analytics.activeBuyers}
+                            repeatCount={analytics.repeatCustomers}
+                            newCount={analytics.newCustomers}
+                        />
+                    </div>
                 </>
             )}
+
+            <ABCAnalysisModal
+                isOpen={showABCModal}
+                onClose={() => setShowABCModal(false)}
+                data={analytics.allProductSales}
+            />
         </div>
     );
 }
