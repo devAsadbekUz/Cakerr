@@ -10,6 +10,7 @@ interface FavoritesContextType {
     toggleFavorite: (id: string) => void;
     isFavorite: (id: string) => boolean;
     loading: boolean;
+    initialLoadDone: boolean;
 }
 
 const FavoritesContext = createContext<FavoritesContextType | undefined>(undefined);
@@ -17,25 +18,26 @@ const FavoritesContext = createContext<FavoritesContextType | undefined>(undefin
 export function FavoritesProvider({ children }: { children: React.ReactNode }) {
     const [favorites, setFavorites] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
+    const [initialLoadDone, setInitialLoadDone] = useState(false);
     const { user, isTelegramUser, loading: authLoading } = useSupabase();
     const supabase = createClient();
 
     // 1. Load favorites on mount or when user/auth state changes
-    // IMPORTANT: Wait for auth loading to complete before loading favorites
     useEffect(() => {
-        // Don't load favorites until auth state is determined
-        if (authLoading) {
-            return;
-        }
+        if (authLoading) return;
 
         async function loadFavorites() {
             setLoading(true);
 
             if (user) {
-                // Check if Telegram user - use API proxy
-                if (isTelegramUser) {
+                // Determine if this is a Telegram user — use context flag OR direct detection
+                const authHeaders = getAuthHeader();
+                const hasTelegramAuth = isTelegramUser ||
+                    !!authHeaders['X-Telegram-Init-Data'] ||
+                    !!authHeaders['Authorization'];
+
+                if (hasTelegramAuth) {
                     try {
-                        const authHeaders = getAuthHeader();
                         const hasTGHeader = !!authHeaders['X-Telegram-Init-Data'];
                         const hasAuthHeader = !!authHeaders['Authorization'];
 
@@ -58,7 +60,6 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
                         }
                     } catch (error) {
                         console.error('[Favorites] Sync failed:', error);
-                        // Only load from localStorage if we have nothing yet
                         if (favorites.length === 0) {
                             const saved = localStorage.getItem('favorites');
                             if (saved) {
@@ -70,7 +71,7 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
                         }
                     }
                 } else {
-                    // Regular Supabase user (admin)
+                    // Regular Supabase user (admin / Google sign-in)
                     const { data, error } = await supabase
                         .from('favorites')
                         .select('product_id')
@@ -82,7 +83,7 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
                     }
                 }
             } else {
-                // Load from LocalStorage (Guest)
+                // Guest: Load from LocalStorage
                 const saved = localStorage.getItem('favorites');
                 if (saved) {
                     try {
@@ -97,14 +98,13 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
                 }
             }
             setLoading(false);
+            setInitialLoadDone(true);
         }
 
         loadFavorites();
     }, [user, isTelegramUser, authLoading]);
 
-    // 2. ALWAYS save to localStorage as backup (for both guests AND logged-in users)
-    // This ensures favorites persist even if API call fails on next app load
-    // Also saves empty arrays to clear stale data when user removes all favorites
+    // 2. ALWAYS save to localStorage as backup
     useEffect(() => {
         if (!loading) {
             localStorage.setItem('favorites', JSON.stringify(favorites));
@@ -115,23 +115,28 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
     }, [favorites, loading]);
 
     const toggleFavorite = useCallback(async (productId: string) => {
-        // Optimistic UI update
         const isCurrentlyFavorite = favorites.includes(productId);
         const newFavorites = isCurrentlyFavorite
             ? favorites.filter(id => id !== productId)
             : [...favorites, productId];
 
+        // Optimistic UI update
         setFavorites(newFavorites);
 
         if (user) {
-            // Use API proxy for Telegram users
-            if (isTelegramUser) {
+            // Determine if Telegram user — same safety net as loadFavorites
+            const authHeaders = getAuthHeader();
+            const hasTelegramAuth = isTelegramUser ||
+                !!authHeaders['X-Telegram-Init-Data'] ||
+                !!authHeaders['Authorization'];
+
+            if (hasTelegramAuth) {
                 try {
                     const response = await fetch('/api/user/favorites', {
                         method: isCurrentlyFavorite ? 'DELETE' : 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            ...getAuthHeader()
+                            ...authHeaders
                         },
                         body: JSON.stringify({ productId })
                     });
@@ -140,11 +145,10 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
                         const errorData = await response.json().catch(() => ({}));
                         console.error('[Favorites] API error:', response.status, errorData);
 
-                        // If unauthorized (session expired), fall back to localStorage
                         if (response.status === 401) {
                             console.warn('[Favorites] Session expired, saving to localStorage as fallback');
                             localStorage.setItem('favorites', JSON.stringify(newFavorites));
-                            return; // Don't revert - keep local state synced with localStorage
+                            return;
                         }
 
                         // For other errors, revert the optimistic update
@@ -154,7 +158,6 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
                     }
                 } catch (error) {
                     console.error('[Favorites] Network error syncing favorite:', error);
-                    // Fall back to localStorage on network error (don't revert UI)
                     localStorage.setItem('favorites', JSON.stringify(newFavorites));
                 }
             } else {
@@ -177,7 +180,7 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
     const isFavorite = useCallback((id: string) => favorites.includes(id), [favorites]);
 
     return (
-        <FavoritesContext.Provider value={{ favorites, toggleFavorite, isFavorite, loading }}>
+        <FavoritesContext.Provider value={{ favorites, toggleFavorite, isFavorite, loading, initialLoadDone }}>
             {children}
         </FavoritesContext.Provider>
     );

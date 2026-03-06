@@ -53,7 +53,7 @@ export default function ProductCard({ id, title, price, image, tag, isReady, var
     };
 
     return (
-        <Link href={`/mahsulot/${id}`} className={`${styles.card} ${favorited ? styles.favoritedCard : ''}`}>
+        <Link href={`/mahsulot/${id}`} className={`${styles.card} ${favorited ? styles.favoritedCard : ''}`} data-product-title={title}>
             <div className={styles.imageContainer}>
                 {image ? (
                     <Image

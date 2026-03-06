@@ -89,6 +89,7 @@ export default function SupabaseProvider({ children }: { children: React.ReactNo
             // If we are in Telegram (or likely to be), wait a bit for TelegramContext to settle
             if (isTelegramWebApp()) {
                 console.log('[SupabaseContext] Detected Telegram, waiting for TelegramContext...');
+                setIsTelegramUser(true);
                 // We'll let the event listener handle it
                 return;
             }
@@ -238,6 +239,7 @@ export default function SupabaseProvider({ children }: { children: React.ReactNo
                 });
                 setupCoinSubscription(profileData.id);
             }
+            setIsTelegramUser(true);
             setLoading(false);
         };
 

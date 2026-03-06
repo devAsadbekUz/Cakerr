@@ -1,243 +1,72 @@
-'use client';
-
-import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
-import Header from '@/app/components/layout/Header';
+import { createClient } from '@/app/utils/supabase/server';
 import HeroBanner from '@/app/components/home/HeroBanner';
 import ProductGrid from '@/app/components/products/ProductGrid';
-import ContactSheet from '@/app/components/home/ContactSheet';
-import ActiveOrderCard from '@/app/components/home/ActiveOrderCard';
-import { useSupabase } from '@/app/context/SupabaseContext';
-import { createClient } from '@/app/utils/supabase/client';
-import { productService } from '@/app/services/productService';
-import { orderService } from '@/app/services/orderService';
-import { getAuthHeader } from '@/app/utils/telegram';
+import HomepageShell from '@/app/components/home/HomepageShell';
+import ActiveOrderSection from '@/app/components/home/ActiveOrderSection';
+import { Product } from '@/app/types';
 
-const getProgressValue = (status: string) => {
-  switch (status) {
-    case 'new': return 15;
-    case 'confirmed': return 30;
-    case 'preparing': return 50;
-    case 'ready': return 75;
-    case 'delivering': return 90;
-    case 'completed': return 100;
-    default: return 0;
-  }
-};
+export const revalidate = 60; // Revalidate cached data every 60 seconds
 
-export default function HomePage() {
-  const [products, setProducts] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [activeOrder, setActiveOrder] = useState<any>(null);
-  const [activeCategory, setActiveCategory] = useState('birthday');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isContactOpen, setIsContactOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [realtimeStatus, setRealtimeStatus] = useState<string>('connecting');
-  const isScrollingRef = useRef(false);
-  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
-  const [lastScrollY, setLastScrollY] = useState(0);
+export default async function HomePage() {
+  const supabase = await createClient();
 
-  const supabase = React.useMemo(() => createClient(), []);
-  const { user } = useSupabase();
+  // --- Server-side data fetching (parallel) ---
+  const [categoriesResult, productsResult, bannersResult] = await Promise.all([
+    supabase.from('categories').select('*'),
+    supabase
+      .from('products')
+      .select('id, title, subtitle, description, base_price, image_url, category_id, is_available, is_ready, variants, details')
+      .eq('is_available', true)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('hero_banners')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true }),
+  ]);
 
-  const fetchData = async () => {
-    // Only show full-screen loading if we have no data at all
-    if (products.length === 0) setLoading(true);
+  const categories = categoriesResult.data || [];
+  const banners = bannersResult.data || [];
 
-    try {
-      // 1. Fetch Categories
-      const { data: cData } = await supabase
-        .from('categories')
-        .select('*');
-
-      const loadedCategories = cData || [];
-      setCategories(loadedCategories);
-
-      // 2. Fetch Products via Service
-      const pData = await productService.getActiveProducts(supabase);
-      setProducts(pData);
-
-      // 3. Fetch Active Order (Only if user exists)
-      if (user) {
-        const oData = await orderService.getUserOrders();
-        const active = oData.find((o: any) => !['completed', 'cancelled'].includes(o.status));
-        setActiveOrder(active || null);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchActiveOrder = async () => {
-    if (!user) return;
-    const oData = await orderService.getUserOrders();
-    const active = oData.find((o: any) => !['completed', 'cancelled'].includes(o.status));
-    setActiveOrder(active || null);
-  };
-
-  useEffect(() => {
-    fetchData();
-
-    if (user) {
-      console.log('[Realtime] Initializing subscription for user:', user.id);
-
-      const channel = supabase
-        .channel(`user-sync-${user.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'orders',
-            filter: `user_id=eq.${user.id}`
-          },
-          (payload: any) => {
-            console.log('[Realtime] Order event received:', payload.eventType, payload.new?.status);
-            // Robust approach: any change to user's orders triggers a full refetch.
-            // This ensures we get joined data like order_items correctly.
-            fetchActiveOrder();
-          }
-        )
-        .subscribe((status: string, err: Error | null) => {
-          setRealtimeStatus(status);
-          if (err) console.error('[Realtime] Channel error:', err);
-          if (status === 'SUBSCRIBED') {
-            console.log('[Realtime] Successfully subscribed to order updates');
-          }
-        });
-
-      return () => {
-        console.log('[Realtime] Cleaning up subscription for:', user.id);
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [user]);
-
-  const filteredProducts = products.filter(p =>
-    p.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const handleCategorySelect = (id: string) => {
-    setActiveCategory(id);
-    isScrollingRef.current = true;
-    const element = document.getElementById(`category-${id}`);
-    if (element) {
-      const headerOffset = 220;
-      const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
-
-      setTimeout(() => {
-        isScrollingRef.current = false;
-      }, 1000);
-    }
-  };
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      if (currentScrollY > lastScrollY && currentScrollY > 150) {
-        setIsHeaderCollapsed(true);
-      } else if (currentScrollY < lastScrollY) {
-        setIsHeaderCollapsed(false);
-      }
-      setLastScrollY(currentScrollY);
-
-      if (isScrollingRef.current) return;
-      if (categories.length === 0) return;
-
-      const categoryElements = categories.filter(c => c.id !== 'custom').map(c => ({
-        id: c.id,
-        element: document.getElementById(`category-${c.id}`)
-      }));
-
-      const scrollPosition = currentScrollY + (isHeaderCollapsed ? 120 : 250);
-      for (const section of categoryElements) {
-        if (section.element) {
-          const { offsetTop, offsetHeight } = section.element;
-          if (scrollPosition >= offsetTop && scrollPosition < offsetTop + offsetHeight) {
-            setActiveCategory(section.id);
-            break;
-          }
-        }
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [categories, lastScrollY, isHeaderCollapsed]);
-
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  // Map DB products to application Product type
+  const products: Product[] = (productsResult.data || []).map((item: any) => ({
+    id: item.id,
+    title: item.title,
+    subtitle: item.subtitle,
+    description: item.description,
+    base_price: item.base_price || 0,
+    price: item.base_price || 0,
+    image_url: item.image_url || '',
+    image: item.image_url || '',
+    category_id: item.category_id,
+    category: 'Boshqa',
+    categoryId: item.category_id,
+    is_available: item.is_available,
+    is_ready: item.is_ready || false,
+    variants: Array.isArray(item.variants) ? item.variants : [],
+    details: item.details,
+  }));
 
   return (
     <main style={{ paddingBottom: '100px', backgroundColor: '#F9FAFB', minHeight: '100vh', paddingTop: '260px' }}>
-      {mounted && process.env.NODE_ENV === 'development' && (
-        <div style={{
-          position: 'fixed', bottom: 80, right: 10,
-          background: realtimeStatus === 'SUBSCRIBED' ? '#10B981' : realtimeStatus === 'CHANNEL_ERROR' ? '#EF4444' : '#F59E0B',
-          color: 'white', padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600, zIndex: 9999,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-        }}>
-          RT: {realtimeStatus}
-        </div>
-      )}
+      <HomepageShell categories={categories}>
+        <div style={{ padding: '0 20px' }}>
+          {/* Active order (client-side, user-specific) */}
+          <ActiveOrderSection />
 
-      <Header
-        searchTerm={searchTerm}
-        onSearchChange={(e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-        activeCategory={activeCategory}
-        onSelectCategory={handleCategorySelect}
-        onContactClick={() => setIsContactOpen(true)}
-        categories={categories}
-        isCollapsed={isHeaderCollapsed}
-      />
-
-      <div style={{ padding: '0 20px' }}>
-        {activeOrder && (
-          <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#1F2937', marginBottom: '12px' }}>Faol buyurtmalar</h3>
-            <ActiveOrderCard
-              orderId={activeOrder.id}
-              itemName={activeOrder.order_items?.[0]?.name || 'Buyurtma'}
-              status={activeOrder.status === 'new' ? 'Yangi' :
-                activeOrder.status === 'confirmed' ? 'Tasdiqlandi' :
-                  activeOrder.status === 'preparing' ? 'Tayyorlanmoqda' :
-                    activeOrder.status === 'ready' ? 'Tayyor' :
-                      activeOrder.status === 'delivering' ? 'Yetkazilmoqda' : activeOrder.status}
-              progress={getProgressValue(activeOrder.status)}
-            />
-          </div>
-        )}
-
-        {loading && products.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '100px 0', color: '#9CA3AF' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: 600 }}>Yuklanmoqda...</h2>
-            <p style={{ fontSize: '14px', marginTop: '8px' }}>Pishiriqlarimizni tayyorlayapmiz ✨</p>
-          </div>
-        ) : (
+          {/* Product catalog (server-rendered) */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginTop: '20px' }}>
-            <HeroBanner />
+            <HeroBanner banners={banners} />
 
-            {categories.filter(c => c.id !== 'custom').map((cat) => {
-              const productsInCategory = filteredProducts.filter(p => (p.categoryId || p.category_id) === cat.id);
+            {categories.filter((c: any) => c.id !== 'custom').map((cat: any) => {
+              const productsInCategory = products.filter(p => (p.categoryId || p.category_id) === cat.id);
               if (productsInCategory.length === 0) return null;
 
               return (
                 <section
                   key={cat.id}
                   id={`category-${cat.id}`}
-                  style={{
-                    scrollMarginTop: isHeaderCollapsed ? '120px' : '260px',
-                    transition: 'scroll-margin-top 0.4s ease'
-                  }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#1F2937' }}>{cat.label || cat.name}</h2>
@@ -247,17 +76,9 @@ export default function HomePage() {
                 </section>
               );
             })}
-
-            {searchTerm && filteredProducts.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '40px', color: '#6B7280' }}>
-                Hech narsa topilmadi 😔
-              </div>
-            )}
           </div>
-        )}
-      </div>
-
-      <ContactSheet isOpen={isContactOpen} onClose={() => setIsContactOpen(false)} />
+        </div>
+      </HomepageShell>
     </main>
   );
 }

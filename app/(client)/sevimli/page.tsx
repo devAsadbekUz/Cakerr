@@ -9,12 +9,15 @@ import Link from 'next/link';
 import { createClient } from '@/app/utils/supabase/client';
 
 export default function SevimliPage() {
-    const { favorites, loading: favoritesLoading } = useFavorites();
+    const { favorites, loading: favoritesLoading, initialLoadDone } = useFavorites();
     const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const supabase = createClient();
 
     useEffect(() => {
+        // Don't fetch until the initial favorites load is complete
+        if (!initialLoadDone) return;
+
         async function fetchFavoriteProducts() {
             if (favorites.length === 0) {
                 setProducts([]);
@@ -30,8 +33,7 @@ export default function SevimliPage() {
                 .is('deleted_at', null);
 
             if (data && !error) {
-                // Map to match ProductGrid interface
-                const mappedProducts = data.map((p: { id: string; title: string; base_price: number; image_url: string; category: string; variants: any; is_ready: boolean }) => ({
+                const mappedProducts = data.map((p: any) => ({
                     id: p.id,
                     title: p.title,
                     price: p.base_price,
@@ -46,9 +48,10 @@ export default function SevimliPage() {
         }
 
         fetchFavoriteProducts();
-    }, [favorites]);
+    }, [favorites, initialLoadDone]);
 
-    if (favoritesLoading || loading) {
+    // Show loading until both favorites context and product fetch are done
+    if (!initialLoadDone || favoritesLoading || loading) {
         return <div className={styles.container} style={{ padding: '100px', textAlign: 'center' }}>Yuklanmoqda...</div>;
     }
 
