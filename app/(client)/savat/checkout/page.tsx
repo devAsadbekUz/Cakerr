@@ -11,16 +11,10 @@ import SuccessModal from '@/app/components/checkout/SuccessModal';
 import { useSupabase } from '@/app/context/SupabaseContext';
 import { useTelegram } from '@/app/context/TelegramContext';
 import { createClient } from '@/app/utils/supabase/client';
+import { availabilityService } from '@/app/services/availabilityService';
 import { format } from 'date-fns';
 
-const TIME_SLOTS = [
-    '09:00 - 11:00',
-    '11:00 - 13:00',
-    '13:00 - 15:00',
-    '15:00 - 17:00',
-    '17:00 - 19:00',
-    '19:00 - 21:00'
-];
+
 
 export default function CheckoutPage() {
     const router = useRouter();
@@ -44,6 +38,12 @@ export default function CheckoutPage() {
     const [useCoins, setUseCoins] = useState(false);
     const [coinsToSpend, setCoinsToSpend] = useState(0);
 
+    // DB-driven time slots (with hardcoded fallback)
+    const FALLBACK_SLOTS = [
+        '09:00 - 11:00', '11:00 - 13:00', '13:00 - 15:00',
+        '15:00 - 17:00', '17:00 - 19:00', '19:00 - 21:00'
+    ];
+    const [timeSlots, setTimeSlots] = useState<string[]>(FALLBACK_SLOTS);
     const [overrides, setOverrides] = useState<any[]>([]);
     const [loadingAvailability, setLoadingAvailability] = useState(false);
 
@@ -78,6 +78,13 @@ export default function CheckoutPage() {
 
     useEffect(() => {
         fetchAvailability();
+        // Load global slots from DB, keep fallback if table doesn't exist
+        availabilityService.getGlobalSlots()
+            .then(slots => {
+                if (slots.length > 0) setTimeSlots(slots.map(s => s.label));
+                // if empty or error, fallback array stays
+            })
+            .catch(() => { /* keep fallback slots */ });
     }, []);
 
     const isSlotBlocked = (slot: string) => {
@@ -275,7 +282,7 @@ export default function CheckoutPage() {
                     }}
                 />
                 <div className={styles.timeGrid}>
-                    {TIME_SLOTS.map((slot) => {
+                    {timeSlots.map((slot) => {
                         const blocked = isSlotBlocked(slot);
                         return (
                             <div
