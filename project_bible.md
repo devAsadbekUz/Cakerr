@@ -67,14 +67,14 @@ app/
     *   Full-screen image with "Sheet" overlay.
     *   Portion Selection (2, 4, 6 kishilik).
     *   Sticky "Add to Cart" bar.
-3.  **Custom Cake Builder (Yaratish)** [TODO]:
+3.  **Custom Cake Builder (Yaratish)** [DONE]:
     *   **Step 1: Shape** (Round, Square, Heart).
     *   **Step 2: Size** (Small, Medium, Large).
     *   **Step 3: Sponge** (Vanilla, Chocolate, Red Velvet).
     *   **Step 4: Cream** (Choco, Berry, Cheese).
     *   **Step 5: Decoration** (Fruits, Macarons - selectable grid).
     *   **Step 6: Text/Drawing** (Canvas API to draw on cake outline).
-4.  **Cart & Checkout (Buyurtmani rasmiylashtirish)** [TODO]:
+4.  **Cart & Checkout (Buyurtmani rasmiylashtirish)** [DONE]:
     *   **Route:** `/savat/checkout`.
     *   **UI Structure:**
         *   **Header:** Pink with distinct Back button title.
@@ -88,14 +88,14 @@ app/
             *   **Voice Note:** Microphone icon to record audio instructions (Telegram style). Uploads to Supabase Storage.
         *   **Gift Mode (Sovg'a rejimi) - "Wow" Feature:**
             *   *Action:* Checkbox "Sovg'a sifatida yuborish".
-            *   *UI:* Hides Price from Recipient.
+            *   *UI:** Hides Price from Recipient.
             *   *Input:* Sender enters Recipient's **Phone Number** only.
             *   *Flow:* Recipient gets SMS -> Opens Link -> Picks Address & Time -> Order Confirmed.
         *   **Footer Summary:** Sticky bottom sheet with breakdown (Mahsulotlar, Yetkazib berish, Jami) and "Buyurtmani tasdiqlash" button.
     *   **Payment:**
         *   **Cash:** Default selection.
         *   **Payme/Click:** Redirect to payment gateway.
-5.  **Profile & Auth** [TODO]:
+5.  **Profile & Auth** [DONE]:
     *   **Header:** Pink background with User Avatar, Name, Phone, and Edit button.
     *   **Stats Card:** Floating card showing "Buyurtmalar" count and "Coins" (Loyalty Program).
     *   **Quick Reorder (Tez buyurtma):**
@@ -118,10 +118,10 @@ app/
 
 ### B. Admin Dashboard (Desktop)
 1.  **Dashboard** [DONE]: Stats overview.
-2.  **Product Management** [TODO]:
+2.  **Product Management** [DONE]:
     *   CRUD operations for cakes.
     *   Image Upload (Supabase Storage).
-3.  **Time Slot Management** [TODO]:
+3.  **Time Slot Management** [DONE]:
     *   **Critical Feature:** Vendor **crud (create/read/update/delete)** slots (e.g., "10:00-12:00").
     *   Vendor can **block/unblock** specific slots manually for specific dates.
     *   Slots auto-block if max capacity reached.

@@ -151,3 +151,24 @@
         opacity: 1;
     }
 }
+/* Mobile Responsiveness */
+@media (max-width: 480px) {
+    .title {
+        font-size: 20px !important;
+    }
+
+    .banner {
+        padding: 20px !important;
+        height: 150px !important;
+    }
+
+    .badge {
+        font-size: 11px !important;
+        padding: 4px 12px !important;
+    }
+
+    .button {
+        padding: 8px 16px !important;
+        font-size: 14px !important;
+    }
+}
