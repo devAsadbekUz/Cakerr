@@ -65,7 +65,7 @@ export function SectionTitle({ children }: { children: React.ReactNode }) {
     return <h2 className={styles.sectionTitle}>{children}</h2>;
 }
 
-export function StatCard({ title, value, icon: Icon, color }: any) {
+export function StatCard({ title, value, icon: Icon, color, subtitle }: any) {
     const colors: any = {
         orange: { bg: '#FFF7ED', text: '#9A3412', icon: '#FB923C' },
         blue: { bg: '#EFF6FF', text: '#1E40AF', icon: '#3B82F6' },
@@ -74,13 +74,14 @@ export function StatCard({ title, value, icon: Icon, color }: any) {
     };
     const c = colors[color] || colors.blue;
     return (
-        <div style={{ background: 'white', padding: '20px', borderRadius: '20px', border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: c.bg, color: c.icon, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className={styles.statCard}>
+            <div className={styles.statCardIcon} style={{ background: c.bg, color: c.icon }}>
                 <Icon size={24} />
             </div>
-            <div>
-                <p style={{ fontSize: '13px', color: '#6B7280', margin: 0 }}>{title}</p>
-                <p style={{ fontSize: '24px', fontWeight: 800, color: '#111827', margin: 0 }}>{value}</p>
+            <div className={styles.statCardInfo}>
+                <p className={styles.statCardTitle}>{title}</p>
+                <p className={styles.statCardValue}>{value}</p>
+                {subtitle && <p style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '2px' }}>{subtitle}</p>}
             </div>
         </div>
     );
@@ -120,19 +121,10 @@ export function OrderCard({ order, compact, onUpdate, onClick }: any) {
     const deliveryDate = new Date(order.delivery_time);
 
     return (
-        <div
-            onClick={onClick}
-            style={{
-                background: 'white', borderRadius: '20px', padding: '20px', border: '1px solid #E5E7EB',
-                boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '16px',
-                cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s'
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.1)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.05)'; }}
-        >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className={styles.orderCard} onClick={onClick}>
+            <div className={styles.orderCardHeader}>
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
                         <span style={{ fontWeight: 800, fontSize: '15px' }}>#{order.id.slice(0, 8)}</span>
                         <span style={{ background: s.bg, color: s.color, padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>{s.label}</span>
                     </div>
@@ -142,36 +134,31 @@ export function OrderCard({ order, compact, onUpdate, onClick }: any) {
                     </p>
                     <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#9CA3AF' }}>
                         <Clock size={12} style={{ marginRight: 4, verticalAlign: 'text-bottom' }} />
-                        Buyurtma: {format(new Date(order.created_at), 'HH:mm, d-MMM')}
+                        Buyurtma: {format(new Date(order.created_at), 'HH:mm')}
                     </p>
                 </div>
-                <div style={{ textAlign: 'right' }}>
+                <div>
                     <div style={{ fontWeight: 800, fontSize: '16px', color: '#BE185D' }}>{order.total_price.toLocaleString()} so'm</div>
                 </div>
             </div>
 
             {!compact && (
                 <>
-                    <div style={{ display: 'flex', gap: '12px', padding: '12px', background: '#F9FAFB', borderRadius: '12px' }}>
-                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#E91E63', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
-                            {order.profiles?.full_name?.[0] || 'U'}
-                        </div>
-                        <div>
-                            <div style={{ fontSize: '14px', fontWeight: 700 }}>{order.profiles?.full_name || 'Mijoz'}</div>
-                            <div style={{ fontSize: '12px', color: '#6B7280' }}>
-                                <MapPinned size={12} style={{ marginRight: 4 }} />
-                                {order.delivery_address?.street || 'Manzil ko\'rsatilmagan'}
-                            </div>
+                    <div className={styles.orderCardCustomer}>
+                        <div style={{ fontSize: '14px', fontWeight: 700, marginBottom: '6px' }}>{order.profiles?.full_name || 'Mijoz'}</div>
+                        <div style={{ fontSize: '12px', color: '#6B7280', display: 'flex', alignItems: 'flex-start' }}>
+                            <MapPinned size={14} style={{ marginRight: 6, marginTop: 1, minWidth: '14px' }} />
+                            <span style={{ lineHeight: '1.4' }}>{order.delivery_address?.street || 'Manzil ko\'rsatilmagan'}</span>
                         </div>
                     </div>
 
-                    <div style={{ marginTop: '8px' }}>
-                        <p style={{ fontSize: '12px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', marginBottom: '8px' }}>Mahsulotlar</p>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ marginTop: '4px' }}>
+                        <p style={{ fontSize: '11px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', marginBottom: '8px' }}>Mahsulotlar</p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                             {order.order_items?.map((item: any, idx: number) => (
                                 <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                                    <span style={{ color: '#374151' }}>{item.quantity}x {item.name || 'Tort'}</span>
-                                    <span style={{ color: '#6B7280' }}>{item.configuration?.portion || ''}</span>
+                                    <span style={{ color: '#374151', fontWeight: 500 }}>{item.quantity}x {item.name || 'Tort'}</span>
+                                    <span style={{ color: '#6B7280', fontSize: '12px' }}>{item.configuration?.portion || ''}</span>
                                 </div>
                             ))}
                         </div>
@@ -179,11 +166,11 @@ export function OrderCard({ order, compact, onUpdate, onClick }: any) {
                 </>
             )}
 
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: 'auto' }} onClick={(e) => e.stopPropagation()}>
                 {order.status === 'new' && (
                     <>
                         <button onClick={() => onUpdate(order.id, 'confirmed')} style={{ flex: 1, minWidth: '120px', background: '#3B82F6', color: 'white', border: 'none', padding: '12px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}><CheckCircle2 size={16} /> Tasdiqlash</button>
-                        <button onClick={() => onUpdate(order.id, 'cancelled')} style={{ padding: '12px', background: '#FEF2F2', color: '#EF4444', border: 'none', borderRadius: '10px', cursor: 'pointer' }}><XCircle size={18} /></button>
+                        <button onClick={() => onUpdate(order.id, 'cancelled')} style={{ width: '44px', height: '44px', background: '#FEF2F2', color: '#EF4444', border: 'none', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><XCircle size={18} /></button>
                     </>
                 )}
                 {order.status === 'confirmed' && (

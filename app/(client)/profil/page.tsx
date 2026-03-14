@@ -105,10 +105,7 @@ export default function ProfilPage() {
     useEffect(() => {
         fetchProfileData(true); // Initial load shows loading state
 
-        if (user) {
-            // Update stats when user.coins changes (synced by SupabaseContext)
-            setStats(prev => ({ ...prev, coins: user.coins || 0 }));
-
+        if (user?.id) {
             // Subscribe to real-time updates for user's orders to keep profile in sync
             const channel = supabase
                 .channel(`profile-orders-${user.id}`)
@@ -147,7 +144,14 @@ export default function ProfilPage() {
                 supabase.removeChannel(channel);
             };
         }
-    }, [user]);
+    }, [user?.id]);
+
+    useEffect(() => {
+        if (user) {
+            // Update stats when user.coins changes (synced by SupabaseContext)
+            setStats(prev => ({ ...prev, coins: user.coins || 0 }));
+        }
+    }, [user?.coins]);
 
     if (authLoading || (user && loading)) {
         return <div className={styles.container} style={{ padding: '40px', textAlign: 'center' }}>Yuklanmoqda...</div>;

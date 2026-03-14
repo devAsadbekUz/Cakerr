@@ -22,19 +22,47 @@ export async function GET() {
     const { data: orders, error } = await serviceClient
         .from('orders')
         .select(`
-            *,
+            id, status, total_price, delivery_time, delivery_slot, created_at, comment, delivery_address,
             profiles (full_name, phone_number),
             order_items (
-                *,
-                products (image_url, category_id)
+                id, name, quantity, unit_price, configuration,
+                products (image_url)
             )
         `)
-        .order('delivery_time', { ascending: true });
+        .order('created_at', { ascending: false })
+        .limit(500);
 
     if (error) {
         console.error('[Admin Orders API] Error:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ orders });
+    // Strip heavy base64 strings to keep payload tiny
+    const safeOrders = orders?.map(order => {
+        const safeItems = order.order_items?.map((item: any) => {
+            if (item.configuration) {
+                const conf = { ...item.configuration };
+                if (conf.uploaded_photo_url?.startsWith('data:image')) {
+                    conf.uploaded_photo_url = null;
+                }
+                if (conf.drawing?.startsWith('data:image')) {
+                    conf.drawing = null;
+                }
+                return { ...item, configuration: conf };
+            }
+            return item;
+        });
+        return { ...order, order_items: safeItems };
+    });
+
+    return NextResponse.json(
+        { orders: safeOrders },
+        { 
+            headers: { 
+                'Cache-Control': 'private, no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            } 
+        }
+    );
 }

@@ -40,10 +40,57 @@ export async function GET(request: NextRequest) {
 
         if (error) throw error;
 
-        return NextResponse.json({ orders: data });
+        // Strip heavy base64 strings from historical orders to keep payload tiny
+        const safeData = data?.map(order => {
+            const safeItems = order.order_items?.map((item: any) => {
+                if (item.configuration) {
+                    const conf = { ...item.configuration };
+                    if (conf.uploaded_photo_url?.startsWith('data:image')) {
+                        conf.uploaded_photo_url = null;
+                    }
+                    if (conf.drawing?.startsWith('data:image')) {
+                        conf.drawing = null;
+                    }
+                    return { ...item, configuration: conf };
+                }
+                return item;
+            });
+            return { ...order, order_items: safeItems };
+        });
+
+        return NextResponse.json({ orders: safeData });
     } catch (error: any) {
         console.error('[Orders API] GET error:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+}
+
+// Helper function to upload Base64 images to Supabase Storage
+async function uploadBase64Image(supabase: any, base64String: string, userId: string, prefix: string): Promise<string | null> {
+    try {
+        const matches = base64String.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+        if (!matches || matches.length !== 3) return null;
+
+        const mimeType = matches[1];
+        const base64Data = matches[2];
+        const buffer = Buffer.from(base64Data, 'base64');
+        const ext = mimeType.split('/')[1] || 'png';
+        const fileName = `${userId}/${prefix}_${Date.now()}.${ext}`;
+
+        const { error } = await supabase.storage
+            .from('custom-cakes')
+            .upload(fileName, buffer, { contentType: mimeType, upsert: false });
+
+        if (error) {
+            console.error('[Storage Upload Error]', error);
+            return null;
+        }
+
+        const { data } = supabase.storage.from('custom-cakes').getPublicUrl(fileName);
+        return data.publicUrl;
+    } catch (err) {
+        console.error('[Storage Upload Exception]', err);
+        return null;
     }
 }
 
@@ -72,6 +119,22 @@ export async function POST(request: NextRequest) {
 
     try {
         const { order, items, coins_spent = 0 } = await request.json();
+
+        // 1. Intercept Base64 strings and upload them to Storage before saving to DB
+        if (items && items.length > 0) {
+            for (const item of items) {
+                if (item.configuration) {
+                    if (item.configuration.uploaded_photo_url?.startsWith('data:image')) {
+                        const url = await uploadBase64Image(supabase, item.configuration.uploaded_photo_url, userId, 'photo');
+                        if (url) item.configuration.uploaded_photo_url = url;
+                    }
+                    if (item.configuration.drawing?.startsWith('data:image')) {
+                        const url = await uploadBase64Image(supabase, item.configuration.drawing, userId, 'drawing');
+                        if (url) item.configuration.drawing = url;
+                    }
+                }
+            }
+        }
 
         /* --- OPTIMIZED ATOMIC CHECKOUT (V2) --- */
         const { data: orderData, error: rpcError } = await supabase.rpc('create_order_v2', {

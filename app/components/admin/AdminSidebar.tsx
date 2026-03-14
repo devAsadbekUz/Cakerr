@@ -74,6 +74,7 @@ export default function AdminSidebar() {
                             <Link
                                 key={item.path}
                                 href={item.path}
+                                prefetch={false}
                                 className={`${styles.item} ${isActive ? styles.active : ''}`}
                                 onClick={() => setIsOpen(false)}
                             >

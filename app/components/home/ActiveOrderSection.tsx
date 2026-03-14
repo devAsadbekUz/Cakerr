@@ -53,8 +53,12 @@ export default function ActiveOrderSection() {
                     table: 'orders',
                     filter: `user_id=eq.${user.id}`
                 },
-                () => {
-                    fetchActiveOrder();
+                (payload: any) => {
+                    if (payload.eventType === 'UPDATE') {
+                        setActiveOrder((prev: any) => prev && prev.id === payload.new.id ? { ...prev, ...payload.new } : prev);
+                    } else {
+                        fetchActiveOrder();
+                    }
                 }
             )
             .subscribe();
@@ -62,7 +66,7 @@ export default function ActiveOrderSection() {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [user]);
+    }, [user?.id]);
 
     if (!activeOrder) return null;
 

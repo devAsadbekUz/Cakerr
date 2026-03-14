@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
                     total_price,
                     comment,
                     user_id,
-                    profiles (full_name, phone_number),
+                    profiles (full_name, phone_number, telegram_id),
                     order_items (*)
                 `)
                 .eq('id', orderId)
@@ -228,6 +228,22 @@ export async function POST(request: NextRequest) {
                     reply_markup: { inline_keyboard }
                 })
             });
+
+            // Notify the client directly if they have a telegram_id linked
+            const profile = Array.isArray(order.profiles) ? order.profiles[0] : order.profiles;
+            if (profile?.telegram_id) {
+                const clientMessage = `🍰 *Buyurtma holati yangilandi*\n\nHurmatli mijoz, sizning #${order.id.slice(0,8)} raqamli buyurtmangiz holati o'zgardi:\n\n*${statusLabel}*\n_${statusConfig.desc}_`;
+                
+                await fetch(`${TELEGRAM_API}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: profile.telegram_id,
+                        text: clientMessage,
+                        parse_mode: 'Markdown'
+                    })
+                });
+            }
 
             await answerCallback(update.callback_query.id, `Yangilandi: ${statusLabel}`, TELEGRAM_API);
         }

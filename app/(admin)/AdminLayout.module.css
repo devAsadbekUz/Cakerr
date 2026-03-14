@@ -13,8 +13,8 @@
 
 @media (max-width: 1024px) {
     .mainContent {
-        margin-top: 72px !important;
-        padding: 20px !important;
+        margin-top: 64px !important;
+        padding: 16px !important;
         padding-bottom: 90px !important;
     }
 }

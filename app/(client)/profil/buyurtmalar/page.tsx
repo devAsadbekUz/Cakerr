@@ -84,7 +84,7 @@ export default function OrderHistoryPage() {
         }
 
         fetchOrders();
-    }, [user]);
+    }, [user?.id]);
 
     const handleReorder = (order: Order) => {
         order.items.forEach(item => {

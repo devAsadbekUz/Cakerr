@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
                 total_price,
                 comment,
                 user_id,
-                profiles (full_name, phone_number),
+                profiles (full_name, phone_number, telegram_id),
                 order_items (*)
             `)
             .eq('id', orderId)
@@ -87,6 +87,27 @@ export async function POST(request: NextRequest) {
 
         if (!result.ok) {
             console.error('[Telegram Update] Telegram edit error:', result);
+        }
+
+        // Notify the client directly if they have a telegram_id linked
+        const profile = Array.isArray(order.profiles) ? order.profiles[0] : order.profiles;
+        if (profile?.telegram_id) {
+            const clientMessage = `🍰 *Buyurtma holati yangilandi*\n\nHurmatli mijoz, sizning #${order.id.slice(0,8)} raqamli buyurtmangiz holati o'zgardi:\n\n*${statusConfig.label}*\n_${statusConfig.desc}_`;
+            
+            console.log('[Telegram Update] Sending notification to client:', profile.telegram_id);
+            const notifyResponse = await fetch(`${TELEGRAM_API}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: profile.telegram_id,
+                    text: clientMessage,
+                    parse_mode: 'Markdown'
+                })
+            });
+            const notifyResult = await notifyResponse.json();
+            if (!notifyResult.ok) {
+                console.error('[Telegram Update] Failed to notify client:', notifyResult.description);
+            }
         }
 
         return NextResponse.json({ ok: true, telegram_updated: result.ok });

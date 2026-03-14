@@ -23,28 +23,18 @@ export const orderService = {
     async updateOrderStatus(orderId: string, status: string, isAdmin: boolean = false) {
         if (isAdmin) {
             try {
-                const response = await fetch('/api/admin/data', {
-                    method: 'PUT',
+                // Unified high-performance endpoint for status + TG sync
+                const response = await fetch(`/api/admin/orders/${orderId}/status`, {
+                    method: 'POST',
                     credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        table: 'orders',
-                        id: orderId,
-                        data: { status, updated_at: new Date().toISOString() }
-                    })
+                    body: JSON.stringify({ status })
                 });
 
                 if (!response.ok) {
-                    return { error: { message: 'Update failed' } };
+                    const data = await response.json().catch(() => ({}));
+                    return { error: { message: data.error || 'Update failed' } };
                 }
-
-                // Sync status to Telegram bot (fire and forget)
-                console.log(`[OrderService] Syncing status to TG: ${status} for ${orderId}`);
-                fetch('/api/telegram/update', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ orderId, newStatus: status })
-                }).catch(err => console.error('[OrderService] TG Sync error:', err));
 
                 return { error: null };
             } catch (err) {

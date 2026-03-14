@@ -40,8 +40,8 @@ export default function AdminOrdersPage() {
                 setNewOrderNotify(true);
                 fetchData();
             })
-            .on('postgres_changes', { event: 'UPDATE', table: 'orders', schema: 'public' }, () => {
-                fetchData();
+            .on('postgres_changes', { event: 'UPDATE', table: 'orders', schema: 'public' }, (payload: any) => {
+                setOrders(prev => prev.map(o => o.id === payload.new.id ? { ...o, ...payload.new } : o));
             })
             .subscribe((status: string, err: Error | null) => {
                 console.log('[Realtime] Admin Orders Subscription:', status);
@@ -54,11 +54,13 @@ export default function AdminOrdersPage() {
     }, []); // FIXED: Empty deps - supabase is now stable singleton
 
     const handleUpdateStatus = async (orderId: string, newStatus: string) => {
+        // Optimistic UI update to feel instant
+        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+
         const { error } = await orderService.updateOrderStatus(orderId, newStatus, true);
         if (error) {
             alert('Xatolik: ' + error.message);
-        } else {
-            fetchData();
+            fetchData(); // Revert on failure
         }
     };
 
