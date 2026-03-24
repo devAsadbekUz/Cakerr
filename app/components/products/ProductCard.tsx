@@ -1,5 +1,6 @@
 'use client';
 
+import React, { memo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ShoppingCart, Heart } from 'lucide-react';
@@ -14,15 +15,20 @@ interface ProductProps {
     title: string;
     price: string | number;
     image: string;
+    images?: string[];
     tag?: string;
     isReady?: boolean;
     variants?: Variant[];
+    priority?: boolean;
 }
 
-export default function ProductCard({ id, title, price, image, tag, isReady, variants }: ProductProps) {
+function ProductCardComponent({ id, title, price, image, images, tag, isReady, variants, priority }: ProductProps) {
     const { addItem } = useCart();
     const { toggleFavorite, isFavorite } = useFavorites();
     const favorited = isFavorite(id);
+
+    // Primary image fallback
+    const displayImage = image || (images && images.length > 0 ? images[0] : '');
 
     // If variants exist, show the lowest price (fallback to base price if variant price is 0)
     const displayPrice = variants && variants.length > 0
@@ -36,14 +42,14 @@ export default function ProductCard({ id, title, price, image, tag, isReady, var
             id,
             name: title,
             price: displayPrice,
-            image,
+            image: displayImage,
             quantity: 1,
             portion: variants?.[0]?.value || '2',
             flavor: 'Shokoladli'
         });
 
         // Trigger the flying animation
-        flyToCart(e, image || '');
+        flyToCart(e, displayImage || '');
     };
 
     const handleToggleFavorite = (e: React.MouseEvent) => {
@@ -55,13 +61,14 @@ export default function ProductCard({ id, title, price, image, tag, isReady, var
     return (
         <Link href={`/mahsulot/${id}`} className={`${styles.card} ${favorited ? styles.favoritedCard : ''}`} data-product-title={title}>
             <div className={styles.imageContainer}>
-                {image ? (
+                {displayImage ? (
                     <Image
-                        src={image}
+                        src={displayImage}
                         alt={title}
                         className={styles.productImage}
                         fill
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        priority={priority}
                     />
                 ) : (
                     <div className={styles.productImage} style={{
@@ -106,3 +113,6 @@ export default function ProductCard({ id, title, price, image, tag, isReady, var
         </Link>
     );
 }
+
+const ProductCard = memo(ProductCardComponent);
+export default ProductCard;

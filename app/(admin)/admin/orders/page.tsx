@@ -11,9 +11,6 @@ import { createClient } from '@/app/utils/supabase/client';
 import styles from '../AdminDashboard.module.css';
 import { Section, OrderCard, OrderDetailsModal } from '@/app/components/admin/DashboardComponents';
 
-// Supabase client outside component (singleton)
-const supabase = createClient();
-
 export default function AdminOrdersPage() {
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -23,6 +20,7 @@ export default function AdminOrdersPage() {
     const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
     const [newOrderNotify, setNewOrderNotify] = useState(false);
     const [mounted, setMounted] = useState(false);
+    const supabase = useMemo(() => createClient(), []);
 
     const fetchData = async () => {
         const data = await orderService.getAllOrdersAdmin();
@@ -40,11 +38,17 @@ export default function AdminOrdersPage() {
                 setNewOrderNotify(true);
                 fetchData();
             })
-            .on('postgres_changes', { event: 'UPDATE', table: 'orders', schema: 'public' }, (payload: any) => {
-                setOrders(prev => prev.map(o => o.id === payload.new.id ? { ...o, ...payload.new } : o));
+            .on('postgres_changes', { event: 'UPDATE', table: 'orders', schema: 'public' }, async (payload: any) => {
+                // Wait 500ms for DB consistency before fetching fresh data
+                setTimeout(async () => {
+                    const updatedOrder = await orderService.getOrderAdmin(payload.new.id);
+                    if (updatedOrder) {
+                        setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+                        setSelectedOrder((prev: any) => prev?.id === updatedOrder.id ? updatedOrder : prev);
+                    }
+                }, 500);
             })
             .subscribe((status: string, err: Error | null) => {
-                console.log('[Realtime] Admin Orders Subscription:', status);
                 if (err) console.error('[Realtime] Error:', err);
             });
 
@@ -100,7 +104,17 @@ export default function AdminOrdersPage() {
             )}
 
             <header className={styles.header}>
-                <h1 className={styles.title}>Buyurtmalar</h1>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <h1 className={styles.title}>Buyurtmalar</h1>
+                    <button 
+                        onClick={() => { setLoading(true); fetchData(); }} 
+                        className={styles.modalClose} 
+                        title="Yangilash"
+                        style={{ width: '40px', height: '40px', background: 'white' }}
+                    >
+                        <Clock size={20} />
+                    </button>
+                </div>
                 <div className={styles.viewToggle}>
                     <button
                         onClick={() => setViewMode('inbox')}

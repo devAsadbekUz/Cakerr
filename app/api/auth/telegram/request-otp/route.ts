@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { TELEGRAM_CONFIG } from '@/app/utils/telegramConfig';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
             console.log('[OTP Request] Phone not linked to Telegram');
             return NextResponse.json({
                 error: 'not_linked',
-                message: 'Bu telefon raqami Telegram botga ulanmagan. Avval @moida_zakaz_bot ni oching va telefon raqamingizni ulashing.'
+                message: `Bu telefon raqami Telegram botga ulanmagan. Avval @${TELEGRAM_CONFIG.botUsername} ni oching va telefon raqamingizni ulashing.`
             }, { status: 400 });
         }
 

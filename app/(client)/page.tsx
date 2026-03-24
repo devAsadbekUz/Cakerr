@@ -15,7 +15,7 @@ export default async function HomePage() {
     supabase.from('categories').select('*').order('sort_order', { ascending: true }),
     supabase
       .from('products')
-      .select('id, title, subtitle, description, base_price, image_url, category_id, is_available, is_ready, variants, details')
+      .select('id, title, subtitle, description, base_price, image_url, images, category_id, is_available, is_ready, variants, details')
       .eq('is_available', true)
       .is('deleted_at', null)
       .order('created_at', { ascending: false }),
@@ -29,38 +29,50 @@ export default async function HomePage() {
   const categories = categoriesResult.data || [];
   const banners = bannersResult.data || [];
 
-  // Map DB products to application Product type
-  const products: Product[] = (productsResult.data || []).map((item: any) => ({
-    id: item.id,
-    title: item.title,
-    subtitle: item.subtitle,
-    description: item.description,
-    base_price: item.base_price || 0,
-    price: item.base_price || 0,
-    image_url: item.image_url || '',
-    image: item.image_url || '',
-    category_id: item.category_id,
-    category: 'Boshqa',
-    categoryId: item.category_id,
-    is_available: item.is_available,
-    is_ready: item.is_ready || false,
-    variants: Array.isArray(item.variants) ? item.variants : [],
-    details: item.details,
-  }));
+  // Map and group products by category for efficiency
+  const productsByCategory: Record<string, Product[]> = {};
+  
+  (productsResult.data || []).forEach((item: any) => {
+    const product: Product = {
+      id: item.id,
+      title: item.title,
+      subtitle: item.subtitle,
+      description: item.description,
+      base_price: item.base_price || 0,
+      price: item.base_price || 0,
+      image_url: item.image_url || '',
+      image: item.image_url || '',
+      images: Array.isArray(item.images) ? item.images : (item.image_url ? [item.image_url] : []),
+      category_id: item.category_id,
+      category: 'Boshqa',
+      categoryId: item.category_id,
+      is_available: item.is_available,
+      is_ready: item.is_ready || false,
+      variants: Array.isArray(item.variants) ? item.variants : [],
+      details: item.details,
+    };
+
+    const catId = item.category_id || 'other';
+    if (!productsByCategory[catId]) productsByCategory[catId] = [];
+    productsByCategory[catId].push(product);
+  });
+
+  // Calculate which sections are initially visible for LCP optimization
+  const displayCategories = categories.filter((c: any) => c.id !== 'custom');
 
   return (
     <main style={{ paddingBottom: '100px', backgroundColor: '#F9FAFB', minHeight: '100vh', paddingTop: '260px' }}>
-      <HomepageShell categories={categories}>
+      <HomepageShell categories={categories} productsByCategory={productsByCategory}>
         <div style={{ padding: '0 20px' }}>
           {/* Active order (client-side, user-specific) */}
           <ActiveOrderSection />
 
-          {/* Product catalog (server-rendered) */}
+          {/* Product catalog (server-rendered components) */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginTop: '20px' }}>
             <HeroBanner banners={banners} />
 
-            {categories.filter((c: any) => c.id !== 'custom').map((cat: any) => {
-              const productsInCategory = products.filter(p => (p.categoryId || p.category_id) === cat.id);
+            {displayCategories.map((cat: any, index: number) => {
+              const productsInCategory = productsByCategory[cat.id] || [];
               if (productsInCategory.length === 0) return null;
 
               return (
@@ -72,7 +84,11 @@ export default async function HomePage() {
                     <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#1F2937' }}>{cat.label || cat.name}</h2>
                     <span style={{ fontSize: '14px', color: '#9CA3AF' }}>{productsInCategory.length} tortlar</span>
                   </div>
-                  <ProductGrid products={productsInCategory} />
+                  {/* Passing search and priority to components handled by HomepageShell clone element pattern or context */}
+                  <ProductGrid 
+                    products={productsInCategory} 
+                    priorityCount={index === 0 ? 4 : 0} 
+                  />
                 </section>
               );
             })}

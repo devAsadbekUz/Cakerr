@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft, Send, Phone, ArrowRight, Loader2 } from 'lucide-react';
 import { useTelegram } from '@/app/context/TelegramContext';
 import { storeSession } from '@/app/utils/telegram';
+import { TELEGRAM_CONFIG } from '@/app/utils/telegramConfig';
 import styles from './page.module.css';
 
 type LoginStep = 'phone' | 'otp' | 'telegram';
@@ -82,7 +83,7 @@ function LoginContent() {
             const data = await response.json();
 
             if (data.error === 'not_linked') {
-                setError('Bu raqam Telegram botga ulanmagan. Avval @moida_zakaz_bot ni oching va telefon raqamingizni ulashing.');
+                setError(`Bu raqam Telegram botga ulanmagan. Avval @${TELEGRAM_CONFIG.botUsername} ni oching va telefon raqamingizni ulashing.`);
                 return;
             }
 
@@ -306,7 +307,7 @@ function LoginContent() {
                     <p className={styles.hint}>
                         {step === 'phone' ? (
                             <>
-                                📱 Avval <a href="https://t.me/moida_zakaz_bot" target="_blank" rel="noopener noreferrer" style={{ color: '#0088cc' }}>@moida_zakaz_bot</a> da raqamingizni ulang
+                                📱 Avval <a href={TELEGRAM_CONFIG.botLink} target="_blank" rel="noopener noreferrer" style={{ color: '#0088cc' }}>@{TELEGRAM_CONFIG.botUsername}</a> da raqamingizni ulang
                             </>
                         ) : (
                             'Telegram ilovasini oching va kodni kiriting'

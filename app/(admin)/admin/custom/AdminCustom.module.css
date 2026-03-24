@@ -35,7 +35,7 @@
     color: #6B7280;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -58,7 +58,7 @@
     border: 1px solid #E5E7EB;
     border-radius: 24px;
     padding: 24px;
-    transition: all 0.2s;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s;
     position: relative;
 }
 
@@ -131,7 +131,7 @@
     border: 1px solid #E5E7EB;
     background: white;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;

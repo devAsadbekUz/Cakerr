@@ -44,7 +44,8 @@ export default function OrderHistoryPage() {
             setLoading(true);
             try {
                 const response = await fetch('/api/user/orders', {
-                    headers: getAuthHeader()
+                    headers: getAuthHeader(),
+                    credentials: 'include'
                 });
 
                 if (!response.ok) throw new Error('Failed to fetch orders');

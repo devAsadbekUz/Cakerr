@@ -364,7 +364,7 @@
     text-decoration: none;
     font-size: 14px;
     font-weight: 700;
-    transition: all 0.2s ease;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s ease;
     border: 1px solid #FBCFE8;
 }
 
@@ -397,7 +397,7 @@
     font-weight: 700;
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(233, 30, 99, 0.2);
-    transition: all 0.2s ease;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s ease;
 }
 
 .browseBtn:active {

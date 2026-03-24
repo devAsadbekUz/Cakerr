@@ -105,10 +105,19 @@ export const buildOrderMessage = (order: any, statusLabel: string) => {
     }
 
     if (order.delivery_address) {
-        const addr = typeof order.delivery_address === 'string'
-            ? order.delivery_address
-            : order.delivery_address.street || 'Manzil ko\'rsatilmagan';
-        messageText += `📍 *Manzil:* ${addr}\n`;
+        // Handle delivery_address as both string (legacy) and object
+        const addrObj = typeof order.delivery_address === 'string'
+            ? { street: order.delivery_address }
+            : order.delivery_address;
+
+        let street = addrObj.street || 'Manzil ko\'rsatilmagan';
+
+        // Wrap address in Map link if coordinates exist
+        if (addrObj.lat && addrObj.lng) {
+            street = `[${street}](https://www.google.com/maps?q=${addrObj.lat},${addrObj.lng})`;
+        }
+        
+        messageText += `📍 *Manzil:* ${street}\n`;
     }
 
     const dateFormatted = order.delivery_time ? new Date(order.delivery_time).toLocaleDateString('uz-UZ') : 'Noma\'lum';

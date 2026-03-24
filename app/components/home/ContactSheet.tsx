@@ -3,6 +3,7 @@
 import { X, Phone, Send, MessageCircle, Instagram } from 'lucide-react';
 import styles from './ContactSheet.module.css';
 import { useEffect, useState, useRef } from 'react';
+import { TELEGRAM_CONFIG } from '@/app/utils/telegramConfig';
 
 interface ContactSheetProps {
     isOpen: boolean;
@@ -85,9 +86,9 @@ export default function ContactSheet({ isOpen, onClose }: ContactSheetProps) {
                     <ContactItem
                         icon={<Send size={24} />}
                         label="Telegram"
-                        value="@buvaydamoidam"
+                        value={`@${TELEGRAM_CONFIG.botUsername}`}
                         color="#60A5FA"
-                        href="https://t.me/buvaydamoidam"
+                        href={TELEGRAM_CONFIG.botLink}
                     />
                     <ContactItem
                         icon={<Instagram size={24} />}

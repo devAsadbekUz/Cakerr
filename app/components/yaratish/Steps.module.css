@@ -27,7 +27,7 @@
     align-items: center;
     gap: 12px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s ease;
     box-shadow: var(--shadow-md);
     text-align: center;
 }
@@ -52,7 +52,7 @@
     align-items: center;
     justify-content: center;
     color: hsl(var(--color-text));
-    transition: all 0.2s ease;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s ease;
 }
 
 .cardActive .iconWrapper {
@@ -75,7 +75,7 @@
     align-items: center;
     gap: 20px;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
@@ -102,7 +102,7 @@
     color: #374151;
     font-size: 14px;
     flex-shrink: 0;
-    transition: all 0.2s;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s;
     border: 2px solid #E5E7EB;
 }
 
@@ -205,7 +205,7 @@
     justify-content: space-between;
     cursor: pointer;
     border: 2px solid transparent;
-    transition: all 0.2s ease;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s ease;
 }
 
 .listItemActive {
@@ -240,7 +240,7 @@
     background: white;
     font-size: 16px;
     outline: none;
-    transition: all 0.2s ease;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s ease;
 }
 
 .input:focus {
@@ -337,7 +337,7 @@
     color: hsl(var(--color-text-light));
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;

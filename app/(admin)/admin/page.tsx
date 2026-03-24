@@ -15,11 +15,11 @@ import styles from './AdminDashboard.module.css';
 import { StatCard } from '@/app/components/admin/DashboardComponents';
 import { createClient } from '@/app/utils/supabase/client';
 import ABCAnalysisModal from '@/app/components/admin/ABCAnalysisModal';
+import DashboardExpandModal from '@/app/components/admin/DashboardExpandModal';
+import { useAdminAnalytics } from '@/app/hooks/admin/useAdminAnalytics';
 import { CategoryDonutChart, RetentionFunnel, RevenueLineChart } from '@/app/components/admin/DashboardCharts';
 
-const supabase = createClient();
-
-// Status display config
+// Status display config (Keep for UI mapping if needed, but hook provides labels)
 const STATUS_COLORS: Record<string, { bg: string; text: string; label: string }> = {
     new: { bg: '#FEF3C7', text: '#92400E', label: 'Yangi' },
     confirmed: { bg: '#DBEAFE', text: '#1E40AF', label: 'Tasdiqlangan' },
@@ -35,7 +35,12 @@ export default function AdminAnalyticsPage() {
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
     const [showABCModal, setShowABCModal] = useState(false);
+    const [expandModal, setExpandModal] = useState<'recentActivity' | 'revenueTrend' | 'weeklyOrders' | 'orderStatuses' | 'peakHours' | null>(null);
     const [categories, setCategories] = useState<any[]>([]);
+    const [filterDays, setFilterDays] = useState<number | null>(30); // Default to 30 days
+    const supabase = useMemo(() => createClient(), []);
+
+    const { analytics, weeklyData } = useAdminAnalytics(orders, totalUsers, categories, filterDays);
 
     const fetchData = async () => {
         const data = await orderService.getAllOrdersAdmin();
@@ -76,201 +81,14 @@ export default function AdminAnalyticsPage() {
         };
     }, []);
 
-    // ==================== ANALYTICS COMPUTATIONS ====================
+    const recentOrders = useMemo(() => orders.slice(0, 5), [orders]);
 
-    const analytics = useMemo(() => {
-        const newOrders: any[] = [];
-        const todaysOrders: any[] = [];
-        let totalRevenue = 0;
-        let completedCount = 0;
-        const activeBuyerIds = new Set<string>();
-        const userOrderCounts = new Map<string, number>();
-        const statusCounts = new Map<string, number>();
-        const hourCounts = new Array(24).fill(0);
-        const productSales = new Map<string, { name: string; quantity: number; revenue: number }>();
-        const categoryRevenue = new Map<string, number>();
-
-        // Revenue per day for last 6 days + Today + Next 10 days
-        const today = new Date();
-        const revenueDays = Array.from({ length: 17 }, (_, i) => {
-            const d = subDays(today, 6 - i);
-            return {
-                date: d,
-                label: format(d, 'dd/MM'),
-                revenue: 0,
-                count: 0,
-                isFuture: i > 6 // 0-6 are past/today, 7-16 are future
-            };
-        });
-
-        for (const o of orders) {
-            // Active buyers
-            if (o.user_id) {
-                activeBuyerIds.add(o.user_id);
-                userOrderCounts.set(o.user_id, (userOrderCounts.get(o.user_id) || 0) + 1);
-            }
-
-            // Status breakdown
-            statusCounts.set(o.status, (statusCounts.get(o.status) || 0) + 1);
-
-            // New orders
-            if (o.status === 'new') {
-                newOrders.push(o);
-            }
-
-            // Past Revenue (from completed orders, using creation date)
-            const orderCreatedAt = new Date(o.created_at);
-            if (o.status === 'completed') {
-                const price = Number(o.total_price) || 0;
-                totalRevenue += price;
-                completedCount++;
-
-                for (let i = 0; i <= 6; i++) {
-                    const day = revenueDays[i];
-                    if (isSameDay(orderCreatedAt, day.date)) {
-                        day.revenue += price;
-                        day.count++;
-                        break;
-                    }
-                }
-            }
-
-            // Future Projection (from non-cancelled orders, using delivery date)
-            const orderDeliveryDate = new Date(o.delivery_time);
-            if (o.status !== 'cancelled') {
-                const price = Number(o.total_price) || 0;
-                // Only count for index 7 and above (future days)
-                for (let i = 7; i < revenueDays.length; i++) {
-                    const day = revenueDays[i];
-                    if (isSameDay(orderDeliveryDate, day.date)) {
-                        day.revenue += price;
-                        day.count++;
-                        break;
-                    }
-                }
-            }
-
-            // Today's active orders
-            const deliveryDate = new Date(o.delivery_time);
-            if (isToday(deliveryDate) && o.status !== 'completed' && o.status !== 'cancelled') {
-                todaysOrders.push(o);
-            }
-
-            // Peak hours (from order creation time)
-            const hour = new Date(o.created_at).getHours();
-            hourCounts[hour]++;
-
-            // Top products (from order_items)
-            if (o.order_items) {
-                for (const item of o.order_items) {
-                    const key = item.product_id || item.name;
-                    const existing = productSales.get(key);
-                    const qty = item.quantity || 1;
-                    const rev = (Number(item.unit_price) || 0) * qty;
-                    if (existing) {
-                        existing.quantity += qty;
-                        existing.revenue += rev;
-                    } else {
-                        productSales.set(key, { name: item.name, quantity: qty, revenue: rev });
-                    }
-
-                    // Category revenue tracking
-                    if (o.status === 'completed') {
-                        const catId = item.products?.category_id || 'other';
-                        categoryRevenue.set(catId, (categoryRevenue.get(catId) || 0) + rev);
-                    }
-                }
-            }
-        }
-
-        // Repeat customers
-        let repeatCustomers = 0;
-        for (const count of userOrderCounts.values()) {
-            if (count > 1) repeatCustomers++;
-        }
-
-        // AOV
-        const aov = completedCount > 0 ? totalRevenue / completedCount : 0;
-
-        // Top 5 products by quantity
-        const topProducts = Array.from(productSales.values())
-            .sort((a, b) => b.quantity - a.quantity)
-            .slice(0, 5);
-
-        // Peak hours (only 6am to midnight for readability)
-        const peakHours = hourCounts
-            .map((count, hour) => ({ hour, count, label: `${hour.toString().padStart(2, '0')}:00` }))
-            .filter(h => h.hour >= 6 && h.hour <= 23);
-
-        // Status breakdown as array
-        const statusBreakdown = Array.from(statusCounts.entries())
-            .map(([status, count]) => ({
-                status,
-                count,
-                ...(STATUS_COLORS[status] || { bg: '#F3F4F6', text: '#6B7280', label: status })
-            }));
-
-        // Category revenue makeup
-        const categoryColors = ['#BE185D', '#EC4899', '#DB2777', '#9D174D', '#F472B6', '#FBCFE8'];
-        const categoryMix = Array.from(categoryRevenue.entries())
-            .map(([id, revenue], idx) => {
-                const cat = categories.find(c => c.id === id);
-                return {
-                    label: cat ? cat.label : (id === 'other' ? 'Boshqa' : 'Noma\'lum'),
-                    value: revenue,
-                    color: categoryColors[idx % categoryColors.length],
-                    percent: totalRevenue > 0 ? (revenue / totalRevenue) * 100 : 0
-                };
-            })
-            .sort((a, b) => b.value - a.value);
-
-        return {
-            newOrdersCount: newOrders.length,
-            todaysOrdersCount: todaysOrders.length,
-            totalRevenue,
-            totalCustomers: totalUsers,
-            activeBuyers: activeBuyerIds.size,
-            aov,
-            repeatCustomers,
-            repeatRate: activeBuyerIds.size > 0
-                ? Math.round((repeatCustomers / activeBuyerIds.size) * 100)
-                : 0,
-            topProducts,
-            peakHours,
-            statusBreakdown,
-            revenueTrend: revenueDays,
-            totalOrders: orders.length,
-            allProductSales: Array.from(productSales.values()),
-            categoryMix,
-            newCustomers: activeBuyerIds.size - repeatCustomers
-        };
-    }, [orders, totalUsers, categories]);
-
-    // Weekly data
-    const weeklyData = useMemo(() => {
-        const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
-        const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
-        const days = eachDayOfInterval({ start: weekStart, end: weekEnd });
-
-        return days.map(day => {
-            const count = orders.filter(o => isSameDay(new Date(o.delivery_time), day)).length;
-            return {
-                label: format(day, 'EEE'),
-                date: format(day, 'd-MMM'),
-                count,
-                isToday: isToday(day)
-            };
-        });
-    }, [orders]);
-
+    // Derived max values for charts
     const maxWeeklyOrders = useMemo(() =>
         Math.max(...weeklyData.map(d => d.count), 5),
         [weeklyData]
     );
 
-    const recentOrders = useMemo(() => orders.slice(0, 5), [orders]);
-
-    // Derived max values for charts
     const maxProductQty = useMemo(() =>
         Math.max(...analytics.topProducts.map(p => p.quantity), 1),
         [analytics.topProducts]
@@ -291,8 +109,27 @@ export default function AdminAnalyticsPage() {
     return (
         <div className={styles.container}>
             <header className={styles.header}>
-                <h1 className={styles.title}>Menejer Paneli</h1>
-                <p style={{ color: '#6B7280', marginTop: '4px' }}>Xush kelibsiz! Bugungi tahlillar bilan tanishing.</p>
+                <div>
+                    <h1 className={styles.title}>Menejer Paneli</h1>
+                    <p style={{ color: '#6B7280', marginTop: '4px' }}>Xush kelibsiz! Bugungi tahlillar bilan tanishing.</p>
+                </div>
+
+                <div className={styles.filterBar}>
+                    {[
+                        { label: '30 kun', value: 30 },
+                        { label: '90 kun', value: 90 },
+                        { label: '180 kun', value: 180 },
+                        { label: 'Hammasi', value: null }
+                    ].map((opt) => (
+                        <button
+                            key={opt.label}
+                            className={`${styles.filterBtn} ${filterDays === opt.value ? styles.filterBtnActive : ''}`}
+                            onClick={() => setFilterDays(opt.value)}
+                        >
+                            {opt.label}
+                        </button>
+                    ))}
+                </div>
             </header>
 
             {/* ==================== STAT CARDS ==================== */}
@@ -350,6 +187,12 @@ export default function AdminAnalyticsPage() {
                                     <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>Haftalik buyurtmalar</h2>
                                 </div>
                                 <span style={{ fontSize: '12px', color: '#6B7280', fontWeight: 600 }}>Joriy hafta</span>
+                                <button
+                                    onClick={() => setExpandModal('weeklyOrders')}
+                                    className={styles.miniBtn}
+                                >
+                                    Hammasini ko&apos;rish
+                                </button>
                             </div>
 
                             <div className={styles.barGraphContainer}>
@@ -379,6 +222,12 @@ export default function AdminAnalyticsPage() {
                                 <PieChart size={20} color="#BE185D" />
                                 <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>Buyurtma holatlari</h2>
                             </div>
+                            <button
+                                onClick={() => setExpandModal('orderStatuses')}
+                                className={styles.miniBtn}
+                            >
+                                Hammasini ko&apos;rish
+                            </button>
                             <div className={styles.statusGrid}>
                                 {analytics.statusBreakdown.map(s => (
                                     <div key={s.status} className={styles.statusCard} style={{ borderLeft: `4px solid ${s.text}` }}>
@@ -444,7 +293,12 @@ export default function AdminAnalyticsPage() {
                                     <Clock size={20} color="#BE185D" />
                                     <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>Buyurtma soatlari</h2>
                                 </div>
-                                <span style={{ fontSize: '12px', color: '#6B7280', fontWeight: 600 }}>Peak hours</span>
+                                <button
+                                    onClick={() => setExpandModal('peakHours')}
+                                    className={styles.miniBtn}
+                                >
+                                    Hammasini ko&apos;rish
+                                </button>
                             </div>
 
                             <div className={styles.peakHoursGrid}>
@@ -481,7 +335,12 @@ export default function AdminAnalyticsPage() {
                                     <DollarSign size={20} color="#BE185D" />
                                     <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>Daromat trendi</h2>
                                 </div>
-                                <span style={{ fontSize: '12px', color: '#6B7280', fontWeight: 600 }}>So'nggi 7 kun</span>
+                                <button
+                                    onClick={() => setExpandModal('revenueTrend')}
+                                    className={styles.miniBtn}
+                                >
+                                    Hammasini ko&apos;rish
+                                </button>
                             </div>
 
                             <div className={styles.revenueTrendContainer}>
@@ -519,7 +378,15 @@ export default function AdminAnalyticsPage() {
 
                         {/* Recent Activity */}
                         <div className={styles.recentActivity}>
-                            <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '20px' }}>So'nggi harakatlar</h2>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>So&apos;nggi harakatlar</h2>
+                                <button
+                                    onClick={() => setExpandModal('recentActivity')}
+                                    className={styles.miniBtn}
+                                >
+                                    Hammasini ko&apos;rish
+                                </button>
+                            </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                 {recentOrders.map(o => (
                                     <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'white', borderRadius: '16px', border: '1px solid #F3F4F6' }}>
@@ -564,6 +431,14 @@ export default function AdminAnalyticsPage() {
                 isOpen={showABCModal}
                 onClose={() => setShowABCModal(false)}
                 data={analytics.allProductSales}
+            />
+
+            <DashboardExpandModal
+                isOpen={!!expandModal}
+                onClose={() => setExpandModal(null)}
+                type={expandModal || 'recentActivity'}
+                orders={orders}
+                analytics={analytics}
             />
         </div>
     );

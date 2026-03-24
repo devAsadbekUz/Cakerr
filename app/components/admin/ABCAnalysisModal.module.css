@@ -78,7 +78,7 @@
     justify-content: center;
     cursor: pointer;
     color: #6B7280;
-    transition: all 0.2s;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s;
 }
 
 .closeBtn:hover {

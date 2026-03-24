@@ -1,12 +1,15 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import Image from 'next/image';
 import { useCustomCake } from '@/app/context/CustomCakeContext';
 import { useCart } from '@/app/context/CartContext';
 import { useRouter } from 'next/navigation';
-import { Upload, X, ChevronLeft } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import styles from './PhotoUploadForm.module.css';
+
+// Sub-components (Architecture Decomposition)
+import PhotoDropZone from './PhotoDropZone';
+import PhotoPreview from './PhotoPreview';
 
 export default function PhotoUploadForm() {
     const {
@@ -16,14 +19,19 @@ export default function PhotoUploadForm() {
         setUploadComment,
         setMode
     } = useCustomCake();
+    
     const { addItem } = useCart();
     const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement>(null);
+    
     const [isDragging, setIsDragging] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            setSelectedFile(file);
             processFile(file);
         }
     };
@@ -31,6 +39,13 @@ export default function PhotoUploadForm() {
     const processFile = (file: File) => {
         if (!file.type.startsWith('image/')) {
             alert('Iltimos, rasm yuklang (Please upload an image)');
+            return;
+        }
+
+        // 10MB Limit for stability
+        const MAX_SIZE = 10 * 1024 * 1024;
+        if (file.size > MAX_SIZE) {
+            alert('Rasm hajmi juda katta (maksimal 10MB). Iltimos, kichikroq rasm tanlang.');
             return;
         }
 
@@ -56,39 +71,73 @@ export default function PhotoUploadForm() {
         setIsDragging(false);
         const file = e.dataTransfer.files?.[0];
         if (file) {
+            setSelectedFile(file);
             processFile(file);
         }
     };
 
     const handleRemoveImage = () => {
         setUploadedImage(null);
+        setSelectedFile(null);
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
     };
 
-    const handleAddToCart = () => {
-        if (!uploadedImage) return;
+    const handleAddToCart = async () => {
+        // Early Return Pattern (Architecture Skill)
+        if (!uploadedImage || !selectedFile) return;
 
-        addItem({
-            id: `custom-upload-${Date.now()}`,
-            name: 'Rasmli Tort (Custom)',
-            price: 350000,
-            image: uploadedImage, // Fallback for cart display
-            portion: 'Kelishilgan holda',
-            flavor: 'Mijoz tanlovi',
-            quantity: 1,
-            customNote: uploadComment,
-            configuration: {
-                mode: 'upload',
-                uploaded_photo_url: uploadedImage,
-                custom_note: uploadComment,
-                pricing_type: 'hybrid',
-                estimated_total: 350000
-            }
-        });
+        setIsUploading(true);
+        try {
+            const file = selectedFile;
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+            const filePath = `${fileName}`;
 
-        router.push('/savat');
+            // 1. Upload to Supabase Storage
+            const { createClient } = await import('@/app/utils/supabase/client');
+            const supabase = createClient();
+            
+            const { data: uploadData, error: uploadError } = await supabase
+                .storage
+                .from('custom-cakes')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            // 2. Get Public URL
+            const { data: { publicUrl } } = supabase
+                .storage
+                .from('custom-cakes')
+                .getPublicUrl(filePath);
+
+            // 3. Add to Cart with the URL and the Placeholder UUID
+            await addItem({
+                id: '00000000-0000-0000-0000-000000000000', // FIXED UUID for Custom Cakes
+                name: 'Maxsus tort (Rasm asosida)',
+                price: 350000,
+                image: publicUrl, 
+                portion: 'Kelishilgan holda',
+                flavor: 'Mijoz tanlovi',
+                quantity: 1,
+                customNote: uploadComment,
+                configuration: {
+                    mode: 'upload',
+                    uploaded_photo_url: publicUrl,
+                    custom_note: uploadComment,
+                    pricing_type: 'hybrid',
+                    estimated_total: 350000
+                }
+            });
+
+            router.push('/savat');
+        } catch (err: any) {
+            console.error('[PhotoUploadForm] Critical failure:', err);
+            alert('Rasm yuklashda xatolik yuz berdi. Iltimos qayta urinib ko\'ring.');
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     return (
@@ -104,34 +153,20 @@ export default function PhotoUploadForm() {
 
             <div className={styles.uploadSection}>
                 {!uploadedImage ? (
-                    <div
-                        className={`${styles.dropZone} ${isDragging ? styles.dragging : ''}`}
+                    <PhotoDropZone 
+                        isDragging={isDragging}
                         onDragOver={handleDragOver}
                         onDragLeave={handleDragLeave}
                         onDrop={handleDrop}
                         onClick={() => fileInputRef.current?.click()}
-                    >
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            onChange={handleFileChange}
-                            accept="image/*"
-                            hidden
-                        />
-                        <div className={styles.uploadIcon}>
-                            <Upload size={32} />
-                        </div>
-                        <p>Rasm yuklash uchun bosing yoki shu yerga tashlang</p>
-                    </div>
+                        fileInputRef={fileInputRef}
+                        onFileChange={handleFileChange}
+                    />
                 ) : (
-                    <div className={styles.previewContainer}>
-                        <div className={styles.previewImageWrapper}>
-                            <Image src={uploadedImage} alt="Preview" fill className={styles.previewImage} unoptimized style={{ objectFit: 'contain' }} />
-                        </div>
-                        <button className={styles.removeBtn} onClick={handleRemoveImage}>
-                            <X size={20} />
-                        </button>
-                    </div>
+                    <PhotoPreview 
+                        imageUrl={uploadedImage} 
+                        onRemove={handleRemoveImage} 
+                    />
                 )}
             </div>
 
@@ -150,10 +185,10 @@ export default function PhotoUploadForm() {
             <div className={styles.footer}>
                 <button
                     className={styles.addToCartBtn}
-                    disabled={!uploadedImage}
+                    disabled={!uploadedImage || isUploading}
                     onClick={handleAddToCart}
                 >
-                    Savatga qo'shish
+                    {isUploading ? 'Yuklanmoqda...' : 'Savatga qo\'shish'}
                 </button>
             </div>
         </div>

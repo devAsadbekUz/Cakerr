@@ -21,7 +21,9 @@
     "next": "16.0.10",
     "openai": "^6.25.0",
     "react": "19.2.1",
-    "react-dom": "19.2.1"
+    "react-dom": "19.2.1",
+    "xlsx": "^0.18.5",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/canvas-confetti": "^1.9.0",

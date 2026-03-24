@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
+import { createClient as createServerClient } from '@/app/utils/supabase/server';
 
 /**
  * Verified Telegram user data extracted from initData
@@ -163,17 +164,15 @@ export function verifyTelegramRequest(request: Request): VerifiedTelegramUser | 
  */
 export async function getVerifiedUserId(request: Request): Promise<string | null> {
     const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
+        process.env.NEXT_PUBLIC_SUPABASE_URL!.trim(),
+        process.env.SUPABASE_SERVICE_ROLE_KEY!.trim()
     );
 
     // 1. Try Telegram initData (new preferred mechanism)
     const headerKeys = Array.from(request.headers.keys());
-    console.log('[AUTH] Incoming headers:', headerKeys.join(', '));
 
     const tgUser = verifyTelegramRequest(request);
     if (tgUser) {
-        console.log(`[AUTH] Telegram signature VALID for ${tgUser.telegram_id}. Looking for profile...`);
         const { data, error } = await supabase
             .from('profiles')
             .select('id')
@@ -182,7 +181,6 @@ export async function getVerifiedUserId(request: Request): Promise<string | null
 
         if (error) console.error('[AUTH] Profile lookup DB ERROR:', error.message);
         if (data?.id) {
-            console.log(`[AUTH] SUCCESS: Found profile ${data.id} for Telegram user ${tgUser.telegram_id}`);
             return data.id;
         }
 
@@ -198,7 +196,6 @@ export async function getVerifiedUserId(request: Request): Promise<string | null
     const token = authHeader?.replace('Bearer ', '');
 
     if (token) {
-        console.log('[AUTH] Attempting legacy token verification...');
         const { data, error } = await supabase
             .from('telegram_sessions')
             .select('profile_id, expires_at')
@@ -208,13 +205,23 @@ export async function getVerifiedUserId(request: Request): Promise<string | null
         if (error) console.error('[AUTH] Legacy session DB ERROR:', error.message);
 
         if (data && new Date(data.expires_at) > new Date()) {
-            console.log(`[AUTH] SUCCESS: Found valid legacy session for profile ${data.profile_id}`);
             return data.profile_id;
         } else if (data) {
             console.error(`[AUTH] FAIL: Legacy session found for ${data.profile_id} but it is EXPIRED.`);
         } else {
             console.error('[AUTH] FAIL: Legacy token not found in database.');
         }
+    }
+
+    // 3. Try standard Supabase Auth (Cookies) for standard web users
+    try {
+        const serverSupabase = await createServerClient();
+        const { data: { user } } = await serverSupabase.auth.getUser();
+        if (user) {
+            return user.id;
+        }
+    } catch (err: any) {
+        console.error('[AUTH] Supabase server client error:', err.message);
     }
 
     return null;

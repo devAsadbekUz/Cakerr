@@ -44,7 +44,8 @@ function SuccessContent() {
             setLoading(true);
             try {
                 const response = await fetch(`/api/user/orders/${orderId}`, {
-                    headers: getAuthHeader()
+                    headers: getAuthHeader(),
+                    credentials: 'include'
                 });
 
                 if (response.ok) {
@@ -75,13 +76,11 @@ function SuccessContent() {
                     filter: `id=eq.${orderId}`
                 },
                 (payload: any) => {
-                    console.log('[Realtime] Order updated:', payload);
                     // Re-fetch the full order including items when an update occurs
                     fetchOrder();
                 }
             )
             .subscribe((status: string) => {
-                console.log('[Realtime] Subscription status:', status);
             });
 
         return () => {

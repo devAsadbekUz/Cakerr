@@ -14,7 +14,7 @@ function MapContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const editId = searchParams.get('edit');
-    const { setDeliveryAddress, addSavedAddress, savedAddresses, updateSavedAddress } = useCart();
+    const { setDeliveryAddress, setDeliveryCoords, addSavedAddress, savedAddresses, updateSavedAddress } = useCart();
     const mapRef = useRef<HTMLDivElement>(null);
     const [map, setMap] = useState<any>(null);
     const [marker, setMarker] = useState<any>(null);
@@ -95,6 +95,7 @@ function MapContent() {
         }
 
         const latlng = marker.getLatLng();
+        setDeliveryCoords({ lat: latlng.lat, lng: latlng.lng });
 
         if (editId) {
             updateSavedAddress(editId, {

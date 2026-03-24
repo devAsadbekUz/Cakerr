@@ -15,13 +15,18 @@ interface AddressesModalProps {
 }
 
 export default function AddressesModal({ isOpen, onClose, onSelect, onNewAddress, onEdit }: AddressesModalProps) {
-    const { savedAddresses, setDeliveryAddress, removeSavedAddress } = useCart();
+    const { savedAddresses, setDeliveryAddress, setDeliveryCoords, removeSavedAddress } = useCart();
     const router = useRouter();
 
     if (!isOpen) return null;
 
     const handleSelect = (addr: SavedAddress) => {
         setDeliveryAddress(addr.address);
+        if (addr.lat && addr.lng) {
+            setDeliveryCoords({ lat: addr.lat, lng: addr.lng });
+        } else {
+            setDeliveryCoords(null);
+        }
         if (onSelect) onSelect(addr);
         onClose();
     };

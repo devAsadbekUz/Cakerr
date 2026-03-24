@@ -195,6 +195,7 @@ export async function POST(request: NextRequest) {
                     id,
                     telegram_message_id, 
                     telegram_chat_id, 
+                    client_tg_message_id,
                     delivery_address, 
                     delivery_time, 
                     delivery_slot,
@@ -232,17 +233,47 @@ export async function POST(request: NextRequest) {
             // Notify the client directly if they have a telegram_id linked
             const profile = Array.isArray(order.profiles) ? order.profiles[0] : order.profiles;
             if (profile?.telegram_id) {
-                const clientMessage = `🍰 *Buyurtma holati yangilandi*\n\nHurmatli mijoz, sizning #${order.id.slice(0,8)} raqamli buyurtmangiz holati o'zgardi:\n\n*${statusLabel}*\n_${statusConfig.desc}_`;
-                
-                await fetch(`${TELEGRAM_API}/sendMessage`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        chat_id: profile.telegram_id,
-                        text: clientMessage,
-                        parse_mode: 'Markdown'
-                    })
-                });
+                // 1. Delete previous message if it exists
+                if (order.client_tg_message_id) {
+                    await fetch(`${TELEGRAM_API}/deleteMessage`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chat_id: profile.telegram_id,
+                            message_id: order.client_tg_message_id
+                        })
+                    }).catch(err => console.error('[Telegram Webhook] Delete client msg error:', err));
+                }
+
+                // 2. If not terminal (confirmed, preparing, ready, delivering), send new ping
+                const isTerminal = ['completed', 'cancelled'].includes(newStatus);
+                if (!isTerminal) {
+                    const clientMessage = `🍰 *Buyurtma holati yangilandi*\n\nHurmatli mijoz, sizning #${order.id.slice(0, 8)} raqamli buyurtmangiz holati o'zgardi:\n\n*${statusConfig.label}*\n_${statusConfig.desc}_`;
+
+                    const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chat_id: profile.telegram_id,
+                            text: clientMessage,
+                            parse_mode: 'Markdown'
+                        })
+                    });
+                    const result = await res.json();
+                    if (result.ok) {
+                        // Save new message ID for next cleanup
+                        await supabase
+                            .from('orders')
+                            .update({ client_tg_message_id: result.result.message_id })
+                            .eq('id', orderId);
+                    }
+                } else {
+                    // Clear tracking on terminal
+                    await supabase
+                        .from('orders')
+                        .update({ client_tg_message_id: null })
+                        .eq('id', orderId);
+                }
             }
 
             await answerCallback(update.callback_query.id, `Yangilandi: ${statusLabel}`, TELEGRAM_API);

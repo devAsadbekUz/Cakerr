@@ -59,7 +59,7 @@
     font-weight: 600;
     white-space: nowrap;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s;
 }
 
 .filterBtnActive {

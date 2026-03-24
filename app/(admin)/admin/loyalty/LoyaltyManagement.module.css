@@ -91,7 +91,7 @@
     font-size: 16px;
     font-weight: 600;
     outline: none;
-    transition: all 0.2s;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s;
 }
 
 .input:focus {
@@ -115,7 +115,7 @@
     border-radius: 12px;
     font-weight: 700;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s;
 }
 
 .saveBtn:hover {
@@ -232,7 +232,7 @@
     font-weight: 600;
     color: #6B7280;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s;
 }
 
 .tab:hover {

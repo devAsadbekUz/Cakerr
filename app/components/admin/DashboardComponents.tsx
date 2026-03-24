@@ -238,22 +238,21 @@ export function OrderDetailsModal({ order, onClose, onUpdate }: { order: any, on
                             <div className={styles.infoLabel}>Yetkazib berish</div>
                             <div style={{ fontSize: '15px', color: '#374151', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                                 <MapPinned size={18} color="#BE185D" />
-                                <span>{order.delivery_address?.street || 'Manzil kiritilmagan'}{order.delivery_address?.apartment ? `, ${order.delivery_address.apartment}` : ''}</span>
-                                {order.delivery_address?.lat && order.delivery_address?.lng && (
+                                {order.delivery_address?.lat && order.delivery_address?.lng ? (
                                     <a
                                         href={`https://www.google.com/maps?q=${order.delivery_address.lat},${order.delivery_address.lng}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         style={{
-                                            color: '#0EA5E9',
-                                            fontSize: '14px',
+                                            color: '#3B82F6', // Blue link
                                             fontWeight: 600,
-                                            textDecoration: 'underline',
-                                            marginLeft: '4px'
+                                            textDecoration: 'none'
                                         }}
                                     >
-                                        joylashuvni ko'rish
+                                        {order.delivery_address?.street || 'Manzil kiritilmagan'}{order.delivery_address?.apartment ? `, ${order.delivery_address.apartment}` : ''}
                                     </a>
+                                ) : (
+                                    <span>{order.delivery_address?.street || 'Manzil kiritilmagan'}{order.delivery_address?.apartment ? `, ${order.delivery_address.apartment}` : ''}</span>
                                 )}
                             </div>
                             <div style={{ fontSize: '14px', color: '#6B7280', marginTop: '4px' }}>

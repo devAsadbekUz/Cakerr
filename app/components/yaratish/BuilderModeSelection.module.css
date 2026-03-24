@@ -33,7 +33,7 @@
     border-radius: 20px;
     border: 2px solid transparent;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.3s ease;
     cursor: pointer;
     text-align: center;
 }

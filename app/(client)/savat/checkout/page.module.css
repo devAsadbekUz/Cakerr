@@ -42,7 +42,7 @@
 
 .clickableCard {
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s ease;
 }
 
 .clickableCard:active {
@@ -129,7 +129,7 @@
     color: #1F2937;
     text-align: center;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s ease;
 }
 
 .timeSlotActive {
@@ -202,7 +202,7 @@
     justify-content: space-between;
     gap: 12px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s ease;
     background-color: #FFFFFF;
     min-height: 120px;
 }
@@ -274,7 +274,7 @@
     font-weight: 700;
     margin-top: 20px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s ease;
 }
 
 .confirmBtn:active {

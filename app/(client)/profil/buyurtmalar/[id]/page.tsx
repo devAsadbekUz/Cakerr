@@ -51,7 +51,8 @@ export default function TrackingPage() {
         try {
             setErrorMsg(null);
             const response = await fetch(`/api/user/orders/${orderId}`, {
-                headers: getAuthHeader()
+                headers: getAuthHeader(),
+                credentials: 'include'
             });
 
             if (!response.ok) {
@@ -89,7 +90,11 @@ export default function TrackingPage() {
                         name: item.name,
                         qty: item.quantity,
                         price: item.unit_price,
-                        image: item.configuration?.uploaded_photo_url || '/images/cake-placeholder.jpg'
+                        image: item.configuration?.uploaded_photo_url || 
+                               item.configuration?.drawing || 
+                               item.configuration?.image_url || 
+                               item.products?.image_url || 
+                               '/images/cake-placeholder.jpg'
                     }))
                 });
             }
@@ -101,12 +106,10 @@ export default function TrackingPage() {
     };
 
     useEffect(() => {
-        console.log('[Realtime] Initializing tracking for:', orderId);
         fetchOrder();
 
         // Fallback: Refresh data periodically in case socket fails
         const pollInterval = setInterval(() => {
-            console.log('[Realtime] Background refresh pulse...');
             fetchOrder();
         }, 5000);
 
@@ -123,7 +126,6 @@ export default function TrackingPage() {
                     filter: `id=eq.${orderId}`
                 },
                 (payload: any) => {
-                    console.log('[Realtime] Order updated, re-fetching data:', payload.new.status);
                     // Instead of manual state updates, we re-fetch the whole order
                     // This ensures items, address, and status are all perfectly in sync
                     fetchOrder();
@@ -131,7 +133,6 @@ export default function TrackingPage() {
             )
             .subscribe((status: string) => {
                 setRealtimeStatus(status);
-                console.log('[Realtime] Subscription Status:', status);
 
                 if (status === 'CHANNEL_ERROR') {
                     console.error('[Realtime] Socket failed. Falling back to background polling.');
@@ -139,7 +140,6 @@ export default function TrackingPage() {
             });
 
         return () => {
-            console.log('[Component] Cleanup Tracking:', orderId);
             clearInterval(pollInterval);
             supabase.removeChannel(channel);
         };

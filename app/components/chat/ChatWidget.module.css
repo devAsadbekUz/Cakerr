@@ -268,7 +268,7 @@
     color: hsl(340, 82%, 42%);
     font-size: 12px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s ease;
     white-space: nowrap;
 }
 

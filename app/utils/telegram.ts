@@ -98,12 +98,14 @@ export function getAuthHeader(): Record<string, string> {
     const headers: Record<string, string> = {};
 
     // 1. Add Telegram initData if we are in the bot
-    const initData = getTelegramInitData();
+    // We try to get it directly from window to be as fresh as possible
+    const initData = typeof window !== 'undefined' ? window.Telegram?.WebApp?.initData : null;
     if (initData) {
         headers['X-Telegram-Init-Data'] = initData;
     }
 
     // 2. Add legacy Bearer token if we have a stored session
+    // This is useful for browser testing or if initData fails
     const session = getStoredSession();
     if (session?.token) {
         headers['Authorization'] = `Bearer ${session.token}`;

@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getVerifiedUserId } from '@/app/utils/telegram-auth';
+import { z } from 'zod';
+
+const UpdateProfileSchema = z.object({
+    full_name: z.string().min(1).optional(),
+    phone_number: z.string().min(5).optional(),
+}).refine(data => data.full_name || data.phone_number, {
+    message: "At least one field (full_name or phone_number) is required"
+});
 
 /**
  * POST /api/user/profile
@@ -19,52 +27,45 @@ export async function POST(request: NextRequest) {
     );
 
     try {
-        const body = await request.json();
-        const { full_name } = body;
-
-        console.log(`[Profile API] Request body:`, JSON.stringify(body));
-
-        if (!full_name) {
-            return NextResponse.json({ error: 'Full name is required' }, { status: 400 });
+        const raw = await request.json();
+        const parsed = UpdateProfileSchema.safeParse(raw);
+        if (!parsed.success) {
+            return NextResponse.json({ error: 'Invalid profile data', details: parsed.error.flatten() }, { status: 400 });
         }
-
-        console.log(`[Profile API] Updating profile for: ${userId}, New Name: ${full_name}`);
+        const { full_name, phone_number } = parsed.data;
 
         // 1. Update the profiles table
+        const updates: any = {
+            updated_at: new Date().toISOString()
+        };
+        if (full_name) updates.full_name = full_name;
+        if (phone_number !== undefined) updates.phone_number = phone_number;
+
         const { data: profile, error: dbError } = await supabase
             .from('profiles')
-            .update({
-                full_name,
-                updated_at: new Date().toISOString()
-            })
+            .update(updates)
             .eq('id', userId)
             .select()
             .single();
 
-        if (dbError) {
-            console.error('[Profile API] Database update error:', dbError);
-            throw dbError;
-        }
-
-        console.log('[Profile API] Database update success:', profile.id);
+        if (dbError) throw dbError;
 
         // 2. Try to update Auth Metadata if it's a Supabase user
         try {
-            const { error: authErr } = await supabase.auth.admin.updateUserById(userId, {
-                user_metadata: { full_name }
-            });
-            if (authErr) {
-                console.log(`[Profile API] Auth metadata update error (expected for non-auth users):`, authErr.message);
-            } else {
-                console.log('[Profile API] Auth metadata update success');
+            const authMetadata: any = {};
+            if (full_name) authMetadata.full_name = full_name;
+
+            if (Object.keys(authMetadata).length > 0) {
+                await supabase.auth.admin.updateUserById(userId, {
+                    user_metadata: authMetadata
+                });
             }
-        } catch (err: any) {
-            console.log(`[Profile API] Auth metadata skip/fail for ${userId}:`, err.message);
+        } catch (err) {
+            // Auth update is non-critical for mini-app flow
         }
 
         return NextResponse.json({ success: true, user: profile });
     } catch (error: any) {
-        console.error('[Profile API] error:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

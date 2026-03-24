@@ -39,6 +39,46 @@
     }
 }
 
+.filterBar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 24px;
+    gap: 8px;
+}
+
+@media (max-width: 640px) {
+    .filterBar {
+        justify-content: flex-start;
+        overflow-x: auto;
+        padding-bottom: 8px;
+        margin-bottom: 16px;
+    }
+}
+
+.filterBtn {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid #E5E7EB;
+    background: white;
+    color: #4B5563;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.filterBtn:hover {
+    background: #F9FAFB;
+    border-color: #D1D5DB;
+}
+
+.filterBtnActive {
+    background: #BE185D;
+    border-color: #BE185D;
+    color: white;
+}
+
 .viewToggle {
     display: flex;
     background: #F3F4F6;
@@ -55,7 +95,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    transition: all 0.2s;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s;
     background: transparent;
     color: #6B7280;
 }
@@ -90,7 +130,7 @@
     margin-bottom: 40px;
     padding: 16px;
     border-radius: 24px;
-    transition: all 0.3s ease;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.3s ease;
 }
 
 .sectionHighlight {
@@ -219,7 +259,7 @@
     justify-content: center;
     cursor: pointer;
     color: #6B7280;
-    transition: all 0.2s;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s;
 }
 
 .customerCard {
@@ -284,7 +324,7 @@
     font-size: 12px;
     font-weight: 700;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s;
 }
 
 .miniBtn:hover {
@@ -387,7 +427,7 @@
     background: #FCE7F3;
     border-radius: 12px 12px 4px 4px;
     position: relative;
-    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     justify-content: center;
 }
@@ -520,7 +560,7 @@
     background: white;
     border-radius: 14px;
     border: 1px solid #F3F4F6;
-    transition: all 0.2s;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s;
 }
 
 .statusCard:hover {
@@ -620,7 +660,7 @@
     padding: 10px 4px;
     border-radius: 12px;
     text-align: center;
-    transition: all 0.2s;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s;
     cursor: default;
 }
 

@@ -8,7 +8,7 @@ export const productService = {
 
         const { data, error } = await supabase
             .from('products')
-            .select('id, title, subtitle, description, base_price, image_url, category_id, is_available, is_ready, variants, details')
+            .select('id, title, subtitle, description, base_price, image_url, images, category_id, is_available, is_ready, variants, details')
             .eq('is_available', true)
             .is('deleted_at', null)
             .order('created_at', { ascending: false });
@@ -33,6 +33,7 @@ export const productService = {
             categoryId: item.category_id,
             is_available: item.is_available,
             is_ready: item.is_ready || false,
+            images: Array.isArray(item.images) ? item.images : (item.image_url ? [item.image_url] : []),
             variants: Array.isArray(item.variants) ? item.variants : [],
             details: item.details
         }));
@@ -53,6 +54,7 @@ export const productService = {
             return filtered.map((item: any) => ({
                 ...item,
                 image: item.image_url,
+                images: Array.isArray(item.images) ? item.images : (item.image_url ? [item.image_url] : []),
                 price: item.base_price,
                 is_ready: item.is_ready || false
             }));

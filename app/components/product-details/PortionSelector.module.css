@@ -40,7 +40,7 @@
     border: 2px solid #F3F4F6;
     border-radius: 16px;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .card:hover {

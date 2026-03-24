@@ -10,6 +10,7 @@ import {
     clearSession,
     TelegramSession
 } from '@/app/utils/telegram';
+import { TELEGRAM_CONFIG } from '@/app/utils/telegramConfig';
 
 interface TelegramUser {
     id: string;
@@ -56,7 +57,6 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
 
                 const initData = getTelegramInitData();
                 if (initData && isMounted) {
-                    console.log('[TelegramContext] Auth via initData');
                     fetch('/api/user/me', {
                         method: 'GET',
                         headers: { 'X-Telegram-Init-Data': initData }
@@ -89,7 +89,6 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
                 if (checkTelegram() || retryCount >= maxRetries) {
                     clearInterval(interval);
                     if (retryCount >= maxRetries) {
-                        console.log('[TelegramContext] Not in Telegram or script failed');
                         // Not in Telegram - check for legacy session
                         const stored = getStoredSession();
                         if (stored && isMounted) {
@@ -111,7 +110,7 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
 
     const login = useCallback(async () => {
         if (!isTelegramWebApp()) {
-            window.location.href = 'https://t.me/moida_zakaz_bot';
+            window.location.href = TELEGRAM_CONFIG.botLink;
             return;
         }
 

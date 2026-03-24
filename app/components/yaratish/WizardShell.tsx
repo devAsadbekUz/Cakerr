@@ -85,8 +85,8 @@ export default function WizardShell() {
         const total = calculateTotal();
 
         const item: any = {
-            id: `custom-${Date.now()}`,
-            productId: 'custom-cake-id',
+            id: '00000000-0000-0000-0000-000000000000',
+            productId: '00000000-0000-0000-0000-000000000000',
             name: 'Maxsus tort',
             price: total,
             quantity: 1,

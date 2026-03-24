@@ -1,20 +1,26 @@
 'use client';
 
-import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
+import React, { useState, useEffect, useRef, ChangeEvent, createContext, useContext } from 'react';
 import Header from '@/app/components/layout/Header';
 import ContactSheet from '@/app/components/home/ContactSheet';
+import { Product } from '@/app/types';
 
 interface HomepageShellProps {
     categories: any[];
+    productsByCategory: Record<string, Product[]>;
     children: React.ReactNode;
 }
 
-export default function HomepageShell({ categories, children }: HomepageShellProps) {
+// Context for efficient search consumption
+const SearchContext = createContext({ searchTerm: '' });
+export const useSearch = () => useContext(SearchContext);
+
+export default function HomepageShell({ categories, productsByCategory, children }: HomepageShellProps) {
     const [searchTerm, setSearchTerm] = useState('');
     const [activeCategory, setActiveCategory] = useState(categories[0]?.id || '');
     const [isContactOpen, setIsContactOpen] = useState(false);
     const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
-    const [lastScrollY, setLastScrollY] = useState(0);
+    const lastScrollY = useRef(0);
     const isScrollingRef = useRef(false);
 
     // --- Category click → smooth scroll ---
@@ -23,7 +29,7 @@ export default function HomepageShell({ categories, children }: HomepageShellPro
         isScrollingRef.current = true;
         const element = document.getElementById(`category-${id}`);
         if (element) {
-            const headerOffset = 220;
+            const headerOffset = isHeaderCollapsed ? 120 : 250;
             const elementPosition = element.getBoundingClientRect().top;
             const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
 
@@ -32,72 +38,65 @@ export default function HomepageShell({ categories, children }: HomepageShellPro
                 behavior: 'smooth'
             });
 
+            // Re-enable scroll spy after animation
             setTimeout(() => {
                 isScrollingRef.current = false;
-            }, 1000);
+            }, 800);
         }
     };
 
-    // --- Scroll-spy: update active category + collapse header ---
+    // --- IntersectionObserver for Scroll-Spy (Performance optimized) ---
+    useEffect(() => {
+        if (categories.length === 0) return;
+
+        const observerOptions = {
+            root: null,
+            rootMargin: '-20% 0px -70% 0px', // Trigger when section is in the upper middle
+            threshold: 0
+        };
+
+        const observerCallback = (entries: IntersectionObserverEntry[]) => {
+            if (isScrollingRef.current) return;
+
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    const id = entry.target.id.replace('category-', '');
+                    setActiveCategory(id);
+                }
+            });
+        };
+
+        const observer = new IntersectionObserver(observerCallback, observerOptions);
+
+        categories.forEach((cat) => {
+            const el = document.getElementById(`category-${cat.id}`);
+            if (el) observer.observe(el);
+        });
+
+        return () => observer.disconnect();
+    }, [categories]);
+
+    // --- Header Collapse logic ---
     useEffect(() => {
         const handleScroll = () => {
             const currentScrollY = window.scrollY;
-            if (currentScrollY > lastScrollY && currentScrollY > 150) {
-                setIsHeaderCollapsed(true);
-            } else if (currentScrollY < lastScrollY) {
-                setIsHeaderCollapsed(false);
+            
+            // Simple threshold-based collapse for better performance than continuous delta checks
+            if (currentScrollY > 150) {
+                if (!isHeaderCollapsed) setIsHeaderCollapsed(true);
+            } else {
+                if (isHeaderCollapsed) setIsHeaderCollapsed(false);
             }
-            setLastScrollY(currentScrollY);
-
-            if (isScrollingRef.current) return;
-            if (categories.length === 0) return;
-
-            const categoryElements = categories.filter(c => c.id !== 'custom').map(c => ({
-                id: c.id,
-                element: document.getElementById(`category-${c.id}`)
-            }));
-
-            const scrollPosition = currentScrollY + (isHeaderCollapsed ? 120 : 250);
-            for (const section of categoryElements) {
-                if (section.element) {
-                    const { offsetTop, offsetHeight } = section.element;
-                    if (scrollPosition >= offsetTop && scrollPosition < offsetTop + offsetHeight) {
-                        setActiveCategory(section.id);
-                        break;
-                    }
-                }
-            }
+            
+            lastScrollY.current = currentScrollY;
         };
 
         window.addEventListener('scroll', handleScroll, { passive: true });
         return () => window.removeEventListener('scroll', handleScroll);
-    }, [categories, lastScrollY, isHeaderCollapsed]);
-
-    // --- Search: hide/show category sections via CSS ---
-    useEffect(() => {
-        const term = searchTerm.toLowerCase();
-        categories.filter(c => c.id !== 'custom').forEach(cat => {
-            const section = document.getElementById(`category-${cat.id}`);
-            if (!section) return;
-
-            // Find all product cards within this section
-            const cards = section.querySelectorAll('[data-product-title]');
-            let visibleCount = 0;
-
-            cards.forEach(card => {
-                const title = (card.getAttribute('data-product-title') || '').toLowerCase();
-                const match = !term || title.includes(term);
-                (card as HTMLElement).style.display = match ? '' : 'none';
-                if (match) visibleCount++;
-            });
-
-            // Hide entire section if no products match
-            (section as HTMLElement).style.display = visibleCount > 0 ? '' : 'none';
-        });
-    }, [searchTerm, categories]);
+    }, [isHeaderCollapsed]);
 
     return (
-        <>
+        <SearchContext.Provider value={{ searchTerm }}>
             <Header
                 searchTerm={searchTerm}
                 onSearchChange={(e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
@@ -120,6 +119,6 @@ export default function HomepageShell({ categories, children }: HomepageShellPro
             )}
 
             <ContactSheet isOpen={isContactOpen} onClose={() => setIsContactOpen(false)} />
-        </>
+        </SearchContext.Provider>
     );
 }

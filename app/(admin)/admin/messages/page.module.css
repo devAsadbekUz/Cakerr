@@ -38,7 +38,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    transition: all 0.2s;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s;
     background: transparent;
     color: #6B7280;
 }
@@ -89,7 +89,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    transition: all 0.2s;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s;
     background: white;
     color: #374151;
     flex: 1;
@@ -271,7 +271,7 @@
     font-size: 16px;
     background: linear-gradient(135deg, #BE185D, #EC4899);
     color: white;
-    transition: all 0.3s;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.3s;
     box-shadow: 0 4px 15px rgba(190, 24, 93, 0.3);
 }
 
@@ -365,7 +365,7 @@
     font-size: 15px;
     background: white;
     color: #6B7280;
-    transition: all 0.2s;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s;
 }
 
 .btnCancel:hover {
@@ -383,7 +383,7 @@
     font-size: 15px;
     background: linear-gradient(135deg, #BE185D, #EC4899);
     color: white;
-    transition: all 0.2s;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s;
 }
 
 .btnConfirm:hover {
@@ -431,7 +431,7 @@
     border-radius: 20px;
     padding: 20px;
     border: 1px solid #E5E7EB;
-    transition: all 0.2s;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s;
 }
 
 .historyCard:hover {
@@ -554,7 +554,7 @@
     border-radius: 14px;
     border: 2px solid #E5E7EB;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s;
     background: white;
 }
 

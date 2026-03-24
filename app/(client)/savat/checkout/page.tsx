@@ -9,7 +9,7 @@ import CalendarModal from '@/app/components/checkout/CalendarModal';
 import AddressesModal from '@/app/components/checkout/AddressesModal';
 import SuccessModal from '@/app/components/checkout/SuccessModal';
 import { useSupabase } from '@/app/context/SupabaseContext';
-import { useTelegram } from '@/app/context/TelegramContext';
+import { getAuthHeader } from '@/app/utils/telegram';
 import { createClient } from '@/app/utils/supabase/client';
 import { availabilityService } from '@/app/services/availabilityService';
 import { format } from 'date-fns';
@@ -18,9 +18,8 @@ import { format } from 'date-fns';
 
 export default function CheckoutPage() {
     const router = useRouter();
-    const { cart, subtotal, totalItems, deliveryAddress, clearCart, savedAddresses } = useCart();
-    const { user, isTelegramUser } = useSupabase();
-    const { getAuthHeader } = useTelegram();
+    const { cart, subtotal, totalItems, deliveryAddress, deliveryCoords, clearCart, savedAddresses } = useCart();
+    const { user } = useSupabase();
     const supabase = createClient();
 
     const [isAddressesOpen, setIsAddressesOpen] = useState(false);
@@ -108,16 +107,12 @@ export default function CheckoutPage() {
         setIsSubmitting(true);
 
         try {
-            // Find the selected address coordinates
-            const selectedAddr = savedAddresses.find(a => a.address === deliveryAddress);
-
             const orderData = {
                 total_price: total,
                 delivery_address: {
-                    label: selectedAddr?.label || 'Address',
                     street: deliveryAddress,
-                    lat: selectedAddr?.lat || null,
-                    lng: selectedAddr?.lng || null,
+                    lat: deliveryCoords?.lat || null,
+                    lng: deliveryCoords?.lng || null,
                 },
                 delivery_time: selectedDateObj ? selectedDateObj.toISOString() : new Date().toISOString(),
                 delivery_slot: selectedSlot,
@@ -126,7 +121,8 @@ export default function CheckoutPage() {
             };
 
             const orderItems = cart.map(item => {
-                const isCustom = item.id.startsWith('custom-') || item.configuration?.pricing_type === 'hybrid';
+                const CUSTOM_CAKE_UUID = '00000000-0000-0000-0000-000000000000';
+                const isCustom = item.id === CUSTOM_CAKE_UUID || item.configuration?.pricing_type === 'hybrid';
 
                 return {
                     product_id: isCustom ? null : item.id,
@@ -146,7 +142,6 @@ export default function CheckoutPage() {
 
             // Use API for ALL users (bypasses RLS, handles both Telegram and browser auth)
             const authHeaders = getAuthHeader();
-            console.log('[Checkout] Sending headers:', Object.keys(authHeaders).join(', '));
 
             const response = await fetch('/api/user/orders', {
                 method: 'POST',
@@ -154,6 +149,7 @@ export default function CheckoutPage() {
                     'Content-Type': 'application/json',
                     ...authHeaders
                 },
+                credentials: 'include',
                 body: JSON.stringify({
                     order: orderData,
                     items: orderItems,
@@ -180,8 +176,8 @@ export default function CheckoutPage() {
                     ? `${selectedDateObj.getDate()}-${monthNames[selectedDateObj.getMonth()]}`
                     : 'Noma\'lum';
 
-                const locationUrl = selectedAddr?.lat && selectedAddr?.lng
-                    ? `https://www.google.com/maps?q=${selectedAddr.lat},${selectedAddr.lng}`
+                const locationUrl = deliveryCoords?.lat && deliveryCoords?.lng
+                    ? `https://www.google.com/maps?q=${deliveryCoords.lat},${deliveryCoords.lng}`
                     : undefined;
 
                 await fetch('/api/telegram/send', {

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronDown, Phone, MessageCircle, Package, CreditCard, Truck, User } from 'lucide-react';
+import { TELEGRAM_CONFIG } from '@/app/utils/telegramConfig';
 import styles from './page.module.css';
 
 interface FAQItem {
@@ -70,13 +71,13 @@ export default function HelpCenterPage() {
                             <p>+998 90 123 45 67</p>
                         </div>
                     </a>
-                    <a href="https://t.me/cakerr_support" target="_blank" rel="noopener noreferrer" className={styles.contactCard}>
+                    <a href={TELEGRAM_CONFIG.supportLink} target="_blank" rel="noopener noreferrer" className={styles.contactCard}>
                         <div className={`${styles.contactIcon} ${styles.telegram}`}>
                             <MessageCircle size={24} />
                         </div>
                         <div className={styles.contactInfo}>
                             <h3>Telegram</h3>
-                            <p>@cakerr_support</p>
+                            <p>@{TELEGRAM_CONFIG.botUsername}</p>
                         </div>
                     </a>
                 </div>

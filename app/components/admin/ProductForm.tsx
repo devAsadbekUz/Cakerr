@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Loader2, Save, Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, X, Loader2, Save } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import ImageUpload from '@/app/components/admin/ImageUpload';
+import MultiImageUpload from '@/app/components/admin/MultiImageUpload';
 import { Product } from '@/app/types';
 import { adminInsert, adminUpdate } from '@/app/utils/adminApi';
 
@@ -21,7 +21,7 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
     const [description, setDescription] = useState('');
     const [basePrice, setBasePrice] = useState<number | string>(0);
     const [categoryId, setCategoryId] = useState('');
-    const [imageUrl, setImageUrl] = useState('');
+    const [images, setImages] = useState<string[]>([]);
 
     // Variants State: [{ label: '1.5 kg', value: '1.5 kg', price: 250000 }]
     const [variants, setVariants] = useState<{ label: string; value: string; price: number | string }[]>([]);
@@ -54,7 +54,11 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
             setDescription(product.description || '');
             setBasePrice(product.base_price || 0);
             setCategoryId(product.category_id || product.categoryId || ''); // Handle flexible naming if needed
-            setImageUrl(product.image_url || '');
+            
+            // Handle image migration/population
+            const productImages = Array.isArray(product.images) ? product.images : (product.image_url ? [product.image_url] : []);
+            setImages(productImages);
+
             setVariants(Array.isArray(product.variants) ? product.variants.map((v: any) => ({
                 ...v,
                 value: v.value || v.label || '', // Ensure value exists
@@ -82,7 +86,7 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
         setDescription('');
         setBasePrice(0);
         setCategoryId(categories.length > 0 ? categories[0].id : '');
-        setImageUrl('');
+        setImages([]);
         setVariants([]);
         setShapes('');
         setFlavors('');
@@ -138,7 +142,8 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
             price: Number(basePrice), // Keep redundant for now
             category_id: categoryId,
             category: categoryLabel, // Denormalize for easier client reading
-            image_url: imageUrl,
+            image_url: images.length > 0 ? images[0] : '', // Sync primary image for legacy support
+            images: images,
             variants: variants.map(v => ({ ...v, price: Number(v.price) })),
             details: {
                 shapes: shapes.split(',').map(s => s.trim()).filter(Boolean),
@@ -262,9 +267,9 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
 
                         <div style={{ marginBottom: '16px' }}>
                             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>
-                                Rasm (Image)
+                                Mahsulot rasmlari (Gallery)
                             </label>
-                            <ImageUpload value={imageUrl} onChange={setImageUrl} />
+                            <MultiImageUpload value={images} onChange={setImages} />
                         </div>
 
                         <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px', background: '#F9FAFB', padding: '12px', borderRadius: '10px' }}>

@@ -1,26 +1,24 @@
-import { createClient } from '@/app/utils/supabase/client';
 import { UserAddress } from '@/app/types';
+import { getAuthHeader } from '@/app/utils/telegram';
+
+const API_BASE = '/api/user/addresses';
 
 export const addressService = {
     async getUserAddresses(): Promise<UserAddress[]> {
-        const supabase = createClient();
         try {
-            const { data: { user } } = await supabase.auth.getUser();
+            const response = await fetch(API_BASE, {
+                headers: getAuthHeader(),
+                credentials: 'include'
+            });
 
-            if (!user) return [];
-
-            const { data, error } = await supabase
-                .from('addresses')
-                .select('*')
-                .order('is_default', { ascending: false })
-                .order('created_at', { ascending: false });
-
-            if (error) {
-                console.error('Error fetching addresses (DB Error):', error.message, '| Code:', error.code);
+            if (!response.ok) {
+                const errData = await response.json();
+                console.error('Error fetching addresses:', errData.error);
                 return [];
             }
 
-            return data || [];
+            const data = await response.json();
+            return data.addresses || [];
         } catch (err: any) {
             console.error('Error fetching addresses (Runtime):', err.message || err);
             return [];
@@ -28,60 +26,94 @@ export const addressService = {
     },
 
     async addAddress(address: Omit<UserAddress, 'id' | 'user_id'>): Promise<{ data: any; error: any }> {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
+        try {
+            const response = await fetch(API_BASE, {
+                method: 'POST',
+                headers: {
+                    ...getAuthHeader(),
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify(address)
+            });
 
-        if (!user) return { data: null, error: new Error('User not authenticated') };
+            const result = await response.json();
+            if (!response.ok) {
+                return { data: null, error: new Error(result.error || 'Failed to add address') };
+            }
 
-        const { data, error } = await supabase
-            .from('addresses')
-            .insert([{ ...address, user_id: user.id }])
-            .select()
-            .single();
-
-        return { data, error };
+            return { data: result.address, error: null };
+        } catch (err: any) {
+            return { data: null, error: err };
+        }
     },
 
     async updateAddress(id: string, updates: Partial<UserAddress>): Promise<{ data: any; error: any }> {
-        const supabase = createClient();
-        const { data, error } = await supabase
-            .from('addresses')
-            .update(updates)
-            .eq('id', id)
-            .select()
-            .single();
+        try {
+            const response = await fetch(API_BASE, {
+                method: 'PUT',
+                headers: {
+                    ...getAuthHeader(),
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({ id, ...updates })
+            });
 
-        return { data, error };
+            const result = await response.json();
+            if (!response.ok) {
+                return { data: null, error: new Error(result.error || 'Failed to update address') };
+            }
+
+            return { data: result, error: null };
+        } catch (err: any) {
+            return { data: null, error: err };
+        }
     },
 
     async deleteAddress(id: string): Promise<{ error: any }> {
-        const supabase = createClient();
-        const { error } = await supabase
-            .from('addresses')
-            .delete()
-            .eq('id', id);
+        try {
+            const response = await fetch(API_BASE, {
+                method: 'DELETE',
+                headers: {
+                    ...getAuthHeader(),
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({ id })
+            });
 
-        return { error };
+            const result = await response.json();
+            if (!response.ok) {
+                return { error: new Error(result.error || 'Failed to delete address') };
+            }
+
+            return { error: null };
+        } catch (err: any) {
+            return { error: err };
+        }
     },
 
     async setDefaultAddress(id: string): Promise<{ error: any }> {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
+        try {
+            const response = await fetch(API_BASE, {
+                method: 'PUT',
+                headers: {
+                    ...getAuthHeader(),
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({ id, setDefault: true })
+            });
 
-        if (!user) return { error: new Error('User not authenticated') };
+            const result = await response.json();
+            if (!response.ok) {
+                return { error: new Error(result.error || 'Failed to set default address') };
+            }
 
-        // 1. Unset all defaults for this user
-        await supabase
-            .from('addresses')
-            .update({ is_default: false })
-            .eq('user_id', user.id);
-
-        // 2. Set new default
-        const { error } = await supabase
-            .from('addresses')
-            .update({ is_default: true })
-            .eq('id', id);
-
-        return { error };
+            return { error: null };
+        } catch (err: any) {
+            return { error: err };
+        }
     }
 };

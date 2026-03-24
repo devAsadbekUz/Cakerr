@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getVerifiedUserId } from '@/app/utils/telegram-auth';
+import { z } from 'zod';
+
+const FavoriteSchema = z.object({
+    productId: z.string().uuid(),
+});
 
 /**
  * GET /api/user/favorites
@@ -37,7 +42,6 @@ export async function GET(request: NextRequest) {
             favorites: data?.map(f => f.product_id) || []
         });
     } catch (error: any) {
-        console.error('[Favorites API] GET error:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
@@ -66,7 +70,12 @@ export async function POST(request: NextRequest) {
     );
 
     try {
-        const { productId } = await request.json();
+        const raw = await request.json();
+        const parsed = FavoriteSchema.safeParse(raw);
+        if (!parsed.success) {
+            return NextResponse.json({ error: 'Invalid product id', details: parsed.error.flatten() }, { status: 400 });
+        }
+        const { productId } = parsed.data;
 
         const { error } = await supabase
             .from('favorites')
@@ -79,7 +88,6 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ success: true });
     } catch (error: any) {
-        console.error('[Favorites API] POST error:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
@@ -108,7 +116,12 @@ export async function DELETE(request: NextRequest) {
     );
 
     try {
-        const { productId } = await request.json();
+        const raw = await request.json();
+        const parsed = FavoriteSchema.safeParse(raw);
+        if (!parsed.success) {
+            return NextResponse.json({ error: 'Invalid product id', details: parsed.error.flatten() }, { status: 400 });
+        }
+        const { productId } = parsed.data;
 
         const { error } = await supabase
             .from('favorites')
@@ -120,7 +133,6 @@ export async function DELETE(request: NextRequest) {
 
         return NextResponse.json({ success: true });
     } catch (error: any) {
-        console.error('[Favorites API] DELETE error:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

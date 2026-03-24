@@ -17,6 +17,7 @@ interface DonutChartProps {
 }
 
 export function CategoryDonutChart({ title, data }: DonutChartProps) {
+    const [hoveredIndex, setHoveredIndex] = React.useState<number | null>(null);
     const total = data.reduce((sum, item) => sum + item.value, 0);
 
     // SVG path calculation for donut slices
@@ -27,6 +28,8 @@ export function CategoryDonutChart({ title, data }: DonutChartProps) {
         const y = Math.sin(2 * Math.PI * percent);
         return [x, y];
     };
+
+    const hoveredItem = hoveredIndex !== null ? data[hoveredIndex] : null;
 
     return (
         <div className={styles.chartCard}>
@@ -50,20 +53,42 @@ export function CategoryDonutChart({ title, data }: DonutChartProps) {
                                 d={pathData}
                                 fill={item.color}
                                 className={styles.donutSlice}
+                                onMouseEnter={() => setHoveredIndex(index)}
+                                onMouseLeave={() => setHoveredIndex(null)}
+                                style={{
+                                    transform: hoveredIndex === index ? 'scale(1.05)' : 'scale(1)',
+                                    transformOrigin: '0 0',
+                                    transition: 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                                    cursor: 'pointer',
+                                    opacity: hoveredIndex !== null && hoveredIndex !== index ? 0.6 : 1
+                                }}
                             />
                         );
                     })}
                     <circle cx="0" cy="0" r="0.65" fill="white" />
                 </svg>
                 <div className={styles.donutCenter}>
-                    <div className={styles.totalLabel}>Jami</div>
-                    <div className={styles.totalValue}>{total.toLocaleString()}</div>
+                    <div className={styles.totalLabel}>
+                        {hoveredItem ? hoveredItem.label : 'JAMI'}
+                    </div>
+                    <div className={styles.totalValue} style={{ fontSize: hoveredItem ? '16px' : '20px', color: hoveredItem?.color }}>
+                        {(hoveredItem ? hoveredItem.value : total).toLocaleString()}
+                    </div>
                 </div>
             </div>
 
             <div className={styles.legend}>
                 {data.map((item, index) => (
-                    <div key={index} className={styles.legendItem}>
+                    <div
+                        key={index}
+                        className={styles.legendItem}
+                        onMouseEnter={() => setHoveredIndex(index)}
+                        onMouseLeave={() => setHoveredIndex(null)}
+                        style={{
+                            opacity: hoveredIndex !== null && hoveredIndex !== index ? 0.4 : 1,
+                            transition: 'opacity 0.2s'
+                        }}
+                    >
                         <div className={styles.legendColor} style={{ backgroundColor: item.color }} />
                         <span className={styles.legendLabel}>{item.label}</span>
                         <span className={styles.legendValue}>{item.percent.toFixed(0)}%</span>

@@ -1,8 +1,22 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useSupabase } from './SupabaseContext';
 import { addressService } from '../services/addressService';
+import { cartService } from '../services/cartService';
+
+const mapDBCartItemToCartItem = (dbItem: any): CartItem => ({
+    cartId: dbItem.id,
+    id: dbItem.product_id,
+    name: dbItem.products?.title || 'Mahsulot',
+    price: dbItem.products?.base_price || 0,
+    image: dbItem.products?.image_url || '',
+    portion: dbItem.portion,
+    flavor: dbItem.flavor,
+    quantity: dbItem.quantity,
+    customNote: dbItem.custom_note,
+    configuration: dbItem.configuration
+});
 
 export interface CartItem {
     cartId: string; // Unique ID for each item in cart (to distinguish same product with different options)
@@ -28,14 +42,16 @@ export interface SavedAddress {
 
 interface CartContextType {
     cart: CartItem[];
-    addItem: (item: Omit<CartItem, 'cartId'>) => void;
-    removeItem: (cartId: string) => void;
-    updateQuantity: (cartId: string, quantity: number) => void;
-    clearCart: () => void;
+    addItem: (item: Omit<CartItem, 'cartId'>) => Promise<void>;
+    removeItem: (cartId: string) => Promise<void>;
+    updateQuantity: (cartId: string, quantity: number) => Promise<void>;
+    clearCart: () => Promise<void>;
     totalItems: number;
     subtotal: number;
     deliveryAddress: string;
     setDeliveryAddress: (address: string) => void;
+    deliveryCoords: { lat: number; lng: number } | null;
+    setDeliveryCoords: (coords: { lat: number; lng: number } | null) => void;
     savedAddresses: SavedAddress[];
     addSavedAddress: (address: Omit<SavedAddress, 'id'>) => void;
     updateSavedAddress: (id: string, updates: Partial<SavedAddress>) => void;
@@ -47,6 +63,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: React.ReactNode }) {
     const [cart, setCart] = useState<CartItem[]>([]);
     const [deliveryAddress, setDeliveryAddress] = useState<string>('Toshkent');
+    const [deliveryCoords, setDeliveryCoords] = useState<{ lat: number; lng: number } | null>(null);
     const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
     const [isInitialized, setIsInitialized] = useState(false);
     const { user } = useSupabase();
@@ -62,6 +79,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             const savedAddress = localStorage.getItem('cakerr_address');
             if (savedAddress) setDeliveryAddress(savedAddress);
 
+            const savedCoords = localStorage.getItem('cakerr_coords');
+            if (savedCoords) {
+                try { setDeliveryCoords(JSON.parse(savedCoords)); } catch (e) { console.error(e); }
+            }
+
             const savedList = localStorage.getItem('cakerr_saved_addresses');
             if (savedList) {
                 try { setSavedAddresses(JSON.parse(savedList)); } catch (e) { console.error(e); }
@@ -76,12 +98,57 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
-    // Sync with Database when user logs in
+    // Sync with Database when user status changes
     useEffect(() => {
-        if (isInitialized && user) {
-            fetchDBAddresses();
+        if (isInitialized) {
+            if (user) {
+                fetchDBAddresses();
+                fetchDBCart();
+            } else {
+                // Logout case: Clear state or revert to what's in localstorage?
+                // Re-loading from localStorage is safer to avoid showing previous user's cart
+                const savedCart = localStorage.getItem('cakerr_cart');
+                if (savedCart) {
+                    try { setCart(JSON.parse(savedCart)); } catch (e) { setCart([]); }
+                } else {
+                    setCart([]);
+                }
+            }
         }
     }, [user, isInitialized]);
+
+    const fetchDBCart = async () => {
+        const dbItems = await cartService.getCartItems();
+
+        // If user logged in and has local guest cart, migrate it!
+        if (dbItems.length === 0 && cart.length > 0) {
+            await migrateGuestCart(cart);
+            return;
+        }
+
+        if (dbItems.length > 0) {
+            setCart(dbItems.map(mapDBCartItemToCartItem));
+        }
+    };
+
+    const migrateGuestCart = async (guestCart: CartItem[]) => {
+        for (const item of guestCart) {
+            await cartService.addItem({
+                product_id: item.id,
+                quantity: item.quantity,
+                portion: item.portion,
+                flavor: item.flavor,
+                custom_note: item.customNote,
+                configuration: item.configuration
+            });
+        }
+        // Clear local storage cart
+        localStorage.removeItem('cakerr_cart');
+        
+        // Fetch fresh state from DB
+        const finalItems = await cartService.getCartItems();
+        setCart(finalItems.map(mapDBCartItemToCartItem));
+    };
 
     const fetchDBAddresses = async () => {
         const dbAddresses = await addressService.getUserAddresses();
@@ -109,7 +176,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
             // Auto-select default address if needed
             const defaultAddr = dbAddresses.find(a => a.is_default);
-            if (defaultAddr) setDeliveryAddress(defaultAddr.address_text);
+            if (defaultAddr) {
+                setDeliveryAddress(defaultAddr.address_text);
+                setDeliveryCoords({ lat: Number(defaultAddr.lat), lng: Number(defaultAddr.lng) });
+            }
         }
     };
 
@@ -141,26 +211,63 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         setSavedAddresses(mapped);
     };
 
-    // Save to localStorage on change
+    // Save to localStorage on change with QuotaExceededError protection
     useEffect(() => {
-        localStorage.setItem('cakerr_cart', JSON.stringify(cart));
+        try {
+            localStorage.setItem('cakerr_cart', JSON.stringify(cart));
+        } catch (e: any) {
+            if (e.name === 'QuotaExceededError') {
+                console.error('[CartContext] localStorage quota exceeded');
+                alert('Savatchangiz juda katta (rasmlar ko\'p). Savatcha tarkibi saqlanmasligi mumkin.');
+            } else {
+                console.error('[CartContext] localStorage error:', e);
+            }
+        }
     }, [cart]);
 
     useEffect(() => {
-        localStorage.setItem('cakerr_address', deliveryAddress);
+        try {
+            localStorage.setItem('cakerr_address', deliveryAddress);
+        } catch (e) {
+            console.error('[CartContext] Failed to save address:', e);
+        }
     }, [deliveryAddress]);
 
     useEffect(() => {
+        if (deliveryCoords) {
+            try {
+                localStorage.setItem('cakerr_coords', JSON.stringify(deliveryCoords));
+            } catch (e) {
+                console.error('[CartContext] Failed to save coords:', e);
+            }
+        } else {
+            localStorage.removeItem('cakerr_coords');
+        }
+    }, [deliveryCoords]);
+
+    useEffect(() => {
         if (isInitialized) {
-            localStorage.setItem('cakerr_saved_addresses', JSON.stringify(savedAddresses));
+            try {
+                localStorage.setItem('cakerr_saved_addresses', JSON.stringify(savedAddresses));
+            } catch (e) {
+                console.error('[CartContext] Failed to save addresses:', e);
+            }
         }
     }, [savedAddresses, isInitialized]);
 
-    const addItem = (newItem: Omit<CartItem, 'cartId'>) => {
+    const addItem = async (newItem: Omit<CartItem, 'cartId'>) => {
+        // Generate a temporary ID for immediate UI feedback
+        const tempId = `temp-${newItem.id}-${Date.now()}`;
+        const itemWithId = { ...newItem, cartId: tempId };
+
+        // Save state for rollback
+        const previousCart = [...cart];
+
+        // OPTIMISTIC: Update state immediately
         setCart((prev) => {
-            // Check if item with same ID, portion, and flavor already exists
             const existingItemIndex = prev.findIndex(
                 (item) =>
+                    item.id !== '00000000-0000-0000-0000-000000000000' &&
                     item.id === newItem.id &&
                     item.portion === newItem.portion &&
                     item.flavor === newItem.flavor
@@ -171,25 +278,109 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                 updatedCart[existingItemIndex].quantity += newItem.quantity;
                 return updatedCart;
             }
-
-            const cartId = `${newItem.id}-${newItem.portion}-${newItem.flavor}-${Date.now()}`;
-            return [...prev, { ...newItem, cartId }];
+            return [...prev, itemWithId];
         });
+
+        if (user) {
+            try {
+                const { data, error } = await cartService.addItem({
+                    product_id: newItem.id,
+                    quantity: newItem.quantity,
+                    portion: newItem.portion,
+                    flavor: newItem.flavor,
+                    custom_note: newItem.customNote,
+                    configuration: newItem.configuration
+                });
+
+                if (error) throw error;
+
+                // Sync the temporary item with the structural data from the server (like the real DB ID)
+                if (data) {
+                    const serverItem = mapDBCartItemToCartItem(data);
+                    setCart((prev) => prev.map(item => item.cartId === tempId ? serverItem : item));
+                }
+            } catch (err: any) {
+                console.error('[Cart Optimization] AddItem Error:', err);
+                setCart(previousCart); // ROLLBACK
+                alert(`Savatga qo'shishda xatolik yuz berdi: ${err.message}`);
+            }
+        }
     };
 
-    const removeItem = (cartId: string) => {
+    const removeItem = async (cartId: string) => {
+        // PRESERVE: Save current state for potential rollback
+        const previousCart = [...cart];
+
+        // OPTIMISTIC: Update state immediately
         setCart((prev) => prev.filter((item) => item.cartId !== cartId));
+
+        if (user && !cartId.startsWith('temp-')) {
+            try {
+                const { success, error } = await cartService.removeItem(cartId);
+                if (!success || error) {
+                    throw error || new Error('Delete failed');
+                }
+                // No need to fetchDBCart() - we already updated the state optimistically!
+            } catch (err: any) {
+                console.error('[Cart Optimization] Rollback removal:', err);
+                setCart(previousCart); // ROLLBACK on error
+                alert('O\'chirishda xatolik yuz berdi. Iltimos qayta urinib ko\'ring.');
+            }
+        }
+        // Guest mode already handled by the optimistic update above
     };
 
-    const updateQuantity = (cartId: string, quantity: number) => {
+    // For debouncing quantity updates
+    const debounceTimers = React.useRef<{ [key: string]: NodeJS.Timeout }>({});
+
+    const updateQuantity = async (cartId: string, quantity: number) => {
+        const newQty = Math.max(1, quantity);
+        
+        // OPTIMISTIC: Update state immediately
         setCart((prev) =>
             prev.map((item) =>
-                item.cartId === cartId ? { ...item, quantity: Math.max(1, quantity) } : item
+                item.cartId === cartId ? { ...item, quantity: newQty } : item
             )
         );
+
+        if (user && !cartId.startsWith('temp-')) {
+            // DEBOUNCE: Clear existing timer for this item
+            if (debounceTimers.current[cartId]) {
+                clearTimeout(debounceTimers.current[cartId]);
+            }
+
+            // Sync with DB after 400ms of inactivity
+            debounceTimers.current[cartId] = setTimeout(async () => {
+                try {
+                    const { error } = await cartService.updateItem(cartId, { quantity: newQty });
+                    if (error) throw error;
+                    delete debounceTimers.current[cartId];
+                } catch (err) {
+                    console.error('[Cart Optimization] UpdateQuantity Error:', err);
+                    // On error, we might want to re-fetch to be sure, or just warn
+                    // A full fetchDBCart() here is safe as it's an error case
+                    fetchDBCart();
+                }
+            }, 400);
+        }
     };
 
-    const clearCart = () => setCart([]);
+    const clearCart = async () => {
+        const previousCart = [...cart];
+        
+        // OPTIMISTIC
+        setCart([]);
+
+        if (user) {
+            try {
+                const { success, error } = await cartService.clearCart();
+                if (!success || error) throw error;
+            } catch (err) {
+                console.error('[Cart Optimization] ClearCart Error:', err);
+                setCart(previousCart); // ROLLBACK
+            }
+        }
+    };
 
     const addSavedAddress = async (newAddr: Omit<SavedAddress, 'id'>) => {
         if (user) {
@@ -247,6 +438,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                 subtotal,
                 deliveryAddress,
                 setDeliveryAddress,
+                deliveryCoords,
+                setDeliveryCoords,
                 savedAddresses,
                 addSavedAddress,
                 updateSavedAddress,

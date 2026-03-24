@@ -1,6 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getVerifiedUserId } from '@/app/utils/telegram-auth';
+import { z } from 'zod';
+
+const CreateOrderSchema = z.object({
+    order: z.object({
+        delivery_address: z.any(),
+        delivery_time: z.string(),
+        delivery_slot: z.string(),
+        total_price: z.number().min(0),
+        comment: z.string().optional(),
+    }).passthrough(),
+    items: z.array(z.object({
+        product_id: z.string().uuid().nullable(),
+        name: z.string(),
+        quantity: z.number().int().min(1),
+        unit_price: z.number().min(0),
+        configuration: z.any().optional(),
+    }).passthrough()).min(1),
+    coins_spent: z.number().int().min(0).default(0),
+});
 
 /**
  * GET /api/user/orders
@@ -118,7 +137,12 @@ export async function POST(request: NextRequest) {
     );
 
     try {
-        const { order, items, coins_spent = 0 } = await request.json();
+        const raw = await request.json();
+        const parsed = CreateOrderSchema.safeParse(raw);
+        if (!parsed.success) {
+            return NextResponse.json({ error: 'Invalid order data', details: parsed.error.flatten() }, { status: 400 });
+        }
+        const { order, items, coins_spent } = parsed.data;
 
         // 1. Intercept Base64 strings and upload them to Storage before saving to DB
         if (items && items.length > 0) {
@@ -146,12 +170,9 @@ export async function POST(request: NextRequest) {
 
         if (rpcError) {
             console.error('[Orders API] RPC V2 Error:', rpcError);
-            // Fallback: If RPC fails, try the original multi-step logic if appropriate, 
-            // or just throw to be safe. For the presentation, we want accuracy.
             throw rpcError;
         }
 
-        console.log('[Orders API] Order created via RPC V2:', orderData.id, 'for user:', userId);
         return NextResponse.json({ order: orderData });
 
         /* --- FALLBACK: ORIGINAL MULTI-STEP LOGIC (Commented for safety) ---

@@ -69,6 +69,7 @@ export default function EditProfileModal({ isOpen, onClose, user, onUpdate }: Ed
                     'Content-Type': 'application/json',
                     ...getAuthHeader()
                 },
+                credentials: 'include',
                 body: JSON.stringify({ full_name: fullName })
             });
 
@@ -78,11 +79,9 @@ export default function EditProfileModal({ isOpen, onClose, user, onUpdate }: Ed
                 throw new Error(data.error || 'Failed to update profile');
             }
 
-            console.log('[EditProfile] Profile updated successfully:', data.user?.full_name);
 
             // Sync the updated user data across the app (SupabaseContext listens for this)
             if (data.success && data.user) {
-                console.log('[EditProfile] Dispatching tg_user_updated event');
                 window.dispatchEvent(new CustomEvent('tg_user_updated', { detail: data.user }));
             }
 

@@ -45,20 +45,20 @@ export const flyToCart = (e: React.MouseEvent, imageSrc: string) => {
     // 4. Trigger reflow
     flightEl.getBoundingClientRect();
 
-    // 5. Phase 1: Pop up slightly (scale up + lift)
-    flightEl.style.transition = 'all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)';
-    flightEl.style.transform = 'translate(-50%, -50%) scale(1.2)';
+    // 5. Phase 1: Pop up slightly (scale up + lift) - Faster pop
+    flightEl.style.transition = 'all 0.1s cubic-bezier(0.34, 1.56, 0.64, 1)';
+    flightEl.style.transform = 'translate(-50%, -50%) scale(1.1)';
 
-    // 6. Phase 2: Fly in an arc to the cart
+    // 6. Phase 2: Fly in an arc to the cart - Shorter delay
     setTimeout(() => {
-        flightEl.style.transition = 'all 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+        flightEl.style.transition = 'all 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
         flightEl.style.left = `${endX}px`;
         flightEl.style.top = `${endY}px`;
         flightEl.style.transform = 'translate(-50%, -50%) scale(0.25) rotate(20deg)';
         flightEl.style.opacity = '0.6';
         flightEl.style.borderRadius = '50%';
         flightEl.style.boxShadow = '0 2px 8px rgba(233, 30, 99, 0.3)';
-    }, 150);
+    }, 50);
 
     // 7. Bounce the cart icon when the item arrives
     setTimeout(() => {

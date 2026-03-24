@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     Send, MessageSquare, Clock, Users, User,
     Search, X, AlertTriangle, CheckCircle, XCircle, Filter
@@ -8,8 +8,6 @@ import {
 import { createClient } from '@/app/utils/supabase/client';
 import { format } from 'date-fns';
 import styles from './page.module.css';
-
-const supabase = createClient();
 
 interface UserProfile {
     id: string;
@@ -35,6 +33,7 @@ type Tab = 'compose' | 'history';
 export default function AdminMessagesPage() {
     const [mounted, setMounted] = useState(false);
     const [activeTab, setActiveTab] = useState<Tab>('compose');
+    const supabase = useMemo(() => createClient(), []);
 
     // Compose state
     const [recipientType, setRecipientType] = useState<RecipientType>('broadcast');

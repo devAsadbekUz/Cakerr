@@ -1,6 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getVerifiedUserId } from '@/app/utils/telegram-auth';
+import { z } from 'zod';
+
+const AddressSchema = z.object({
+    address: z.string().min(1),
+    apartment: z.string().optional(),
+    entrance: z.string().optional(),
+    floor: z.string().optional(),
+    lat: z.number().optional(),
+    lng: z.number().optional(),
+    is_default: z.boolean().optional().default(false),
+}).passthrough();
+
+const UpdateAddressSchema = z.object({
+    id: z.string().uuid(),
+    setDefault: z.boolean().optional(),
+}).passthrough();
+
+const DeleteAddressSchema = z.object({
+    id: z.string().uuid(),
+});
 
 /**
  * GET /api/user/addresses
@@ -37,7 +57,6 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({ addresses: data || [] });
     } catch (error: any) {
-        console.error('[Addresses API] GET error:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
@@ -66,7 +85,12 @@ export async function POST(request: NextRequest) {
     );
 
     try {
-        const address = await request.json();
+        const raw = await request.json();
+        const parsed = AddressSchema.safeParse(raw);
+        if (!parsed.success) {
+            return NextResponse.json({ error: 'Invalid address data', details: parsed.error.flatten() }, { status: 400 });
+        }
+        const address = parsed.data;
 
         const { data, error } = await supabase
             .from('addresses')
@@ -78,7 +102,6 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ address: data });
     } catch (error: any) {
-        console.error('[Addresses API] POST error:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
@@ -107,7 +130,12 @@ export async function PUT(request: NextRequest) {
     );
 
     try {
-        const { id, setDefault, ...updates } = await request.json();
+        const raw = await request.json();
+        const parsed = UpdateAddressSchema.safeParse(raw);
+        if (!parsed.success) {
+            return NextResponse.json({ error: 'Invalid update data', details: parsed.error.flatten() }, { status: 400 });
+        }
+        const { id, setDefault, ...updates } = parsed.data;
 
         // Security check: ensure address belongs to user
         const { data: existing } = await supabase
@@ -145,7 +173,6 @@ export async function PUT(request: NextRequest) {
 
         return NextResponse.json({ success: true });
     } catch (error: any) {
-        console.error('[Addresses API] PUT error:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
@@ -174,7 +201,12 @@ export async function DELETE(request: NextRequest) {
     );
 
     try {
-        const { id } = await request.json();
+        const raw = await request.json();
+        const parsed = DeleteAddressSchema.safeParse(raw);
+        if (!parsed.success) {
+            return NextResponse.json({ error: 'Invalid delete data', details: parsed.error.flatten() }, { status: 400 });
+        }
+        const { id } = parsed.data;
 
         // Security check
         const { data: existing } = await supabase
@@ -196,7 +228,6 @@ export async function DELETE(request: NextRequest) {
 
         return NextResponse.json({ success: true });
     } catch (error: any) {
-        console.error('[Addresses API] DELETE error:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

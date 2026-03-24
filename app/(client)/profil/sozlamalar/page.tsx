@@ -39,13 +39,16 @@ export default function SozlamalarPage() {
         setSaving(true);
         setSuccess(false);
 
-        const { error } = await profileService.updateProfile(user!.id, {
+        const { data, error } = await profileService.updateProfile(user!.id, {
             full_name: fullName,
             phone_number: phoneNumber
         });
 
         if (!error) {
             setSuccess(true);
+            if (data) {
+                window.dispatchEvent(new CustomEvent('tg_user_updated', { detail: data }));
+            }
             setTimeout(() => setSuccess(false), 3000);
         } else {
             alert('Xatolik: ' + error.message);

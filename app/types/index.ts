@@ -9,8 +9,9 @@ export interface Product {
     price: number; // Computed or Display price
 
     // Image
-    image_url: string; // DB field
-    image: string; // UI mapped field (to support legacy components)
+    image_url: string; // DB field (legacy/primary)
+    image: string; // UI mapped field (legacy)
+    images: string[]; // NEW: Gallery of images
 
     // Category
     category_id: string; // FK

@@ -121,7 +121,7 @@
     height: 6px;
     border-radius: 50%;
     background: #E5E7EB;
-    transition: all 0.3s ease;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.3s ease;
 }
 
 .activeDot {

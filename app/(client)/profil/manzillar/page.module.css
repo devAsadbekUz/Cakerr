@@ -54,7 +54,7 @@
     padding: 16px;
     border: 1px solid #E5E7EB;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s;
 }
 
 .addressCard:hover {

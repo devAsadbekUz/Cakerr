@@ -26,36 +26,38 @@ export async function POST(request: NextRequest) {
 
     try {
         const body: OrderNotification = await request.json();
+        const { orderId, customerName, customerPhone, address, locationUrl, deliveryDate, deliverySlot, items, comment, total } = body;
 
         // Build the message
-        let message = `🎂 *YANGI BUYURTMA* #${body.orderId.slice(0, 8)}\n\n`;
-        message += `👤 *Mijoz:* ${body.customerName}\n`;
-        message += `📞 *Telefon:* ${body.customerPhone}\n\n`;
-
-        message += `📍 *Manzil:* ${body.address}\n`;
-        if (body.locationUrl) {
-            message += `🗺️ [Joylashuvni ko'rish](${body.locationUrl})\n`;
+        let displayAddress = address;
+        if (locationUrl) {
+            displayAddress = `[${address}](${locationUrl})`;
         }
-        message += `📅 *Vaqt:* ${body.deliveryDate}, ${body.deliverySlot}\n\n`;
 
-        message += `🛒 *Mahsulotlar:*\n`;
-        body.items.forEach(item => {
+        let messageText = `🍰 *YANGI BUYURTMA* #${orderId.slice(0, 8)}\n\n`;
+        messageText += `👤 *Mijoz:* ${customerName}\n`;
+        messageText += `📞 *Telefon:* +${customerPhone}\n\n`;
+        messageText += `📍 *Manzil:* ${displayAddress}\n`;
+        messageText += `📅 *Vaqt:* ${deliveryDate}, ${deliverySlot}\n\n`;
+
+        messageText += `🛒 *Mahsulotlar:*\n`;
+        items.forEach(item => {
             const portionText = item.portion ? ` (${item.portion})` : '';
-            message += `  • ${item.quantity}x ${item.name}${portionText} - ${item.price.toLocaleString()} so'm\n`;
+            messageText += `  • ${item.quantity}x ${item.name}${portionText} - ${item.price.toLocaleString()} so'm\n`;
         });
 
-        if (body.comment) {
-            message += `\n💬 *Izoh:* "${body.comment}"\n`;
+        if (comment) {
+            messageText += `\n💬 *Izoh:* "${comment}"\n`;
         }
 
-        message += `\n💰 *Jami:* ${body.total.toLocaleString()} so'm`;
+        messageText += `\n💰 *Jami:* ${total.toLocaleString()} so'm`;
 
         // Inline keyboard with action buttons
         const keyboard = {
             inline_keyboard: [
                 [
-                    { text: '✅ Tasdiqlash', callback_data: `confirm_${body.orderId}` },
-                    { text: '❌ Bekor qilish', callback_data: `cancel_${body.orderId}` }
+                    { text: '✅ Tasdiqlash', callback_data: `confirm_${orderId}` },
+                    { text: '❌ Bekor qilish', callback_data: `cancel_${orderId}` }
                 ]
             ]
         };
@@ -66,7 +68,7 @@ export async function POST(request: NextRequest) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 chat_id: TELEGRAM_CHAT_ID,
-                text: message,
+                text: messageText,
                 parse_mode: 'Markdown',
                 reply_markup: keyboard
             })

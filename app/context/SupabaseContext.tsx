@@ -66,7 +66,6 @@ export default function SupabaseProvider({ children }: { children: React.ReactNo
                 table: 'profiles',
                 filter: `id=eq.${userId}`
             }, (payload: any) => {
-                console.log('[SupabaseContext] Coins updated:', payload.new?.coins);
                 setUser(current => {
                     if (!current) return null;
                     return { ...current, coins: payload.new?.coins || 0 };
@@ -88,14 +87,12 @@ export default function SupabaseProvider({ children }: { children: React.ReactNo
 
             // If we are in Telegram (or likely to be), wait a bit for TelegramContext to settle
             if (isTelegramWebApp()) {
-                console.log('[SupabaseContext] Detected Telegram, waiting for TelegramContext...');
                 setIsTelegramUser(true);
                 // We'll let the event listener handle it
                 return;
             }
 
             if (tgSession) {
-                console.log('[SupabaseContext] Found Telegram session');
                 setUser({
                     ...tgSession.user,
                     role: (tgSession.user as any).role || 'customer',
@@ -215,7 +212,6 @@ export default function SupabaseProvider({ children }: { children: React.ReactNo
         const handleUserUpdate = (e: any) => {
             const profileData = e.detail;
             if (profileData) {
-                console.log('[SupabaseContext] Syncing user data:', profileData.full_name);
                 setUser((prev: any) => {
                     if (!prev) return {
                         ...profileData,

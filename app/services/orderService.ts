@@ -20,6 +20,26 @@ export const orderService = {
         }
     },
 
+    async getOrderAdmin(orderId: string) {
+        try {
+            // Add timestamp for aggressive cache busting
+            const response = await fetch(`/api/admin/orders/${orderId}?t=${Date.now()}`, {
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                console.error('[OrderService] Admin Single Order API error:', response.status);
+                return null;
+            }
+
+            const { order } = await response.json();
+            return order || null;
+        } catch (err) {
+            console.error('[OrderService] Single fetch error:', err);
+            return null;
+        }
+    },
+
     async updateOrderStatus(orderId: string, status: string, isAdmin: boolean = false) {
         if (isAdmin) {
             try {
@@ -57,7 +77,8 @@ export const orderService = {
         try {
             const { getAuthHeader } = await import('@/app/utils/telegram');
             const response = await fetch('/api/user/orders', {
-                headers: getAuthHeader()
+                headers: getAuthHeader(),
+                credentials: 'include'
             });
 
             if (!response.ok) {

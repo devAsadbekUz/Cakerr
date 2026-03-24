@@ -26,7 +26,7 @@
     justify-content: center;
     cursor: pointer;
     color: white;
-    transition: all 0.2s;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s;
 }
 
 .backBtn:active {
@@ -106,7 +106,7 @@
     font-size: 15px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s;
     box-shadow: 0 4px 12px rgba(233, 30, 99, 0.3);
 }
 

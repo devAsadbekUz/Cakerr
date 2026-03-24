@@ -118,7 +118,6 @@ export default function ProfilPage() {
                         filter: `user_id=eq.${user.id}`
                     },
                     (payload: any) => {
-                        console.log('[Realtime] Profile order change:', payload.eventType, payload.new?.status);
 
                         if (payload.eventType === 'UPDATE') {
                             // Targeted update - only change the activeOrder status if it matches
@@ -136,7 +135,6 @@ export default function ProfilPage() {
                     }
                 )
                 .subscribe((status: string, err: Error | null) => {
-                    console.log('[Realtime] Profile Subscription:', status);
                     if (err) console.error('[Realtime] Error:', err);
                 });
 

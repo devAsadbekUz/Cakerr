@@ -62,7 +62,7 @@
     justify-content: center;
     color: #6B7280;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s;
 }
 
 .favoriteBtn.favorited {

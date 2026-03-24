@@ -5,9 +5,13 @@ import { createClient } from '@/app/utils/supabase/client';
 import {
     Plus, Trash2, Edit2, Save, X, GripVertical,
     Layout, Type, MousePointer2, Palette,
-    Eye, EyeOff
+    Eye, EyeOff, Download
 } from 'lucide-react';
-import styles from '../AdminDashboard.module.css'; // Reuse existing dashboard styles where possible
+import {
+    format, isToday, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay,
+    subDays
+} from 'date-fns';
+import styles from '../AdminDashboard.module.css';
 
 import {
     DndContext,
@@ -28,104 +32,8 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-interface Banner {
-    id: string;
-    badge_text: string;
-    title_text: string;
-    button_text: string;
-    link_url: string;
-    bg_color: string;
-    is_active: boolean;
-    sort_order: number;
-}
-
-function SortableBannerItem({
-    banner,
-    onToggleActive,
-    onEdit,
-    onDelete,
-}: {
-    banner: Banner;
-    onToggleActive: (b: Banner) => void;
-    onEdit: (b: Banner) => void;
-    onDelete: (id: string) => void;
-}) {
-    const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-        isDragging,
-    } = useSortable({ id: banner.id });
-
-    const style: React.CSSProperties = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-        border: '1px solid #F3F4F6',
-        borderRadius: '16px',
-        padding: '16px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '16px',
-        opacity: isDragging ? 0.8 : (banner.is_active ? 1 : 0.6),
-        background: isDragging ? '#FDF2F8' : 'white',
-        zIndex: isDragging ? 1000 : 'auto',
-        position: 'relative',
-    };
-
-    return (
-        <div ref={setNodeRef} style={style} {...attributes}>
-            <div style={{ cursor: 'grab', display: 'flex', alignItems: 'center', padding: '0 8px' }} {...listeners}>
-                <GripVertical size={20} color="#9CA3AF" />
-            </div>
-
-            <div style={{
-                width: '120px',
-                height: '70px',
-                background: banner.bg_color,
-                borderRadius: '12px',
-                display: 'flex',
-                flexDirection: 'column',
-                padding: '8px',
-                color: 'white',
-                fontSize: '8px',
-                overflow: 'hidden'
-            }}>
-                <div style={{ opacity: 0.8 }}>{banner.badge_text}</div>
-                <div style={{ fontWeight: 800, marginTop: '4px' }}>{banner.title_text}</div>
-            </div>
-
-            <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: '15px' }}>{banner.title_text}</div>
-                <div style={{ fontSize: '12px', color: '#6B7280' }}>
-                    {banner.badge_text} • {banner.button_text}
-                </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                    onClick={() => onToggleActive(banner)}
-                    style={{ background: banner.is_active ? '#ECFDF5' : '#F3F4F6', color: banner.is_active ? '#059669' : '#6B7280', border: 'none', width: '36px', height: '36px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                >
-                    {banner.is_active ? <Eye size={18} /> : <EyeOff size={18} />}
-                </button>
-                <button
-                    onClick={() => onEdit(banner)}
-                    style={{ background: '#EFF6FF', color: '#3B82F6', border: 'none', width: '36px', height: '36px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                >
-                    <Edit2 size={18} />
-                </button>
-                <button
-                    onClick={() => onDelete(banner.id)}
-                    style={{ background: '#FEF2F2', color: '#EF4444', border: 'none', width: '36px', height: '36px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                >
-                    <Trash2 size={18} />
-                </button>
-            </div>
-        </div>
-    );
-}
+import { SortableBannerItem, Banner } from '@/app/components/admin/settings/BannerItem';
+import { BannerForm } from '@/app/components/admin/settings/BannerForm';
 
 export default function AdminSettingsPage() {
     const [banners, setBanners] = useState<Banner[]>([]);
@@ -255,6 +163,30 @@ export default function AdminSettingsPage() {
         }
     };
 
+    const handleExport = async () => {
+        setLoading(true);
+        try {
+            const { data: orders } = await supabase.from('orders').select('*, profiles(full_name, phone_number), order_items(*)');
+            const { data: products } = await supabase.from('products').select('*').is('deleted_at', null);
+            const { data: profiles } = await supabase.from('profiles').select('*');
+
+            const { exportToExcel, formatOrderDataForExcel, formatProductDataForExcel, formatUserDataForExcel } = await import('@/app/utils/admin/excelUtils');
+
+            const dataSets = [
+                { sheetName: 'Buyurtmalar', data: formatOrderDataForExcel(orders || []) },
+                { sheetName: 'Mahsulotlar', data: formatProductDataForExcel(products || []) },
+                { sheetName: 'Mijozlar', data: formatUserDataForExcel(profiles || []) }
+            ];
+
+            exportToExcel(dataSets, `Cakerr_Eksport_${format(new Date(), 'dd-MM-yyyy')}`);
+        } catch (error) {
+            console.error('Export failed:', error);
+            alert('Eksport qilishda xatolik yuz berdi');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const toggleActive = async (banner: Banner) => {
         try {
             const { error } = await supabase
@@ -335,6 +267,28 @@ export default function AdminSettingsPage() {
                 </div>
             </section>
 
+            {/* ==================== DATA EXPORT ==================== */}
+            <section className={styles.section} style={{ background: 'white', border: '1px solid #E5E7EB', marginTop: '32px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: '300px' }}>
+                        <h2 style={{ fontSize: '20px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                            <Download size={24} color="#BE185D" />
+                            Ma'lumotlarni eksport qilish
+                        </h2>
+                        <p style={{ color: '#6B7280', margin: 0 }}>Barcha buyurtmalar, mahsulotlar va mijozlar ro'yxatini Excel formatida yuklab oling.</p>
+                    </div>
+                    <button
+                        onClick={handleExport}
+                        disabled={loading}
+                        className={styles.miniBtn}
+                        style={{ height: '48px', padding: '0 24px', background: '#059669', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 700, cursor: 'pointer', opacity: loading ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: '8px' }}
+                    >
+                        <Download size={18} />
+                        {loading ? 'Tayyorlanmoqda...' : 'Excel yuklab olish'}
+                    </button>
+                </div>
+            </section>
+
             {editingBanner && (
                 <div style={{
                     position: 'fixed',
@@ -353,124 +307,6 @@ export default function AdminSettingsPage() {
                     />
                 </div>
             )}
-        </div>
-    );
-}
-
-function BannerForm({ banner, onSave, onCancel }: { banner?: Banner, onSave: (b: Partial<Banner>) => void, onCancel: () => void }) {
-    const [form, setForm] = useState<Partial<Banner>>(banner || {
-        badge_text: '',
-        title_text: '',
-        button_text: 'Buyurtma berish',
-        link_url: '/',
-        bg_color: '#BE185D',
-        is_active: true
-    });
-
-    return (
-        <div style={{ background: 'white', padding: '24px', borderRadius: '20px', width: '100%', maxWidth: '500px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '20px' }}>{banner ? 'Bannerni tahrirlash' : 'Yangi banner'}</h3>
-
-            <div style={{ display: 'grid', gap: '16px' }}>
-                <div>
-                    <label style={{ fontSize: '13px', fontWeight: 700, color: '#374151', marginBottom: '6px', display: 'block' }}>Badge (nishan)</label>
-                    <input
-                        type="text"
-                        value={form.badge_text}
-                        onChange={e => setForm({ ...form, badge_text: e.target.value })}
-                        style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #E5E7EB' }}
-                        placeholder="🎉 Yangi mahsulotlar"
-                    />
-                </div>
-                <div>
-                    <label style={{ fontSize: '13px', fontWeight: 700, color: '#374151', marginBottom: '6px', display: 'block' }}>Sarlavha</label>
-                    <input
-                        type="text"
-                        value={form.title_text}
-                        onChange={e => setForm({ ...form, title_text: e.target.value })}
-                        style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #E5E7EB' }}
-                        placeholder="30% chegirma..."
-                    />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <div>
-                        <label style={{ fontSize: '13px', fontWeight: 700, color: '#374151', marginBottom: '6px', display: 'block' }}>Tugma matni</label>
-                        <input
-                            type="text"
-                            value={form.button_text}
-                            onChange={e => setForm({ ...form, button_text: e.target.value })}
-                            style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #E5E7EB' }}
-                        />
-                    </div>
-                    <div>
-                        <label style={{ fontSize: '13px', fontWeight: 700, color: '#374151', marginBottom: '6px', display: 'block' }}>Rang (HEX)</label>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
-                            {[
-                                { name: 'Pushti', hex: '#BE185D' },
-                                { name: 'Moviy', hex: '#1D4ED8' },
-                                { name: 'Yashil', hex: '#047857' },
-                                { name: 'Sariq', hex: '#B45309' },
-                                { name: 'Binafsha', hex: '#7C3AED' },
-                                { name: 'To\'q', hex: '#111827' }
-                            ].map(color => (
-                                <button
-                                    key={color.hex}
-                                    onClick={() => setForm({ ...form, bg_color: color.hex })}
-                                    style={{
-                                        width: '24px',
-                                        height: '24px',
-                                        borderRadius: '50%',
-                                        background: color.hex,
-                                        border: form.bg_color === color.hex ? '2px solid white' : '1px solid #E5E7EB',
-                                        boxShadow: form.bg_color === color.hex ? '0 0 0 2px #BE185D' : 'none',
-                                        cursor: 'pointer'
-                                    }}
-                                    title={color.name}
-                                />
-                            ))}
-                        </div>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                            <input
-                                type="color"
-                                value={form.bg_color}
-                                onChange={e => setForm({ ...form, bg_color: e.target.value })}
-                                style={{ width: '40px', height: '40px', padding: '0', border: 'none', background: 'none' }}
-                            />
-                            <input
-                                type="text"
-                                value={form.bg_color}
-                                onChange={e => setForm({ ...form, bg_color: e.target.value })}
-                                style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid #E5E7EB', fontSize: '12px' }}
-                            />
-                        </div>
-                    </div>
-                </div>
-                <div>
-                    <label style={{ fontSize: '13px', fontWeight: 700, color: '#374151', marginBottom: '6px', display: 'block' }}>Link (yo'naltirish)</label>
-                    <input
-                        type="text"
-                        value={form.link_url}
-                        onChange={e => setForm({ ...form, link_url: e.target.value })}
-                        style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #E5E7EB' }}
-                        placeholder="/"
-                    />
-                </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-                <button
-                    onClick={() => onSave(form)}
-                    style={{ flex: 1, background: '#BE185D', color: 'white', border: 'none', padding: '12px', borderRadius: '12px', fontWeight: 700, cursor: 'pointer' }}
-                >
-                    Saqlash
-                </button>
-                <button
-                    onClick={onCancel}
-                    style={{ flex: 1, background: '#F3F4F6', color: '#374151', border: 'none', padding: '12px', borderRadius: '12px', fontWeight: 700, cursor: 'pointer' }}
-                >
-                    Bekor qilish
-                </button>
-            </div>
         </div>
     );
 }

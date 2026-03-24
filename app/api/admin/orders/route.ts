@@ -25,8 +25,8 @@ export async function GET() {
             id, status, total_price, delivery_time, delivery_slot, created_at, comment, delivery_address,
             profiles (full_name, phone_number),
             order_items (
-                id, name, quantity, unit_price, configuration,
-                products (image_url)
+                id, product_id, name, quantity, unit_price, configuration,
+                products (image_url, category_id)
             )
         `)
         .order('created_at', { ascending: false })

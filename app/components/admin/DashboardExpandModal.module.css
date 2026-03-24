@@ -1,0 +1,371 @@
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(6px);
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal {
+    background: white;
+    width: 100%;
+    max-width: 800px;
+    max-height: 90vh;
+    border-radius: 24px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.header {
+    padding: 24px 28px;
+    border-bottom: 1px solid #F3F4F6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.headerLeft {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.title {
+    font-size: 20px;
+    font-weight: 800;
+    color: #111827;
+    margin: 0;
+}
+
+.subtitle {
+    font-size: 13px;
+    color: #6B7280;
+    margin: 4px 0 0;
+}
+
+.closeBtn {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    border: none;
+    background: #F3F4F6;
+    color: #6B7280;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s;
+    flex-shrink: 0;
+}
+
+.closeBtn:hover {
+    background: #E5E7EB;
+    color: #111827;
+}
+
+/* Tab switcher for time ranges */
+.tabs {
+    display: flex;
+    gap: 6px;
+    padding: 16px 28px 0;
+    flex-shrink: 0;
+}
+
+.tab {
+    padding: 8px 18px;
+    border-radius: 10px;
+    border: 1px solid #E5E7EB;
+    background: white;
+    color: #6B7280;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s;
+}
+
+.tab:hover {
+    border-color: #FBCFE8;
+    color: #BE185D;
+}
+
+.tabActive {
+    background: #BE185D;
+    color: white;
+    border-color: #BE185D;
+}
+
+.tabActive:hover {
+    background: #9D174D;
+    color: white;
+}
+
+/* Scrollable content area */
+.content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 28px;
+}
+
+/* Summary row at top */
+.summaryRow {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.summaryCard {
+    flex: 1;
+    min-width: 120px;
+    padding: 16px;
+    border-radius: 16px;
+    background: #F9FAFB;
+    border: 1px solid #F3F4F6;
+}
+
+.summaryCard h4 {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6B7280;
+    margin: 0 0 6px;
+    text-transform: uppercase;
+}
+
+.summaryCard .value {
+    font-size: 24px;
+    font-weight: 800;
+    color: #111827;
+}
+
+.summaryCard .sub {
+    font-size: 12px;
+    color: #9CA3AF;
+    margin-top: 2px;
+}
+
+/* Order row in recent activity full view */
+.orderRow {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    background: white;
+    border-radius: 16px;
+    border: 1px solid #F3F4F6;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.15s;
+}
+
+.orderRow:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    border-color: #E5E7EB;
+}
+
+.orderIcon {
+    padding: 10px;
+    background: #FDF2F8;
+    border-radius: 12px;
+    color: #BE185D;
+    flex-shrink: 0;
+}
+
+.orderInfo {
+    flex: 1;
+    min-width: 0;
+}
+
+.orderTitle {
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.orderMeta {
+    font-size: 12px;
+    color: #6B7280;
+    margin-top: 2px;
+}
+
+.statusBadge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 8px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+/* Revenue bar chart in expanded view */
+.chartArea {
+    margin-top: 16px;
+}
+
+.barRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.barLabel {
+    width: 50px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #6B7280;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.barTrack {
+    flex: 1;
+    height: 28px;
+    background: #F3F4F6;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+}
+
+.barFill {
+    height: 100%;
+    border-radius: 8px;
+    transition: width 0.5s ease;
+    display: flex;
+    align-items: center;
+    padding-left: 8px;
+}
+
+.barFillValue {
+    font-size: 11px;
+    font-weight: 700;
+    color: white;
+    white-space: nowrap;
+}
+
+.barAmount {
+    width: 80px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #111827;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+/* Empty state */
+.emptyState {
+    text-align: center;
+    padding: 60px 20px;
+    color: #9CA3AF;
+}
+
+/* Peak hours expanded grid */
+.peakGrid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+}
+
+.peakCell {
+    padding: 14px 6px;
+    border-radius: 14px;
+    text-align: center;
+    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s;
+}
+
+.peakLabel {
+    font-size: 11px;
+    font-weight: 600;
+    opacity: 0.8;
+}
+
+.peakCount {
+    font-size: 18px;
+    font-weight: 800;
+    margin-top: 4px;
+}
+
+/* Status breakdown full grid */
+.statusGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.statusCard {
+    padding: 18px;
+    background: white;
+    border-radius: 16px;
+    border: 1px solid #F3F4F6;
+    text-align: center;
+}
+
+.statusCount {
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 6px;
+}
+
+.statusLabel {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.statusPercent {
+    font-size: 12px;
+    color: #9CA3AF;
+    margin-top: 4px;
+}
+
+@media (max-width: 640px) {
+    .modal {
+        max-height: 95vh;
+        border-radius: 20px;
+    }
+
+    .header {
+        padding: 20px;
+    }
+
+    .content {
+        padding: 20px;
+    }
+
+    .tabs {
+        padding: 12px 20px 0;
+        overflow-x: auto;
+    }
+
+    .summaryRow {
+        flex-direction: column;
+    }
+
+    .peakGrid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .statusGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .barAmount {
+        width: 60px;
+        font-size: 11px;
+    }
+}
