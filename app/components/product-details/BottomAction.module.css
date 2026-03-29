@@ -94,6 +94,16 @@
   transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s ease;
 }
 
+.addButton:hover {
+  background: hsl(var(--color-primary-dark));
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px hsla(var(--color-primary), 0.4);
+}
+
+.addButton:active {
+  transform: translateY(0);
+}
+
 .cartIcon {
   margin-top: -2px;
 }

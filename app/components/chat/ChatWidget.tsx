@@ -19,7 +19,7 @@ const QUICK_ACTIONS = [
 const WELCOME_MESSAGE: Message = {
     id: 'welcome',
     role: 'assistant',
-    content: 'Salom! 🎂 Men Cakerr yordamchisiman. Tortlar, narxlar yoki buyurtma berish haqida savol bering!',
+    content: 'Salom! 🎂 Men TORTEL\'E yordamchisiman. Tortlar, narxlar yoki buyurtma berish haqida savol bering!',
 };
 
 export default function ChatWidget() {
@@ -187,7 +187,7 @@ export default function ChatWidget() {
                         <div className={styles.chatHeader}>
                             <div className={styles.botAvatar}>🎂</div>
                             <div className={styles.headerInfo}>
-                                <div className={styles.headerTitle}>Cakerr Yordamchi</div>
+                                <div className={styles.headerTitle}>TORTEL'E Yordamchi</div>
                                 <div className={styles.headerSubtitle}>AI bilan ishlaydi • Doim online</div>
                             </div>
                         </div>

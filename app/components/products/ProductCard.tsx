@@ -7,22 +7,25 @@ import { ShoppingCart, Heart } from 'lucide-react';
 import styles from './ProductCard.module.css';
 import { useCart } from '@/app/context/CartContext';
 import { useFavorites } from '@/app/context/FavoritesContext';
+import { useLanguage } from '@/app/context/LanguageContext';
+import { getLocalized } from '@/app/utils/i18n';
 import { Variant } from '@/app/types';
 import { flyToCart } from '@/app/utils/animations';
 
 interface ProductProps {
     id: string;
-    title: string;
+    title: string | { uz: string; ru: string };
     price: string | number;
     image: string;
     images?: string[];
-    tag?: string;
+    tag?: string | { uz: string; ru: string };
     isReady?: boolean;
     variants?: Variant[];
     priority?: boolean;
 }
 
 function ProductCardComponent({ id, title, price, image, images, tag, isReady, variants, priority }: ProductProps) {
+    const { lang, t } = useLanguage();
     const { addItem } = useCart();
     const { toggleFavorite, isFavorite } = useFavorites();
     const favorited = isFavorite(id);
@@ -40,7 +43,7 @@ function ProductCardComponent({ id, title, price, image, images, tag, isReady, v
         e.stopPropagation();
         addItem({
             id,
-            name: title,
+            name: getLocalized(title, lang),
             price: displayPrice,
             image: displayImage,
             quantity: 1,
@@ -64,7 +67,7 @@ function ProductCardComponent({ id, title, price, image, images, tag, isReady, v
                 {displayImage ? (
                     <Image
                         src={displayImage}
-                        alt={title}
+                        alt={getLocalized(title, lang)}
                         className={styles.productImage}
                         fill
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -80,7 +83,7 @@ function ProductCardComponent({ id, title, price, image, images, tag, isReady, v
                         fontSize: '14px',
                         fontWeight: 600
                     }}>
-                        Rasm yo'q
+                        {t('rasmYoq')}
                     </div>
                 )}
 
@@ -91,18 +94,18 @@ function ProductCardComponent({ id, title, price, image, images, tag, isReady, v
                     <Heart size={16} fill={favorited ? "currentColor" : "none"} />
                 </button>
 
-                {isReady && <span className={styles.readyBadge}>Tayyor</span>}
-                {tag && <span className={styles.tag}>{tag}</span>}
+                {isReady && <span className={styles.readyBadge}>{t('tayyor')}</span>}
+                {tag && <span className={styles.tag}>{getLocalized(tag, lang)}</span>}
             </div>
 
             <div className={styles.content}>
-                <h3 className={styles.title}>{title}</h3>
+                <h3 className={styles.title}>{getLocalized(title, lang)}</h3>
                 <div className={styles.bottomRow}>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <p className={styles.price}>
-                            {displayPrice.toLocaleString('en-US')} so'm
+                            {displayPrice.toLocaleString('en-US')} {t('som')}
                         </p>
-                        <p className={styles.subText}>dan boshlab</p>
+                        <p className={styles.subText}>{t('danBoshlab')}</p>
                     </div>
 
                     <button className={styles.addButton} onClick={handleQuickAdd}>

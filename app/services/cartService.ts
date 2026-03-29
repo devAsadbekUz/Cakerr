@@ -21,6 +21,9 @@ export const cartService = {
             });
 
             if (!response.ok) {
+                if (response.status === 401 || response.status === 403) {
+                    return [];
+                }
                 console.error('[CartService] Error fetching cart:', response.status);
                 return [];
             }

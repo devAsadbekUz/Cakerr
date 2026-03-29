@@ -5,17 +5,17 @@ import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
 import { ChevronLeft, Package, Check, Clock, Truck, MapPin, Phone, User, AlertCircle } from 'lucide-react';
 import styles from './page.module.css';
+import { useLanguage } from '@/app/context/LanguageContext';
+import { getLocalized } from '@/app/utils/i18n';
 import { createClient } from '@/app/utils/supabase/client';
 import { getAuthHeader } from '@/app/utils/telegram';
 
 // This matches the status structure for future backend integration
-import { ORDER_STATUSES as CENTRAL_STATUSES } from '@/app/utils/orderConfig';
+import { ORDER_STATUSES as CENTRAL_STATUSES, getStatusConfig } from '@/app/utils/orderConfig';
 
 // Map central statuses to UI Icons and display info
 const ORDER_STATUSES = CENTRAL_STATUSES.filter(s => s.id !== 'cancelled').map(s => ({
     id: s.id,
-    label: s.label,
-    desc: s.desc,
     icon: s.id === 'new' ? Check :
         s.id === 'confirmed' ? Clock :
             s.id === 'preparing' ? Package :
@@ -38,6 +38,7 @@ const getStatusStep = (status: string) => {
 
 export default function TrackingPage() {
     const router = useRouter();
+    const { lang, t } = useLanguage();
     const params = useParams();
     const orderId = params.id as string;
     const [order, setOrder] = useState<any>(null);
@@ -170,13 +171,13 @@ export default function TrackingPage() {
             {loading && !order ? (
                 <div style={{ padding: '80px 40px', textAlign: 'center', color: '#6B7280' }}>
                     <Clock className={styles.loadingIcon} size={48} style={{ margin: '0 auto 16px', opacity: 0.5, animation: 'spin 2s linear infinite' }} />
-                    <p style={{ fontWeight: 500 }}>Yuklanmoqda...</p>
+                    <p style={{ fontWeight: 500 }}>{t('loading')}</p>
                 </div>
             ) : !order ? (
                 <div style={{ padding: '80px 40px', textAlign: 'center', color: '#6B7280' }}>
                     <AlertCircle size={48} style={{ margin: '0 auto 16px', opacity: 0.5 }} />
-                    <p style={{ fontWeight: 500 }}>{errorMsg || 'Buyurtma topilmadi'}</p>
-                    <button onClick={() => router.push('/')} style={{ marginTop: '20px', color: '#BE185D', fontWeight: 600 }}>Asosiy sahifaga qaytish</button>
+                    <p style={{ fontWeight: 500 }}>{errorMsg || t('noProducts')}</p>
+                    <button onClick={() => router.push('/')} style={{ marginTop: '20px', color: '#BE185D', fontWeight: 600 }}>{t('back')}</button>
                     {errorMsg === 'Avtorizatsiyadan o\'ting' && (
                         <button
                             onClick={() => router.push(`/profil/login?redirectTo=/profil/buyurtmalar/${orderId}`)}
@@ -193,7 +194,7 @@ export default function TrackingPage() {
                             <ChevronLeft size={24} />
                         </button>
                         <div className={styles.headerInfo}>
-                            <h1>Buyurtmani kuzatish</h1>
+                            <h1>{t('trackOrder')}</h1>
                             <span className={styles.orderId}>{order.id}</span>
                         </div>
                     </header>
@@ -202,9 +203,9 @@ export default function TrackingPage() {
                     <div className={styles.progressCard}>
                         <div className={styles.progressHeader}>
                             <div>
-                                <span className={styles.estimatedLabel}>Holati</span>
+                                <span className={styles.estimatedLabel}>{t('status')}</span>
                                 <span className={styles.estimatedTime}>
-                                    {ORDER_STATUSES.find(s => s.id === order.status)?.label || order.status}
+                                    {getStatusConfig(order.status).labels[lang]}
                                 </span>
                             </div>
                             <div className={styles.statusIcon}>
@@ -227,7 +228,7 @@ export default function TrackingPage() {
 
                     {/* Timeline */}
                     <div className={styles.card}>
-                        <h2 className={styles.sectionTitle}>Buyurtma jarayoni</h2>
+                        <h2 className={styles.sectionTitle}>{t('summary')}</h2>
                         <div className={styles.timeline}>
                             {ORDER_STATUSES.map((status, index) => {
                                 const isCompleted = index < order.currentStep;
@@ -246,9 +247,9 @@ export default function TrackingPage() {
 
                                         <div className={styles.timelineInfo}>
                                             <div className={styles.timelineHeader}>
-                                                <span className={styles.timelineLabel}>{status.label}</span>
+                                                <span className={styles.timelineLabel}>{getStatusConfig(status.id).labels[lang]}</span>
                                             </div>
-                                            <p className={styles.timelineDesc}>{status.desc}</p>
+                                            <p className={styles.timelineDesc}>{getStatusConfig(status.id).descs[lang]}</p>
                                         </div>
                                     </div>
                                 );
@@ -258,7 +259,7 @@ export default function TrackingPage() {
 
                     {/* Delivery Info */}
                     <div className={styles.card}>
-                        <h2 className={styles.sectionTitle}>Yetkazib berish manzili</h2>
+                        <h2 className={styles.sectionTitle}>{t('deliveryAddress')}</h2>
                         <div className={styles.addressCard}>
                             <div className={styles.iconBox}>
                                 <MapPin size={20} />
@@ -273,7 +274,7 @@ export default function TrackingPage() {
 
                     {/* Order Summary */}
                     <div className={styles.card}>
-                        <h2 className={styles.sectionTitle}>Buyurtma tarkibi</h2>
+                        <h2 className={styles.sectionTitle}>{t('items')}</h2>
                         <div className={styles.itemsList}>
                             {order.items.map((item: any) => (
                                 <div key={item.id} className={styles.productRow}>
@@ -289,8 +290,8 @@ export default function TrackingPage() {
                             ))}
 
                             <div className={styles.totalRow}>
-                                <span className={styles.totalLabel}>Jami</span>
-                                <span className={styles.totalValue}>{order.total.toLocaleString('uz-UZ')} so'm</span>
+                                <span className={styles.totalLabel}>{t('total')}</span>
+                                <span className={styles.totalValue}>{order.total.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}</span>
                             </div>
                         </div>
                     </div>

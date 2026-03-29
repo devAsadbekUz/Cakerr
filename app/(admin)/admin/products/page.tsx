@@ -6,8 +6,11 @@ import { createClient } from '@/app/utils/supabase/client';
 import { Plus, Edit2, Trash2, Package as PackageIcon, LayoutGrid, List, Eye, EyeOff } from 'lucide-react';
 import ProductForm from '@/app/components/admin/ProductForm';
 import { productService } from '@/app/services/productService';
+import { useAdminI18n } from '@/app/context/AdminLanguageContext';
+import { getLocalized } from '@/app/utils/i18n';
 
 export default function ProductsPage() {
+    const { lang, t } = useAdminI18n();
     const [products, setProducts] = useState<any[]>([]);
     const [categories, setCategories] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -40,14 +43,14 @@ export default function ProductsPage() {
     }, []);
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Rostdan ham o\'chirmoqchimisiz?')) return;
+        if (!confirm(t('confirmDelete'))) return;
 
         // Use Hard Delete from Service
         const { error } = await productService.deleteProduct(id);
 
         if (error) {
             console.error('Delete error:', error);
-            alert('Xatolik (Product deletion): ' + error.message);
+            alert(t('error') + ': ' + error.message);
         } else {
             fetchData();
         }
@@ -56,7 +59,7 @@ export default function ProductsPage() {
     const handleToggleAvailability = async (id: string, currentStatus: boolean) => {
         const { error } = await productService.toggleProductAvailability(id, !currentStatus);
         if (error) {
-            alert('Xatolik: ' + error.message);
+            alert(t('error') + ': ' + error.message);
         } else {
             // Optimistic update or just refetch
             setProducts(products.map(p => p.id === id ? { ...p, is_available: !currentStatus } : p));
@@ -112,7 +115,7 @@ export default function ProductsPage() {
                 }
             `}</style>
             <div className="header-wrapper">
-                <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#111827', margin: 0 }}>Mahsulotlar</h1>
+                <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#111827', margin: 0 }}>{t('products')}</h1>
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }} className="actions-group">
                     <div style={{ display: 'flex', background: '#F3F4F6', padding: '4px', borderRadius: '10px' }}>
                         <button
@@ -120,7 +123,7 @@ export default function ProductsPage() {
                             style={{
                                 padding: '6px 12px', border: 'none', borderRadius: '8px', cursor: 'pointer',
                                 background: viewMode === 'table' ? 'white' : 'transparent',
-                                color: viewMode === 'table' ? '#BE185D' : '#6B7280',
+                                color: viewMode === 'table' ? 'hsl(var(--color-primary-dark))' : '#6B7280',
                                 boxShadow: viewMode === 'table' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
                                 display: 'flex', alignItems: 'center'
                             }}
@@ -132,7 +135,7 @@ export default function ProductsPage() {
                             style={{
                                 padding: '6px 12px', border: 'none', borderRadius: '8px', cursor: 'pointer',
                                 background: viewMode === 'grid' ? 'white' : 'transparent',
-                                color: viewMode === 'grid' ? '#BE185D' : '#6B7280',
+                                color: viewMode === 'grid' ? 'hsl(var(--color-primary-dark))' : '#6B7280',
                                 boxShadow: viewMode === 'grid' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
                                 display: 'flex', alignItems: 'center'
                             }}
@@ -143,36 +146,36 @@ export default function ProductsPage() {
                     <button
                         onClick={() => { setEditingProduct(null); setIsFormOpen(true); }}
                         style={{
-                            background: '#BE185D', color: 'white', padding: '10px 20px',
+                            background: 'hsl(var(--color-primary-dark))', color: 'white', padding: '10px 20px',
                             borderRadius: '10px', border: 'none', fontWeight: 600,
                             display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer'
                         }}
                     >
                         <Plus size={18} />
-                        Qo'shish
+                        {t('add')}
                     </button>
                 </div>
             </div>
 
             {loading ? (
-                <div>Yuklanmoqda...</div>
+                <div>{t('loading')}</div>
             ) : products.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px', color: '#6B7280' }}>
                     <PackageIcon size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
-                    <p>Hozircha mahsulotlar yo'q</p>
+                    <p>{t('noProducts')}</p>
                 </div>
             ) : viewMode === 'table' ? (
                 <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E5E7EB', overflowX: 'auto' }}>
                     <table style={{ width: '100%', minWidth: '800px', textAlign: 'left', borderCollapse: 'collapse' }}>
                         <thead style={{ background: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
                             <tr>
-                                <th style={{ padding: '16px' }}>Rasm</th>
-                                <th style={{ padding: '16px' }}>Nom</th>
-                                <th style={{ padding: '16px' }}>Kategoriya</th>
-                                <th style={{ padding: '16px' }}>Narx</th>
-                                <th style={{ padding: '16px' }}>Ko'rinishi</th>
-                                <th style={{ padding: '16px' }}>Tayyor</th>
-                                <th style={{ padding: '16px', textAlign: 'right' }}>Amallar</th>
+                                <th style={{ padding: '16px' }}>{t('image')}</th>
+                                <th style={{ padding: '16px' }}>{t('name')}</th>
+                                <th style={{ padding: '16px' }}>{t('category')}</th>
+                                <th style={{ padding: '16px' }}>{t('price')}</th>
+                                <th style={{ padding: '16px' }}>{t('visibility')}</th>
+                                <th style={{ padding: '16px' }}>{t('isReady')}</th>
+                                <th style={{ padding: '16px', textAlign: 'right' }}>{t('actions')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -181,23 +184,23 @@ export default function ProductsPage() {
                                     <td style={{ padding: '16px' }}>
                                         <div style={{ width: '48px', height: '48px', borderRadius: '8px', overflow: 'hidden', background: '#F3F4F6', position: 'relative' }}>
                                             {p.image_url ? (
-                                                <Image src={p.image_url} alt={p.title} fill style={{ objectFit: 'cover' }} sizes="48px" />
+                                                <Image src={p.image_url} alt={getLocalized(p.title, lang)} fill style={{ objectFit: 'cover' }} sizes="48px" />
                                             ) : (
                                                 <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🍰</div>
                                             )}
                                         </div>
                                     </td>
                                     <td style={{ padding: '16px', fontWeight: 600, color: '#111827' }}>
-                                        {p.title}
-                                        {p.subtitle && <div style={{ fontSize: '12px', color: '#6B7280', fontWeight: 400 }}>{p.subtitle}</div>}
+                                        {getLocalized(p.title, lang)}
+                                        {p.subtitle && <div style={{ fontSize: '12px', color: '#6B7280', fontWeight: 400 }}>{getLocalized(p.subtitle, lang)}</div>}
                                     </td>
                                     <td style={{ padding: '16px' }}>
                                         <span style={{ background: '#F3F4F6', padding: '4px 8px', borderRadius: '6px', fontSize: '13px' }}>
-                                            {p.category}
+                                            {getLocalized(p.category, lang)}
                                         </span>
                                     </td>
                                     <td style={{ padding: '16px', fontWeight: 700 }}>
-                                        {p.base_price?.toLocaleString()} so'm
+                                        {p.base_price?.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}
                                     </td>
                                     <td style={{ padding: '16px' }}>
                                         <button
@@ -217,7 +220,7 @@ export default function ProductsPage() {
                                             }}
                                         >
                                             {p.is_available ? <Eye size={14} /> : <EyeOff size={14} />}
-                                            {p.is_available ? 'Ha' : 'Yo\'q'}
+                                            {p.is_available ? t('yes') : t('no')}
                                         </button>
                                     </td>
                                     <td style={{ padding: '16px' }}>
@@ -238,7 +241,7 @@ export default function ProductsPage() {
                                             }}
                                         >
                                             <PackageIcon size={14} />
-                                            {p.is_ready ? 'Tayyor' : 'Kutish'}
+                                            {p.is_ready ? t('ready') : t('waiting')}
                                         </button>
                                     </td>
                                     <td style={{ padding: '16px', textAlign: 'right' }}>
@@ -272,18 +275,14 @@ export default function ProductsPage() {
                         <div key={p.id} style={{ background: 'white', borderRadius: '16px', border: '1px solid #E5E7EB', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                             <div style={{ position: 'relative', paddingTop: '75%', background: '#F3F4F6' }}>
                                 {p.image_url ? (
-                                    <Image src={p.image_url} alt={p.title} fill style={{ objectFit: 'cover' }} sizes="(max-width: 640px) 50vw, 25vw" />
+                                    <Image src={p.image_url} alt={getLocalized(p.title, lang)} fill style={{ objectFit: 'cover' }} sizes="(max-width: 640px) 50vw, 25vw" />
                                 ) : (
                                     <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px' }}>🍰</div>
                                 )}
                                 <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', gap: '8px' }}>
                                     <button
                                         onClick={() => handleToggleAvailability(p.id, p.is_available)}
-                                        style={{
-                                            padding: '8px', background: 'white', borderRadius: '10px', border: 'none', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', cursor: 'pointer',
-                                            color: p.is_available ? '#166534' : '#6B7280'
-                                        }}
-                                        title={p.is_available ? 'Ko\'rinadigan' : 'Yashirin'}
+                                        title={p.is_available ? t('visible') : t('hidden')}
                                     >
                                         {p.is_available ? <Eye size={18} /> : <EyeOff size={18} />}
                                     </button>
@@ -292,14 +291,14 @@ export default function ProductsPage() {
                             <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
                                 <div style={{ marginBottom: '12px' }}>
                                     <span style={{ background: '#F3F4F6', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, color: '#4B5563', textTransform: 'uppercase' }}>
-                                        {p.category}
+                                        {getLocalized(p.category, lang)}
                                     </span>
                                 </div>
-                                <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#111827', marginBottom: '4px' }}>{p.title}</h3>
-                                {p.subtitle && <p style={{ fontSize: '13px', color: '#6B7280', marginBottom: '12px' }}>{p.subtitle}</p>}
+                                <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#111827', marginBottom: '4px' }}>{getLocalized(p.title, lang)}</h3>
+                                {p.subtitle && <p style={{ fontSize: '13px', color: '#6B7280', marginBottom: '12px' }}>{getLocalized(p.subtitle, lang)}</p>}
                                 <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <div style={{ fontWeight: 800, color: '#BE185D', fontSize: '18px' }}>
-                                        {p.base_price?.toLocaleString()} so'm
+                                    <div style={{ fontWeight: 800, color: 'hsl(var(--color-primary-dark))', fontSize: '18px' }}>
+                                        {p.base_price?.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}
                                     </div>
                                     <div style={{ display: 'flex', gap: '8px' }}>
                                         <button

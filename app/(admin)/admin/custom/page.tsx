@@ -9,11 +9,13 @@ import {
 } from 'lucide-react';
 import styles from './AdminCustom.module.css';
 import { customCakeService, CustomOption } from '@/app/services/customCakeService';
+import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 import { SectionTitle } from '@/app/components/admin/DashboardComponents';
 
 type TabType = 'size' | 'sponge' | 'cream' | 'decoration';
 
 export default function AdminCustomPage() {
+    const { lang, t } = useAdminI18n();
     const [activeTab, setActiveTab] = useState<TabType>('size');
     const [options, setOptions] = useState<CustomOption[]>([]);
     const [loading, setLoading] = useState(true);
@@ -52,7 +54,7 @@ export default function AdminCustomPage() {
     };
 
     const handleDelete = async (id: string) => {
-        if (confirm('Ishonchingiz komilmi? Bu variant o\'chiriladi.')) {
+        if (confirm(t('confirmDeleteOption'))) {
             const { error } = await customCakeService.deleteOption(id);
             if (!error) {
                 setOptions(options.filter(o => o.id !== id));
@@ -91,7 +93,7 @@ export default function AdminCustomPage() {
     return (
         <div className={styles.container}>
             <div className={styles.header}>
-                <h1 className={styles.title}>Maxsus Tort Sozlamalari</h1>
+                <h1 className={styles.title}>{t('customCakeSettings')}</h1>
             </div>
 
             <div className={styles.tabs}>
@@ -103,16 +105,16 @@ export default function AdminCustomPage() {
                     >
                         {getTabIcon(tab)}
                         <span>
-                            {tab === 'size' ? 'Hajmlar' :
-                                tab === 'sponge' ? 'Biskvit' :
-                                    tab === 'cream' ? 'Krem / Qoplama' : 'Bezaklar'}
+                            {tab === 'size' ? t('tabSizes') :
+                                tab === 'sponge' ? t('tabSponge') :
+                                    tab === 'cream' ? t('tabCream') : t('tabDecoration')}
                         </span>
                     </button>
                 ))}
             </div>
 
             {loading ? (
-                <div style={{ textAlign: 'center', padding: '40px' }}>Yuklanmoqda...</div>
+                <div style={{ textAlign: 'center', padding: '40px' }}>{t('loading')}</div>
             ) : (
                 <div className={styles.grid}>
                     {filteredOptions.map(option => (
@@ -130,7 +132,7 @@ export default function AdminCustomPage() {
                                     <div className={styles.cardIcon}>{getTabIcon(option.type)}</div>
                                 )}
                             </div>
-                            <span className={styles.cardPrice}>+{option.price.toLocaleString()} so'm</span>
+                            <span className={styles.cardPrice}>+{option.price.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}</span>
 
                             <div className={styles.cardActions}>
                                 <button className={styles.actionBtn} onClick={() => handleEdit(option)}>
@@ -144,7 +146,7 @@ export default function AdminCustomPage() {
                     ))}
                     <button className={`${styles.card} ${styles.addCard}`} onClick={handleAdd}>
                         <Plus size={32} />
-                        <span>Yangi qo'shish</span>
+                        <span>{t('addNew')}</span>
                     </button>
                 </div>
             )}
@@ -154,7 +156,7 @@ export default function AdminCustomPage() {
                 <div className={styles.modalOverlay}>
                     <div className={styles.modalContainer}>
                         <div className={styles.modalHeader}>
-                            <h3>{editingOption.id ? 'Tahrirlash' : 'Yangi variant'}</h3>
+                            <h3>{editingOption.id ? t('editOption') : t('newOption')}</h3>
                             <button className={styles.modalClose} onClick={() => setIsModalOpen(false)}>
                                 <X size={20} />
                             </button>
@@ -162,7 +164,7 @@ export default function AdminCustomPage() {
                         <form className={styles.form} onSubmit={handleSubmit}>
                             <div className={styles.modalContent}>
                                 <div className={styles.formGroup}>
-                                    <label>Nomi (Label)</label>
+                                    <label>{t('labelName')}</label>
                                     <input
                                         type="text"
                                         className={styles.input}
@@ -174,7 +176,7 @@ export default function AdminCustomPage() {
 
                                 {activeTab === 'size' && (
                                     <div className={styles.formGroup}>
-                                        <label>Qo'shimcha ma'lumot (masalan: 30cm)</label>
+                                        <label>{t('subLabelLabel')}</label>
                                         <input
                                             type="text"
                                             className={styles.input}
@@ -185,7 +187,7 @@ export default function AdminCustomPage() {
                                 )}
 
                                 <div className={styles.formGroup}>
-                                    <label>Narxi (so'm)</label>
+                                    <label>{t('priceLabel')} ({lang === 'uz' ? "so'm" : "сум"})</label>
                                     <input
                                         type="number"
                                         className={styles.input}
@@ -197,7 +199,7 @@ export default function AdminCustomPage() {
 
                                 {(activeTab === 'cream' || activeTab === 'decoration') && (
                                     <div className={styles.formGroup}>
-                                        <label>Rasm URL (ixtiyoriy)</label>
+                                        <label>{t('imageUrlLabel')}</label>
                                         <input
                                             type="text"
                                             className={styles.input}
@@ -208,7 +210,7 @@ export default function AdminCustomPage() {
                                 )}
 
                                 <div className={styles.formGroup}>
-                                    <label>Tartib raqami</label>
+                                    <label>{t('sortOrderLabel')}</label>
                                     <input
                                         type="number"
                                         className={styles.input}
@@ -219,7 +221,7 @@ export default function AdminCustomPage() {
                             </div>
                             <div className={styles.modalFooter}>
                                 <button type="submit" className={styles.submitBtn} disabled={saving}>
-                                    {saving ? <Loader2 className="animate-spin" /> : 'Saqlash'}
+                                    {saving ? <Loader2 className="animate-spin" /> : t('save')}
                                 </button>
                             </div>
                         </form>

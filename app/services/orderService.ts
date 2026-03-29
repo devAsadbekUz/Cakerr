@@ -40,7 +40,7 @@ export const orderService = {
         }
     },
 
-    async updateOrderStatus(orderId: string, status: string, isAdmin: boolean = false) {
+    async updateOrderStatus(orderId: string, status: string, isAdmin: boolean = false, lang: string = 'uz') {
         if (isAdmin) {
             try {
                 // Unified high-performance endpoint for status + TG sync
@@ -48,7 +48,7 @@ export const orderService = {
                     method: 'POST',
                     credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status })
+                    body: JSON.stringify({ status, lang })
                 });
 
                 if (!response.ok) {

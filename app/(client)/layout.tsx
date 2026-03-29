@@ -1,8 +1,13 @@
+'use client';
+
+import dynamic from 'next/dynamic';
 import { CartProvider } from '@/app/context/CartContext';
 import { FavoritesProvider } from '@/app/context/FavoritesContext';
-import { TelegramProvider } from '@/app/context/TelegramContext';
 import BottomNav from "../components/layout/BottomNav";
-import ChatWidget from "../components/chat/ChatWidget";
+
+const ChatWidget = dynamic(() => import("../components/chat/ChatWidget"), {
+    ssr: false,
+});
 
 export default function ClientLayout({
     children,
@@ -10,16 +15,14 @@ export default function ClientLayout({
     children: React.ReactNode;
 }) {
     return (
-        <TelegramProvider>
-            <FavoritesProvider>
-                <CartProvider>
-                    <div style={{ paddingBottom: '70px' }}>
-                        {children}
-                    </div>
-                    <BottomNav />
-                    <ChatWidget />
-                </CartProvider>
-            </FavoritesProvider>
-        </TelegramProvider>
+        <FavoritesProvider>
+            <CartProvider>
+                <div style={{ paddingBottom: '70px' }}>
+                    {children}
+                </div>
+                <BottomNav />
+                <ChatWidget />
+            </CartProvider>
+        </FavoritesProvider>
     );
 }

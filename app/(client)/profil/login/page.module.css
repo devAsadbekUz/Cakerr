@@ -161,9 +161,9 @@
 }
 
 .inputWrapper:focus-within {
-    border-color: #E91E63;
+    border-color: hsl(var(--color-primary));
     background-color: white;
-    box-shadow: 0 0 0 4px rgba(233, 30, 99, 0.1);
+    box-shadow: 0 0 0 4px hsla(var(--color-primary), 0.1);
 }
 
 .inputIcon {
@@ -173,7 +173,7 @@
 }
 
 .inputWrapper:focus-within .inputIcon {
-    color: #E91E63;
+    color: hsl(var(--color-primary-dark));
 }
 
 .input {
@@ -203,8 +203,8 @@
 
 .submitBtn {
     width: 100%;
-    background-color: #E91E63;
-    color: white;
+    background-color: hsl(var(--color-primary));
+    color: hsl(var(--color-primary-text));
     border: none;
     border-radius: 16px;
     padding: 18px;
@@ -215,15 +215,15 @@
     justify-content: center;
     gap: 8px;
     cursor: pointer;
-    box-shadow: 0 8px 24px rgba(233, 30, 99, 0.25);
-    transition: background-color, border-color, color, opacity, transform, box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 8px 24px hsla(var(--color-primary), 0.25);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     margin-top: 8px;
 }
 
 .submitBtn:hover:not(:disabled) {
-    background-color: #D81B60;
+    background-color: hsl(var(--color-primary-dark));
     transform: translateY(-2px);
-    box-shadow: 0 12px 28px rgba(233, 30, 99, 0.35);
+    box-shadow: 0 12px 28px hsla(var(--color-primary), 0.35);
 }
 
 .submitBtn:active:not(:disabled) {
@@ -250,7 +250,7 @@
 }
 
 .footer span {
-    color: #E91E63;
+    color: hsl(var(--color-primary-dark));
     font-weight: 600;
     cursor: pointer;
 }

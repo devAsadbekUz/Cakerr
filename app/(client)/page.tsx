@@ -4,6 +4,7 @@ import ProductGrid from '@/app/components/products/ProductGrid';
 import HomepageShell from '@/app/components/home/HomepageShell';
 import ActiveOrderSection from '@/app/components/home/ActiveOrderSection';
 import { Product } from '@/app/types';
+import LocalizedText from '@/app/components/LocalizedText';
 
 export const revalidate = 60; // Revalidate cached data every 60 seconds
 
@@ -81,7 +82,9 @@ export default async function HomePage() {
                   id={`category-${cat.id}`}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                    <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#1F2937' }}>{cat.label || cat.name}</h2>
+                    <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#1F2937' }}>
+                      <LocalizedText data={cat.label || cat.name} />
+                    </h2>
                     <span style={{ fontSize: '14px', color: '#9CA3AF' }}>{productsInCategory.length} tortlar</span>
                   </div>
                   {/* Passing search and priority to components handled by HomepageShell clone element pattern or context */}

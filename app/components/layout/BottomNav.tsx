@@ -1,16 +1,17 @@
 'use client';
 
-import React from 'react';
+import React, { memo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Heart, ShoppingCart, User, Plus } from 'lucide-react';
 import styles from './BottomNav.module.css';
 import { useCart } from '@/app/context/CartContext';
-import { useState, useEffect } from 'react';
+import { useLanguage } from '@/app/context/LanguageContext';
 
-export default function BottomNav() {
+function BottomNav() {
     const pathname = usePathname();
     const { totalItems } = useCart();
+    const { t } = useLanguage();
     const [isBumping, setIsBumping] = useState(false);
     const [prevTotal, setPrevTotal] = useState(totalItems);
 
@@ -29,20 +30,20 @@ export default function BottomNav() {
     return (
         <nav className={styles.nav}>
             <Link href="/" className={`${styles.item} ${isActive('/') ? styles.active : ''}`}>
-                <Home size={24} />
-                <span>Asosiy</span>
+                < Home size={24} />
+                <span>{t('home')}</span>
             </Link>
 
             <Link href="/sevimli" className={`${styles.item} ${isActive('/sevimli') ? styles.active : ''}`}>
                 <Heart size={24} />
-                <span>Sevimli</span>
+                <span>{t('favorites')}</span>
             </Link>
 
             <div className={styles.centerContainer}>
                 <Link href="/yaratish" className={styles.createButton}>
                     <Plus size={32} color="white" />
                 </Link>
-                <span className={styles.createLabel}>Yaratish</span>
+                <span className={styles.createLabel}>{t('add')}</span>
             </div>
 
             <Link href="/savat" className={`${styles.item} ${isActive('/savat') ? styles.active : ''}`}>
@@ -50,13 +51,15 @@ export default function BottomNav() {
                     <ShoppingCart size={24} />
                     {totalItems > 0 && <span className={styles.badge}>{totalItems}</span>}
                 </div>
-                <span>Savat</span>
+                <span>{t('cart')}</span>
             </Link>
 
             <Link href="/profil" className={`${styles.item} ${isActive('/profil') ? styles.active : ''}`}>
                 <User size={24} />
-                <span>Profil</span>
+                <span>{t('profile')}</span>
             </Link>
         </nav>
     );
 }
+
+export default memo(BottomNav);

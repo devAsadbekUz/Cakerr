@@ -8,8 +8,8 @@ import styles from './page.module.css';
 export default function ShareAppPage() {
     const router = useRouter();
     const [copied, setCopied] = useState(false);
-    const shareUrl = 'https://cakerr.uz';
-    const shareText = 'Cakerr ilovasidan eng mazali tortlarni buyurtma qiling! 🍰';
+    const shareUrl = 'https://torte-le.uz';
+    const shareText = 'TORTEL\'E ilovasidan eng mazali tortlarni buyurtma qiling! 🍰';
 
     const handleCopy = async () => {
         try {

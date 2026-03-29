@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import SupabaseProvider from "./context/SupabaseContext";
+import Script from "next/script";
+import { AuthProvider } from "./context/AuthContext";
+import { LanguageProvider } from "./context/LanguageContext";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,19 +16,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Tort Magazin",
-  description: "Eng zo'r tortlar faqat bizda",
+  title: "TORTEL'E",
+  description: "TORTEL'E - Eng mazali va sifatli tortlar hamda shirinliklar",
   openGraph: {
-    title: "Tort Magazin - Mazali tortlar yetkazib berish",
+    title: "TORTEL'E",
     description: "Eng zo'r tortlar faqat bizda. O'z didingizga mos tortni buyurtma qiling!",
-    url: "https://cakerr.vercel.app", // Use production URL
-    siteName: "Tort Magazin",
+    url: "https://torte-le.uz",
+    siteName: "TORTEL'E",
     images: [
       {
-        url: "https://cakerr.vercel.app/app-preview.jpg",
+        url: "https://torte-le.uz/app-preview.jpg",
         width: 1200,
         height: 630,
-        alt: "Tort Magazin Ilovasi",
+        alt: "TORTEL'E Ilovasi",
       },
     ],
     locale: "uz_UZ",
@@ -34,9 +36,13 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Tort Magazin - Mazali tortlar yetkazib berish",
+    title: "TORTEL'E",
     description: "Eng zo'r tortlar faqat bizda. O'z didingizga mos tortni buyurtma qiling!",
-    images: ["https://cakerr.vercel.app/app-preview.jpg"],
+    images: ["https://torte-le.uz/app-preview.jpg"],
+  },
+  icons: {
+    icon: '/favicon.png',
+    apple: '/favicon.png',
   },
 };
 
@@ -47,17 +53,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link
-          rel="stylesheet"
-          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        />
-        <script src="https://telegram.org/js/telegram-web-app.js"></script>
-      </head>
+      <head />
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <SupabaseProvider>
-          {children}
-        </SupabaseProvider>
+        <Script
+          src="https://telegram.org/js/telegram-web-app.js"
+          strategy="beforeInteractive"
+        />
+        <AuthProvider>
+          <LanguageProvider>
+            {children}
+          </LanguageProvider>
+        </AuthProvider>
       </body>
     </html>
   );

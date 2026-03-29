@@ -44,14 +44,14 @@
 }
 
 .card:hover {
-    border-color: #E91E63;
+    border-color: hsl(var(--color-primary));
     transform: translateY(-2px);
 }
 
 .active {
-    background-color: #FFF1F2;
-    border-color: #E91E63;
-    box-shadow: 0 4px 12px rgba(233, 30, 99, 0.15);
+    background-color: hsla(var(--color-primary), 0.1);
+    border-color: hsl(var(--color-primary));
+    box-shadow: 0 4px 12px hsla(var(--color-primary), 0.15);
 }
 
 .value {
@@ -62,7 +62,7 @@
 }
 
 .active .value {
-    color: #E91E63;
+    color: hsl(var(--color-primary-dark));
 }
 
 .sub {
@@ -73,6 +73,6 @@
 }
 
 .active .sub {
-    color: #E91E63;
+    color: hsl(var(--color-primary-dark));
     opacity: 0.8;
 }

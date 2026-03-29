@@ -8,20 +8,19 @@
 }
 
 :root {
-  /* Premium Bakery Palette */
+  /* TORTEL'E Pastry Palette */
   --font-primary: 'Inter', sans-serif;
 
-  /* HSL Colors for fine control */
-  --color-primary: 340 82% 52%;
-  /* Deep Pink/Red #E91E63 approx */
-  --color-primary-light: 340 100% 96%;
-  /* Very light pink background */
-  --color-secondary: 24 100% 50%;
-  /* Orange/Gold Accent */
+  /* HSL Colors (Vibrant Pink theme) */
+  --color-primary: 340 82% 52%; /* Vibrant Pink #E91E63 */
+  --color-primary-dark: 340 82% 42%; /* #BE185D */
+  --color-primary-light: 340 82% 95%;
+  --color-primary-text: 0 0% 100%; /* Back to white text */
+  
+  --color-secondary: 340 30% 90%; /* Vibrant accent */
 
   --color-bg: 0 0% 100%;
-  --color-bg-soft: 30 20% 97%;
-  /* Creamy White */
+  --color-bg-soft: 340 40% 99%; /* Very subtle vibrant pink tint */
 
   --color-text: 220 10% 20%;
   --color-text-light: 220 10% 50%;

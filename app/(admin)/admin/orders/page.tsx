@@ -7,11 +7,15 @@ import {
 } from 'lucide-react';
 import { orderService } from '@/app/services/orderService';
 import { format, isToday, isTomorrow, isSameDay, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
+import { uz, ru } from 'date-fns/locale';
 import { createClient } from '@/app/utils/supabase/client';
 import styles from '../AdminDashboard.module.css';
+import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 import { Section, OrderCard, OrderDetailsModal } from '@/app/components/admin/DashboardComponents';
 
 export default function AdminOrdersPage() {
+    const { lang, t } = useAdminI18n();
+    const locale = lang === 'uz' ? uz : ru;
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -39,14 +43,18 @@ export default function AdminOrdersPage() {
                 fetchData();
             })
             .on('postgres_changes', { event: 'UPDATE', table: 'orders', schema: 'public' }, async (payload: any) => {
-                // Wait 500ms for DB consistency before fetching fresh data
+                // Wait small delay for DB consistency before fetching full items/profiles
                 setTimeout(async () => {
                     const updatedOrder = await orderService.getOrderAdmin(payload.new.id);
                     if (updatedOrder) {
+                        // CRITICAL: Enforcement of the status from the realtime payload
+                        // This prevents "ghosting" where the fetch returns a stale status
+                        updatedOrder.status = payload.new.status;
+                        
                         setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
                         setSelectedOrder((prev: any) => prev?.id === updatedOrder.id ? updatedOrder : prev);
                     }
-                }, 500);
+                }, 400);
             })
             .subscribe((status: string, err: Error | null) => {
                 if (err) console.error('[Realtime] Error:', err);
@@ -61,9 +69,9 @@ export default function AdminOrdersPage() {
         // Optimistic UI update to feel instant
         setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
 
-        const { error } = await orderService.updateOrderStatus(orderId, newStatus, true);
+        const { error } = await orderService.updateOrderStatus(orderId, newStatus, true, lang);
         if (error) {
-            alert('Xatolik: ' + error.message);
+            alert(t('error') + ': ' + error.message);
             fetchData(); // Revert on failure
         }
     };
@@ -98,18 +106,18 @@ export default function AdminOrdersPage() {
             {newOrderNotify && (
                 <div className={styles.notification}>
                     <AlertCircle size={20} />
-                    <span style={{ fontWeight: 600 }}>Yangi buyurtma tushdi!</span>
-                    <button onClick={() => setNewOrderNotify(false)} className={styles.dismissBtn}>Yopish</button>
+                    <span style={{ fontWeight: 600 }}>{t('newOrderAlert')}</span>
+                    <button onClick={() => setNewOrderNotify(false)} className={styles.dismissBtn}>{t('close')}</button>
                 </div>
             )}
 
             <header className={styles.header}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <h1 className={styles.title}>Buyurtmalar</h1>
+                    <h1 className={styles.title}>{t('orders')}</h1>
                     <button 
                         onClick={() => { setLoading(true); fetchData(); }} 
                         className={styles.modalClose} 
-                        title="Yangilash"
+                        title={t('refresh')}
                         style={{ width: '40px', height: '40px', background: 'white' }}
                     >
                         <Clock size={20} />
@@ -120,13 +128,13 @@ export default function AdminOrdersPage() {
                         onClick={() => setViewMode('inbox')}
                         className={`${styles.toggleBtn} ${viewMode === 'inbox' ? styles.toggleBtnActive : ''}`}
                     >
-                        <ShoppingBag size={18} /> Inbox
+                        <ShoppingBag size={18} /> {t('inbox')}
                     </button>
                     <button
                         onClick={() => setViewMode('calendar')}
                         className={`${styles.toggleBtn} ${viewMode === 'calendar' ? styles.toggleBtnActive : ''}`}
                     >
-                        <CalendarIcon size={18} /> Kalendar
+                        <CalendarIcon size={18} /> {t('calendar')}
                     </button>
                 </div>
             </header>
@@ -143,20 +151,20 @@ export default function AdminOrdersPage() {
             )}
 
             {loading ? (
-                <div style={{ textAlign: 'center', padding: '60px', color: '#6B7280' }}>Yuklanmoqda...</div>
+                <div style={{ textAlign: 'center', padding: '60px', color: '#6B7280' }}>{t('loading')}</div>
             ) : viewMode === 'inbox' ? (
                 <div className={styles.inboxView}>
                     {sortedDates.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '80px', background: 'white', borderRadius: '24px', color: '#9CA3AF' }}>
                             <ShoppingBag size={48} style={{ marginBottom: '16px', opacity: 0.3 }} />
-                            <p>Hozircha faol buyurtmalar yo'q</p>
+                            <p>{t('noActiveOrders')}</p>
                         </div>
                     ) : (
                         sortedDates.map(dateStr => {
                             const date = new Date(dateStr);
-                            const displayDate = isToday(date) ? 'Bugun' :
-                                isTomorrow(date) ? 'Ertaga' :
-                                    format(date, 'd-MMMM, EEEE');
+                            const displayDate = isToday(date) ? t('today') :
+                                isTomorrow(date) ? t('tomorrow') :
+                                    format(date, 'd-MMMM, EEEE', { locale });
                             const dayOrders = groupedOrders[dateStr];
 
                             return (
@@ -183,7 +191,7 @@ export default function AdminOrdersPage() {
                 <div className={styles.calendarView}>
                     <div className={styles.calendarContainer}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                            <h2 style={{ fontSize: '20px', fontWeight: 700 }}>{format(currentMonth, 'MMMM yyyy')}</h2>
+                            <h2 style={{ fontSize: '20px', fontWeight: 700 }}>{format(currentMonth, 'MMMM yyyy', { locale })}</h2>
                             <div style={{ display: 'flex', gap: '8px' }}>
                                 <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className={styles.modalClose}><ChevronLeft size={20} /></button>
                                 <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className={styles.modalClose}><ChevronRight size={20} /></button>
@@ -194,18 +202,19 @@ export default function AdminOrdersPage() {
                             selectedDate={selectedDate}
                             onSelectDate={setSelectedDate}
                             orders={orders}
+                            lang={lang}
                         />
                     </div>
 
                     <div className={styles.dayDetails}>
                         <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Clock size={20} color="#BE185D" />
-                            {isToday(selectedDate) ? 'Bugun' : format(selectedDate, 'd-MMMM')} buyurtmalari
+                            {isToday(selectedDate) ? t('today') : format(selectedDate, 'd-MMMM', { locale })} {t('ordersFor')}
                         </h2>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                             {filteredByDate.length === 0 ? (
                                 <div style={{ textAlign: 'center', padding: '40px', background: '#F9FAFB', borderRadius: '16px', color: '#9CA3AF', fontSize: '14px' }}>
-                                    Bu kun uchun buyurtmalar yo'q
+                                    {t('noOrdersForDay')}
                                 </div>
                             ) : (
                                 filteredByDate.map(order => (
@@ -220,7 +229,7 @@ export default function AdminOrdersPage() {
     );
 }
 
-function AdminCalendar({ currentMonth, selectedDate, onSelectDate, orders }: any) {
+function AdminCalendar({ currentMonth, selectedDate, onSelectDate, orders, lang }: any) {
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(monthStart);
     const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
@@ -230,7 +239,7 @@ function AdminCalendar({ currentMonth, selectedDate, onSelectDate, orders }: any
 
     return (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
-            {['Du', 'Se', 'Cho', 'Pa', 'Ju', 'Sha', 'Ya'].map(day => (
+            {(lang === 'uz' ? ['Du', 'Se', 'Cho', 'Pa', 'Ju', 'Sha', 'Ya'] : ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']).map(day => (
                 <div key={day} style={{ textAlign: 'center', padding: '8px', fontSize: '12px', fontWeight: 700, color: '#6B7280' }}>{day}</div>
             ))}
             {calendarDays.map((day, idx) => {

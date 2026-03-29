@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { format, isToday } from 'date-fns';
+import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 import styles from '@/app/(admin)/admin/AdminDashboard.module.css';
 
 // Image Preview Modal Component
@@ -88,12 +89,13 @@ export function StatCard({ title, value, icon: Icon, color, subtitle }: any) {
 }
 
 export function Section({ title, count, children, emptyMsg, highlight }: any) {
-    if (count === 0 && emptyMsg === "Yangi buyurtmalar yo'q") return null;
+    const { lang, t } = useAdminI18n();
+    if (count === 0 && emptyMsg === t('noNewOrders')) return null;
     return (
         <div className={`${styles.section} ${highlight ? styles.sectionHighlight : ''}`}>
             <div className={styles.sectionHeader}>
-                <h2 className={styles.sectionTitle} style={{ color: highlight ? '#BE185D' : '#111827' }}>{title}</h2>
-                <span className={styles.badge} style={{ background: highlight ? '#BE185D' : '#6B7280' }}>{count}</span>
+                <h2 className={styles.sectionTitle} style={{ color: highlight ? 'hsl(var(--color-primary-dark))' : '#111827' }}>{title}</h2>
+                <span className={styles.badge} style={{ background: highlight ? 'hsl(var(--color-primary-dark))' : '#6B7280' }}>{count}</span>
             </div>
             <div className={styles.orderGrid}>
                 {count === 0 ? (
@@ -107,14 +109,15 @@ export function Section({ title, count, children, emptyMsg, highlight }: any) {
 }
 
 export function OrderCard({ order, compact, onUpdate, onClick }: any) {
+    const { lang, t } = useAdminI18n();
     const statusMeta: any = {
-        new: { label: 'Yangi', color: '#FB923C', bg: '#FFF7ED' },
-        confirmed: { label: 'Tasdiqlangan', color: '#3B82F6', bg: '#EFF6FF' },
-        preparing: { label: 'Pishirilmoqda', color: '#8B5CF6', bg: '#F5F3FF' },
-        ready: { label: 'Tayyor', color: '#10B981', bg: '#F0FDF4' },
-        delivering: { label: 'Yo\'lda', color: '#BE185D', bg: '#FDF2F8' },
-        completed: { label: 'Yetkazildi', color: '#059669', bg: '#ECFDF5' },
-        cancelled: { label: 'Bekor qilindi', color: '#EF4444', bg: '#FEF2F2' },
+        new: { label: t('status_new'), color: '#FB923C', bg: '#FFF7ED' },
+        confirmed: { label: t('status_confirmed'), color: '#3B82F6', bg: '#EFF6FF' },
+        preparing: { label: t('status_preparing'), color: '#8B5CF6', bg: '#F5F3FF' },
+        ready: { label: t('status_ready'), color: '#10B981', bg: '#F0FDF4' },
+        delivering: { label: t('status_delivering'), color: 'hsl(var(--color-primary-dark))', bg: 'hsla(var(--color-primary), 0.1)' },
+        completed: { label: t('status_completed'), color: '#059669', bg: '#ECFDF5' },
+        cancelled: { label: t('status_cancelled'), color: '#EF4444', bg: '#FEF2F2' },
     };
 
     const s = statusMeta[order.status] || { label: order.status, color: '#6B7280', bg: '#F3F4F6' };
@@ -130,34 +133,34 @@ export function OrderCard({ order, compact, onUpdate, onClick }: any) {
                     </div>
                     <p style={{ margin: 0, fontSize: '14px', color: '#6B7280' }}>
                         <CalendarIcon size={14} style={{ marginRight: 4, verticalAlign: 'text-bottom' }} />
-                        {isToday(deliveryDate) ? 'Bugun' : format(deliveryDate, 'd-MMM')}, {order.delivery_slot}
+                        {isToday(deliveryDate) ? t('today') : format(deliveryDate, 'd-MMM')}, {order.delivery_slot}
                     </p>
                     <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#9CA3AF' }}>
                         <Clock size={12} style={{ marginRight: 4, verticalAlign: 'text-bottom' }} />
-                        Buyurtma: {format(new Date(order.created_at), 'HH:mm')}
+                        {t('orderTime')}: {format(new Date(order.created_at), 'HH:mm')}
                     </p>
                 </div>
                 <div>
-                    <div style={{ fontWeight: 800, fontSize: '16px', color: '#BE185D' }}>{order.total_price.toLocaleString()} so'm</div>
+                    <div style={{ fontWeight: 800, fontSize: '16px', color: 'hsl(var(--color-primary-dark))' }}>{order.total_price.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}</div>
                 </div>
             </div>
 
             {!compact && (
                 <>
                     <div className={styles.orderCardCustomer}>
-                        <div style={{ fontSize: '14px', fontWeight: 700, marginBottom: '6px' }}>{order.profiles?.full_name || 'Mijoz'}</div>
+                        <div style={{ fontSize: '14px', fontWeight: 700, marginBottom: '6px' }}>{order.profiles?.full_name || t('client')}</div>
                         <div style={{ fontSize: '12px', color: '#6B7280', display: 'flex', alignItems: 'flex-start' }}>
                             <MapPinned size={14} style={{ marginRight: 6, marginTop: 1, minWidth: '14px' }} />
-                            <span style={{ lineHeight: '1.4' }}>{order.delivery_address?.street || 'Manzil ko\'rsatilmagan'}</span>
+                            <span style={{ lineHeight: '1.4' }}>{order.delivery_address?.street || t('noAddress')}</span>
                         </div>
                     </div>
 
                     <div style={{ marginTop: '4px' }}>
-                        <p style={{ fontSize: '11px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', marginBottom: '8px' }}>Mahsulotlar</p>
+                        <p style={{ fontSize: '11px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', marginBottom: '8px' }}>{t('items')}</p>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                             {order.order_items?.map((item: any, idx: number) => (
                                 <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                                    <span style={{ color: '#374151', fontWeight: 500 }}>{item.quantity}x {item.name || 'Tort'}</span>
+                                    <span style={{ color: '#374151', fontWeight: 500 }}>{item.quantity}x {item.name || t('cake')}</span>
                                     <span style={{ color: '#6B7280', fontSize: '12px' }}>{item.configuration?.portion || ''}</span>
                                 </div>
                             ))}
@@ -169,21 +172,21 @@ export function OrderCard({ order, compact, onUpdate, onClick }: any) {
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: 'auto' }} onClick={(e) => e.stopPropagation()}>
                 {order.status === 'new' && (
                     <>
-                        <button onClick={() => onUpdate(order.id, 'confirmed')} style={{ flex: 1, minWidth: '120px', background: '#3B82F6', color: 'white', border: 'none', padding: '12px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}><CheckCircle2 size={16} /> Tasdiqlash</button>
+                        <button onClick={() => onUpdate(order.id, 'confirmed')} style={{ flex: 1, minWidth: '120px', background: '#3B82F6', color: 'white', border: 'none', padding: '12px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}><CheckCircle2 size={16} /> {t('confirmOrder')}</button>
                         <button onClick={() => onUpdate(order.id, 'cancelled')} style={{ width: '44px', height: '44px', background: '#FEF2F2', color: '#EF4444', border: 'none', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><XCircle size={18} /></button>
                     </>
                 )}
                 {order.status === 'confirmed' && (
-                    <button onClick={() => onUpdate(order.id, 'preparing')} style={{ flex: 1, background: '#8B5CF6', color: 'white', border: 'none', padding: '12px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}><Info size={16} /> Pishirishni boshlash</button>
+                    <button onClick={() => onUpdate(order.id, 'preparing')} style={{ flex: 1, background: '#8B5CF6', color: 'white', border: 'none', padding: '12px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}><Info size={16} /> {t('startCooking')}</button>
                 )}
                 {order.status === 'preparing' && (
-                    <button onClick={() => onUpdate(order.id, 'ready')} style={{ flex: 1, background: '#10B981', color: 'white', border: 'none', padding: '12px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}><PackageCheck size={16} /> Tayyor bo'ldi</button>
+                    <button onClick={() => onUpdate(order.id, 'ready')} style={{ flex: 1, background: '#10B981', color: 'white', border: 'none', padding: '12px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}><PackageCheck size={16} /> {t('finishCooking')}</button>
                 )}
                 {order.status === 'ready' && (
-                    <button onClick={() => onUpdate(order.id, 'delivering')} style={{ flex: 1, background: '#BE185D', color: 'white', border: 'none', padding: '12px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}><Truck size={16} /> Yetkazilmoqda</button>
+                    <button onClick={() => onUpdate(order.id, 'delivering')} style={{ flex: 1, background: 'hsl(var(--color-primary-dark))', color: 'white', border: 'none', padding: '12px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}><Truck size={16} /> {t('startDelivery')}</button>
                 )}
                 {order.status === 'delivering' && (
-                    <button onClick={() => onUpdate(order.id, 'completed')} style={{ flex: 1, background: '#059669', color: 'white', border: 'none', padding: '12px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}><CheckCircle2 size={16} /> Yakunlash</button>
+                    <button onClick={() => onUpdate(order.id, 'completed')} style={{ flex: 1, background: '#059669', color: 'white', border: 'none', padding: '12px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}><CheckCircle2 size={16} /> {t('completeOrder')}</button>
                 )}
             </div>
         </div>
@@ -191,16 +194,17 @@ export function OrderCard({ order, compact, onUpdate, onClick }: any) {
 }
 
 export function OrderDetailsModal({ order, onClose, onUpdate }: { order: any, onClose: () => void, onUpdate: (id: string, status: string) => void }) {
+    const { lang, t } = useAdminI18n();
     const [previewImage, setPreviewImage] = useState<string | null>(null);
 
     const statusMeta: any = {
-        new: { label: 'Yangi', color: '#FB923C', bg: '#FFF7ED' },
-        confirmed: { label: 'Tasdiqlangan', color: '#3B82F6', bg: '#EFF6FF' },
-        preparing: { label: 'Pishirilmoqda', color: '#8B5CF6', bg: '#F5F3FF' },
-        ready: { label: 'Tayyor', color: '#10B981', bg: '#F0FDF4' },
-        delivering: { label: 'Yo\'lda', color: '#BE185D', bg: '#FDF2F8' },
-        completed: { label: 'Yetkazildi', color: '#059669', bg: '#ECFDF5' },
-        cancelled: { label: 'Bekor qilindi', color: '#EF4444', bg: '#FEF2F2' },
+        new: { label: t('status_new'), color: '#FB923C', bg: '#FFF7ED' },
+        confirmed: { label: t('status_confirmed'), color: '#3B82F6', bg: '#EFF6FF' },
+        preparing: { label: t('status_preparing'), color: '#8B5CF6', bg: '#F5F3FF' },
+        ready: { label: t('status_ready'), color: '#10B981', bg: '#F0FDF4' },
+        delivering: { label: t('status_delivering'), color: 'hsl(var(--color-primary-dark))', bg: 'hsla(var(--color-primary), 0.1)' },
+        completed: { label: t('status_completed'), color: '#059669', bg: '#ECFDF5' },
+        cancelled: { label: t('status_cancelled'), color: '#EF4444', bg: '#FEF2F2' },
     };
 
     const s = statusMeta[order.status] || { label: order.status, color: '#6B7280', bg: '#F3F4F6' };
@@ -214,7 +218,7 @@ export function OrderDetailsModal({ order, onClose, onUpdate }: { order: any, on
                 <div className={styles.modalContainer} onClick={(e) => e.stopPropagation()}>
                     <header className={styles.modalHeader}>
                         <div>
-                            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 800 }}>Buyurtma #{order.id.slice(0, 8)}</h2>
+                            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 800 }}>{t('orderNumber')} #{order.id.slice(0, 8)}</h2>
                             <span style={{ background: s.bg, color: s.color, padding: '4px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', marginTop: '8px', display: 'inline-block' }}>{s.label}</span>
                         </div>
                         <button className={styles.modalClose} onClick={onClose}>
@@ -224,20 +228,20 @@ export function OrderDetailsModal({ order, onClose, onUpdate }: { order: any, on
 
                     <div className={styles.modalContent}>
                         <div className={styles.customerCard}>
-                            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#BE185D', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 800 }}>
+                            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'hsl(var(--color-primary))', color: 'hsl(var(--color-primary-text))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 800 }}>
                                 {order.profiles?.full_name?.[0] || 'U'}
                             </div>
                             <div className={styles.infoSection}>
-                                <div className={styles.infoLabel}>Mijoz ma'lumotlari</div>
-                                <div style={{ fontSize: '16px', fontWeight: 700 }}>{order.profiles?.full_name || 'Mijoz'}</div>
-                                <div style={{ fontSize: '14px', color: '#6B7280' }}>{order.profiles?.phone_number || 'Telefon kiritilmagan'}</div>
+                                <div className={styles.infoLabel}>{t('clientInfo')}</div>
+                                <div style={{ fontSize: '16px', fontWeight: 700 }}>{order.profiles?.full_name || t('client')}</div>
+                                <div style={{ fontSize: '14px', color: '#6B7280' }}>{order.profiles?.phone_number || t('noPhone')}</div>
                             </div>
                         </div>
 
                         <div className={styles.infoSection}>
-                            <div className={styles.infoLabel}>Yetkazib berish</div>
+                            <div className={styles.infoLabel}>{t('delivery')}</div>
                             <div style={{ fontSize: '15px', color: '#374151', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                <MapPinned size={18} color="#BE185D" />
+                                <MapPinned size={18} color="hsl(var(--color-primary-dark))" />
                                 {order.delivery_address?.lat && order.delivery_address?.lng ? (
                                     <a
                                         href={`https://www.google.com/maps?q=${order.delivery_address.lat},${order.delivery_address.lng}`}
@@ -249,10 +253,10 @@ export function OrderDetailsModal({ order, onClose, onUpdate }: { order: any, on
                                             textDecoration: 'none'
                                         }}
                                     >
-                                        {order.delivery_address?.street || 'Manzil kiritilmagan'}{order.delivery_address?.apartment ? `, ${order.delivery_address.apartment}` : ''}
+                                        {order.delivery_address?.street || t('noAddress')}{order.delivery_address?.apartment ? `, ${order.delivery_address.apartment}` : ''}
                                     </a>
                                 ) : (
-                                    <span>{order.delivery_address?.street || 'Manzil kiritilmagan'}{order.delivery_address?.apartment ? `, ${order.delivery_address.apartment}` : ''}</span>
+                                    <span>{order.delivery_address?.street || t('noAddress')}{order.delivery_address?.apartment ? `, ${order.delivery_address.apartment}` : ''}</span>
                                 )}
                             </div>
                             <div style={{ fontSize: '14px', color: '#6B7280', marginTop: '4px' }}>
@@ -263,7 +267,7 @@ export function OrderDetailsModal({ order, onClose, onUpdate }: { order: any, on
 
                         {order.comment && (
                             <div className={styles.infoSection} style={{ background: '#F0F9FF', padding: '12px', borderRadius: '12px', border: '1px solid #BAE6FD' }}>
-                                <div className={styles.infoLabel} style={{ color: '#0369A1' }}>Qo'shimcha izoh</div>
+                                <div className={styles.infoLabel} style={{ color: '#0369A1' }}>{t('orderComment')}</div>
                                 <div style={{ fontSize: '14px', color: '#0C4A6E', fontStyle: 'italic' }}>
                                     "{order.comment}"
                                 </div>
@@ -271,7 +275,7 @@ export function OrderDetailsModal({ order, onClose, onUpdate }: { order: any, on
                         )}
 
                         <div className={styles.infoSection}>
-                            <div className={styles.infoLabel}>Mahsulotlar</div>
+                            <div className={styles.infoLabel}>{t('items')}</div>
                             <div style={{ marginTop: '12px' }}>
                                 {order.order_items?.map((item: any, idx: number) => (
                                     <div key={idx} className={styles.orderItemCard}>
@@ -309,29 +313,29 @@ export function OrderDetailsModal({ order, onClose, onUpdate }: { order: any, on
                                             )}
                                         </div>
                                         <div className={styles.itemInfo}>
-                                            <h3 className={styles.itemName}>{item.name || 'Tort'}</h3>
+                                            <h3 className={styles.itemName}>{item.name || (lang === 'uz' ? 'Tort' : 'Торт')}</h3>
                                             <div className={styles.itemConfig}>
                                                 {/* Custom Cake Specific Fields */}
                                                 {item.configuration?.mode === 'upload' ? (
-                                                    <div style={{ color: '#BE185D', fontWeight: 700, fontSize: '11px', marginBottom: '4px', textTransform: 'uppercase' }}>📸 Mijoz rasmi asosida</div>
+                                                    <div style={{ color: 'hsl(var(--color-primary-dark))', fontWeight: 700, fontSize: '11px', marginBottom: '4px', textTransform: 'uppercase' }}>📸 {t('basedOnPhoto')}</div>
                                                 ) : item.configuration?.mode === 'builder' ? (
-                                                    <div style={{ color: '#0369A1', fontWeight: 700, fontSize: '11px', marginBottom: '4px', textTransform: 'uppercase' }}>🎂 Konstruktor orqali</div>
+                                                    <div style={{ color: '#0369A1', fontWeight: 700, fontSize: '11px', marginBottom: '4px', textTransform: 'uppercase' }}>🎂 {t('viaBuilder')}</div>
                                                 ) : null}
 
-                                                {item.configuration?.portion && <div>Hajm/Portsiya: {item.configuration.portion}</div>}
-                                                {item.configuration?.flavor && <div>Lazzat/Krem: {item.configuration.flavor}</div>}
+                                                {item.configuration?.portion && <div>{t('portionSize')}: {item.configuration.portion}</div>}
+                                                {item.configuration?.flavor && <div>{t('flavorCream')}: {item.configuration.flavor}</div>}
 
-                                                {item.configuration?.shape && <div>Shakl: {item.configuration.shape}</div>}
-                                                {item.configuration?.sponge && <div>Biskvit: {item.configuration.sponge}</div>}
+                                                {item.configuration?.shape && <div>{t('shape')}: {item.configuration.shape}</div>}
+                                                {item.configuration?.sponge && <div>{t('sponge')}: {item.configuration.sponge}</div>}
                                                 {item.configuration?.decorations && (
-                                                    <div>Bezaklar: <span style={{ color: '#BE185D', fontWeight: 600 }}>{item.configuration.decorations}</span></div>
+                                                    <div>{t('decorations')}: <span style={{ color: 'hsl(var(--color-primary-dark))', fontWeight: 600 }}>{item.configuration.decorations}</span></div>
                                                 )}
 
                                                 {/* Notes and Comments */}
                                                 {(item.configuration?.custom_note || item.configuration?.order_note) && (
-                                                    <div style={{ marginTop: '4px', padding: '6px', background: '#FFF5F7', borderRadius: '6px', borderLeft: '3px solid #BE185D' }}>
-                                                        <div style={{ fontSize: '11px', fontWeight: 800, color: '#BE185D', textTransform: 'uppercase' }}>
-                                                            {item.configuration?.mode === 'upload' ? 'Mijoz izohi:' : 'Tabrik yozuvi:'}
+                                                    <div style={{ marginTop: '4px', padding: '6px', background: 'hsla(var(--color-primary), 0.05)', borderRadius: '6px', borderLeft: '3px solid hsl(var(--color-primary-dark))' }}>
+                                                        <div style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--color-primary-dark))', textTransform: 'uppercase' }}>
+                                                            {item.configuration?.mode === 'upload' ? `${t('customerNote')}:` : `${t('congratulationNote')}:`}
                                                         </div>
                                                         <div style={{ fontSize: '13px', color: '#111827' }}>
                                                             {item.configuration.custom_note || item.configuration.order_note}
@@ -340,16 +344,16 @@ export function OrderDetailsModal({ order, onClose, onUpdate }: { order: any, on
                                                 )}
                                             </div>
                                             <div className={styles.itemPriceQty}>
-                                                <div className={styles.itemPrice}>{(item.unit_price * item.quantity).toLocaleString()} so'm</div>
-                                                <div className={styles.itemQtyBadge}>{item.quantity} dona</div>
+                                                <div className={styles.itemPrice}>{(item.unit_price * item.quantity).toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}</div>
+                                                <div className={styles.itemQtyBadge}>{item.quantity} {t('pcs')}</div>
                                             </div>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', borderTop: '2px solid #F3F4F6', marginTop: '16px' }}>
-                                <span style={{ fontWeight: 800, fontSize: '20px' }}>Jami to'lov:</span>
-                                <span style={{ fontWeight: 800, fontSize: '20px', color: '#BE185D' }}>{order.total_price.toLocaleString()} so'm</span>
+                                <span style={{ fontWeight: 800, fontSize: '20px' }}>{t('totalPayment')}:</span>
+                                <span style={{ fontWeight: 800, fontSize: '20px', color: 'hsl(var(--color-primary-dark))' }}>{order.total_price.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}</span>
                             </div>
                         </div>
                     </div>
@@ -358,21 +362,21 @@ export function OrderDetailsModal({ order, onClose, onUpdate }: { order: any, on
                         <div style={{ display: 'flex', gap: '12px' }}>
                             {order.status === 'new' && (
                                 <>
-                                    <button onClick={() => onUpdate(order.id, 'confirmed')} style={{ flex: 2, background: '#3B82F6', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>Tasdiqlash</button>
-                                    <button onClick={() => onUpdate(order.id, 'cancelled')} style={{ flex: 1, background: '#FEF2F2', color: '#EF4444', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>Bekor qilish</button>
+                                    <button onClick={() => onUpdate(order.id, 'confirmed')} style={{ flex: 2, background: '#3B82F6', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>{t('confirmOrder')}</button>
+                                    <button onClick={() => onUpdate(order.id, 'cancelled')} style={{ flex: 1, background: '#FEF2F2', color: '#EF4444', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>{t('cancel')}</button>
                                 </>
                             )}
                             {order.status === 'confirmed' && (
-                                <button onClick={() => onUpdate(order.id, 'preparing')} style={{ flex: 1, background: '#8B5CF6', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>Pishirishni boshlash</button>
+                                <button onClick={() => onUpdate(order.id, 'preparing')} style={{ flex: 1, background: '#8B5CF6', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>{t('startCooking')}</button>
                             )}
                             {order.status === 'preparing' && (
-                                <button onClick={() => onUpdate(order.id, 'ready')} style={{ flex: 1, background: '#10B981', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>Tayyor bo'ldi</button>
+                                <button onClick={() => onUpdate(order.id, 'ready')} style={{ flex: 1, background: '#10B981', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>{t('finishCooking')}</button>
                             )}
                             {order.status === 'ready' && (
-                                <button onClick={() => onUpdate(order.id, 'delivering')} style={{ flex: 1, background: '#BE185D', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>Yetkazishni boshlash</button>
+                                <button onClick={() => onUpdate(order.id, 'delivering')} style={{ flex: 1, background: 'hsl(var(--color-primary-dark))', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>{t('startDelivery')}</button>
                             )}
                             {order.status === 'delivering' && (
-                                <button onClick={() => onUpdate(order.id, 'completed')} style={{ flex: 1, background: '#059669', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>Yetkazildi</button>
+                                <button onClick={() => onUpdate(order.id, 'completed')} style={{ flex: 1, background: '#059669', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>{t('finishDelivery')}</button>
                             )}
                         </div>
                     </footer>

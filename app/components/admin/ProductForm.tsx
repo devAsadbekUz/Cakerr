@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, X, Loader2, Save } from 'lucide-react';
+import { Plus, Trash2, X, Loader2, Save, Globe } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import MultiImageUpload from '@/app/components/admin/MultiImageUpload';
+import LanguageTabs from '@/app/components/admin/LanguageTabs';
 import { Product } from '@/app/types';
 import { adminInsert, adminUpdate } from '@/app/utils/adminApi';
+import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 
 interface ProductFormProps {
     isOpen: boolean;
@@ -16,9 +18,11 @@ interface ProductFormProps {
 }
 
 export default function ProductForm({ isOpen, onClose, product, categories, onSuccess }: ProductFormProps) {
-    const [title, setTitle] = useState('');
-    const [subtitle, setSubtitle] = useState('');
-    const [description, setDescription] = useState('');
+    const { t } = useAdminI18n();
+    const [activeTab, setActiveTab] = useState<'uz' | 'ru'>('uz');
+    const [title, setTitle] = useState<{ uz: string; ru: string }>({ uz: '', ru: '' });
+    const [subtitle, setSubtitle] = useState<{ uz: string; ru: string }>({ uz: '', ru: '' });
+    const [description, setDescription] = useState<{ uz: string; ru: string }>({ uz: '', ru: '' });
     const [basePrice, setBasePrice] = useState<number | string>(0);
     const [categoryId, setCategoryId] = useState('');
     const [images, setImages] = useState<string[]>([]);
@@ -49,11 +53,18 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
     useEffect(() => {
         setShowErrors(false);
         if (product) {
-            setTitle(product.title || '');
-            setSubtitle(product.subtitle || '');
-            setDescription(product.description || '');
+            // Helper to handle legacy string data or existing JSONB
+            const getInitialValue = (val: any) => {
+                if (!val) return { uz: '', ru: '' };
+                if (typeof val === 'string') return { uz: val, ru: '' };
+                return { uz: val.uz || '', ru: val.ru || '' };
+            };
+
+            setTitle(getInitialValue(product.title));
+            setSubtitle(getInitialValue(product.subtitle));
+            setDescription(getInitialValue(product.description));
             setBasePrice(product.base_price || 0);
-            setCategoryId(product.category_id || product.categoryId || ''); // Handle flexible naming if needed
+            setCategoryId(product.category_id || product.categoryId || '');
             
             // Handle image migration/population
             const productImages = Array.isArray(product.images) ? product.images : (product.image_url ? [product.image_url] : []);
@@ -81,10 +92,11 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
     }, [product]);
 
     const resetForm = () => {
-        setTitle('');
-        setSubtitle('');
-        setDescription('');
+        setTitle({ uz: '', ru: '' });
+        setSubtitle({ uz: '', ru: '' });
+        setDescription({ uz: '', ru: '' });
         setBasePrice(0);
+        setActiveTab('uz');
         setCategoryId(categories.length > 0 ? categories[0].id : '');
         setImages([]);
         setVariants([]);
@@ -116,6 +128,12 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
         setVariants(variants.filter((_, i) => i !== index));
     };
 
+    const handleDataChange = (field: 'title' | 'subtitle' | 'description', value: string) => {
+        if (field === 'title') setTitle(prev => ({ ...prev, [activeTab]: value }));
+        else if (field === 'subtitle') setSubtitle(prev => ({ ...prev, [activeTab]: value }));
+        else if (field === 'description') setDescription(prev => ({ ...prev, [activeTab]: value }));
+    };
+
     if (!isOpen) return null;
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -123,9 +141,10 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
 
         // Custom validation
         const hasBasePrice = Number(basePrice) > 0;
-        const allVariantsHavePrice = variants.every(v => Number(v.price) > 0);
+        const allVariantsHavePrice = variants.every(v => v.price !== '' && Number(v.price) > 0);
+        const hasTitle = title.uz.trim().length > 0;
 
-        if (!hasBasePrice || !allVariantsHavePrice) {
+        if (!hasBasePrice || !allVariantsHavePrice || !hasTitle) {
             setShowErrors(true);
             return;
         }
@@ -139,10 +158,10 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
             subtitle,
             description,
             base_price: Number(basePrice),
-            price: Number(basePrice), // Keep redundant for now
+            price: Number(basePrice),
             category_id: categoryId,
-            category: categoryLabel, // Denormalize for easier client reading
-            image_url: images.length > 0 ? images[0] : '', // Sync primary image for legacy support
+            category: categoryLabel,
+            image_url: images.length > 0 ? images[0] : '', 
             images: images,
             variants: variants.map(v => ({ ...v, price: Number(v.price) })),
             details: {
@@ -150,7 +169,7 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
                 flavors: flavors.split(',').map(s => s.trim()).filter(Boolean),
                 coating: coating.split(',').map(s => s.trim()).filter(Boolean),
             },
-            is_available: isAvailable, // Use state value
+            is_available: isAvailable,
             is_ready: isReady
         };
 
@@ -189,11 +208,14 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
             }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
                     <h2 style={{ fontSize: '18px', fontWeight: 700 }}>
-                        {product ? 'Mahsulotni tahrirlash' : 'Yangi mahsulot'}
+                        {product ? t('editProduct') : t('newProduct')}
                     </h2>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                        <X size={24} color="#6B7280" />
-                    </button>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <LanguageTabs activeTab={activeTab} onTabChange={setActiveTab} />
+                        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}>
+                            <X size={24} color="#6B7280" />
+                        </button>
+                    </div>
                 </div>
 
                 <form onSubmit={handleSubmit} style={{
@@ -205,10 +227,11 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
                     <div>
                         <div style={{ marginBottom: '16px' }}>
                             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>
-                                Nom (Title)
+                                {t('titleLabel')} - {activeTab.toUpperCase()}
                             </label>
                             <input
-                                value={title} onChange={e => setTitle(e.target.value)}
+                                value={title[activeTab]} 
+                                onChange={e => handleDataChange('title', e.target.value)}
                                 style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #E5E7EB' }}
                                 required
                             />
@@ -216,25 +239,26 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
 
                         <div style={{ marginBottom: '16px' }}>
                             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>
-                                "Subtitle" (Qisqa tarif)
+                                {t('subtitleLabel')} - {activeTab.toUpperCase()}
                             </label>
                             <input
-                                value={subtitle} onChange={e => setSubtitle(e.target.value)}
-                                placeholder="Masalan: Eng shirin tort"
+                                value={subtitle[activeTab]} 
+                                onChange={e => handleDataChange('subtitle', e.target.value)}
+                                placeholder={t('placeholderSubtitle')}
                                 style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #E5E7EB' }}
                             />
                         </div>
 
                         <div style={{ marginBottom: '16px' }}>
                             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>
-                                Kategoriya
+                                {t('categoryLabel')}
                             </label>
                             <select
                                 value={categoryId} onChange={e => setCategoryId(e.target.value)}
                                 style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #E5E7EB', background: 'white' }}
                                 required
                             >
-                                <option value="">Tanlang</option>
+                                <option value="">{t('all')}</option>
                                 {categories.map(c => (
                                     <option key={c.id} value={c.id}>{c.icon} {c.label}</option>
                                 ))}
@@ -243,7 +267,7 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
 
                         <div style={{ marginBottom: '16px' }}>
                             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>
-                                Asosiy Narx (so'm)
+                                {t('priceLabel')}
                             </label>
                             <input
                                 type="number"
@@ -260,21 +284,21 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
                             />
                             {showErrors && Number(basePrice) <= 0 && (
                                 <p style={{ color: '#EF4444', fontSize: '12px', marginTop: '4px', fontWeight: 500 }}>
-                                    Narx kiriting
+                                    {t('priceError')}
                                 </p>
                             )}
                         </div>
 
                         <div style={{ marginBottom: '16px' }}>
                             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>
-                                Mahsulot rasmlari (Gallery)
+                                {t('imagesLabel')}
                             </label>
                             <MultiImageUpload value={images} onChange={setImages} />
                         </div>
 
                         <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px', background: '#F9FAFB', padding: '12px', borderRadius: '10px' }}>
                             <label style={{ fontSize: '13px', fontWeight: 600, color: '#374151', cursor: 'pointer', flex: 1 }} htmlFor="isAvailable">
-                                Sotuvda mavjud (Visible to customers)
+                                {t('availableLabel')}
                             </label>
                             <input
                                 id="isAvailable"
@@ -287,7 +311,7 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
 
                         <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px', background: '#F9FAFB', padding: '12px', borderRadius: '10px' }}>
                             <label style={{ fontSize: '13px', fontWeight: 600, color: '#374151', cursor: 'pointer', flex: 1 }} htmlFor="isReady">
-                                Tayyor (Hozir yetkazish imkoniyati bor)
+                                {t('readyLabel')}
                             </label>
                             <input
                                 id="isReady"
@@ -303,10 +327,11 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
                     <div>
                         <div style={{ marginBottom: '16px' }}>
                             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>
-                                Batafsil Tavsif (Description)
+                                {t('descriptionLabel')} - {activeTab.toUpperCase()}
                             </label>
                             <textarea
-                                value={description} onChange={e => setDescription(e.target.value)}
+                                value={description[activeTab]} 
+                                onChange={e => handleDataChange('description', e.target.value)}
                                 rows={6}
                                 style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #E5E7EB', minHeight: '120px' }}
                             />
@@ -315,38 +340,38 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
                         {/* Attributes Section */}
                         <div style={{ background: '#FFF7ED', padding: '16px', borderRadius: '12px', marginBottom: '16px', border: '1px solid #FFEDD5' }}>
                             <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#9A3412', marginBottom: '12px' }}>
-                                Mahsulot xususiyatlari (Vergul bilan ajrating)
+                                {t('attributesLabel')} ({t('commaSeparated') || 'Vergul bilan ajrating'})
                             </label>
 
                             <div style={{ marginBottom: '12px' }}>
                                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                                    Shakl (Shape)
+                                    {t('shapesLabel')}
                                 </label>
                                 <input
                                     value={shapes} onChange={e => setShapes(e.target.value)}
-                                    placeholder="Masalan: Dumaloq, Kvadrat"
+                                    placeholder={t('placeholderShapes')}
                                     style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #E5E7EB', fontSize: '13px' }}
                                 />
                             </div>
 
                             <div style={{ marginBottom: '12px' }}>
                                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                                    Ichki ta'mlar (Flavors)
+                                    {t('flavorsLabel')}
                                 </label>
                                 <input
                                     value={flavors} onChange={e => setFlavors(e.target.value)}
-                                    placeholder="Masalan: Shokoladli, Vanilli"
+                                    placeholder={t('placeholderFlavors')}
                                     style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #E5E7EB', fontSize: '13px' }}
                                 />
                             </div>
 
                             <div style={{ marginBottom: '4px' }}>
                                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                                    Ustki qoplama (Coating)
+                                    {t('coatingLabel')}
                                 </label>
                                 <input
                                     value={coating} onChange={e => setCoating(e.target.value)}
-                                    placeholder="Masalan: Krem-chiz, Velur"
+                                    placeholder={t('placeholderCoating')}
                                     style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #E5E7EB', fontSize: '13px' }}
                                 />
                             </div>
@@ -355,14 +380,14 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
                         <div style={{ background: '#F9FAFB', padding: '16px', borderRadius: '12px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                                 <label style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>
-                                    O'lcham va Variantlar
+                                    {t('variantsLabel')}
                                 </label>
                                 <button
                                     type="button"
                                     onClick={handleAddVariant}
                                     style={{ background: '#DBEAFE', color: '#1D4ED8', border: 'none', borderRadius: '6px', padding: '4px 8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
                                 >
-                                    + Qo'shish
+                                    {t('addVariant')}
                                 </button>
                             </div>
 
@@ -429,7 +454,7 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
                             }}
                         >
                             {loading ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
-                            Mahsulotni Saqlash
+                            {t('saveProduct')}
                         </button>
                     </div>
                 </form>

@@ -6,7 +6,7 @@ import { ChevronLeft, Plus, MapPin, Home, Trash2, CheckCircle2, Circle } from 'l
 import styles from './page.module.css';
 import { addressService } from '@/app/services/addressService';
 import { UserAddress } from '@/app/types';
-import { useSupabase } from '@/app/context/SupabaseContext';
+import { useSupabase } from '@/app/context/AuthContext';
 
 export default function ManzillarPage() {
     const router = useRouter();

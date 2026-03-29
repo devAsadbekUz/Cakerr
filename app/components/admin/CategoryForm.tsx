@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { X, Loader2, Save } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Loader2, Save, Globe } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import ImageUpload from '@/app/components/admin/ImageUpload';
-import { useEffect } from 'react';
+import LanguageTabs from '@/app/components/admin/LanguageTabs';
 import { adminInsert, adminUpdate } from '@/app/utils/adminApi';
+import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 
 interface CategoryFormProps {
     isOpen: boolean;
@@ -15,7 +16,9 @@ interface CategoryFormProps {
 }
 
 export default function CategoryForm({ isOpen, onClose, category, onSuccess }: CategoryFormProps) {
-    const [label, setLabel] = useState('');
+    const { t } = useAdminI18n();
+    const [activeTab, setActiveTab ] = useState<'uz' | 'ru'>('uz');
+    const [label, setLabel] = useState<{ uz: string; ru: string }>({ uz: '', ru: '' });
     const [icon, setIcon] = useState('🎂');
     const [imageUrl, setImageUrl] = useState('');
     const [loading, setLoading] = useState(false);
@@ -23,13 +26,19 @@ export default function CategoryForm({ isOpen, onClose, category, onSuccess }: C
 
     useEffect(() => {
         if (category) {
-            setLabel(category.label);
+            const getInitialLabel = (val: any) => {
+                if (!val) return { uz: '', ru: '' };
+                if (typeof val === 'string') return { uz: val, ru: '' };
+                return { uz: val.uz || '', ru: val.ru || '' };
+            };
+            setLabel(getInitialLabel(category.label));
             setIcon(category.icon || '🎂');
             setImageUrl(category.image_url || '');
         } else {
-            setLabel('');
+            setLabel({ uz: '', ru: '' });
             setIcon('🎂');
             setImageUrl('');
+            setActiveTab('uz');
         }
     }, [category]);
 
@@ -78,22 +87,25 @@ export default function CategoryForm({ isOpen, onClose, category, onSuccess }: C
             }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
                     <h2 style={{ fontSize: '18px', fontWeight: 700 }}>
-                        {category ? 'Kategoriyani tahrirlash' : 'Yangi kategoriya'}
+                        {category ? t('editCategory') : t('newCategory')}
                     </h2>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                        <X size={24} color="#6B7280" />
-                    </button>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <LanguageTabs activeTab={activeTab} onTabChange={setActiveTab} />
+                        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}>
+                            <X size={24} color="#6B7280" />
+                        </button>
+                    </div>
                 </div>
 
                 <form onSubmit={handleSubmit}>
                     <div style={{ marginBottom: '16px' }}>
                         <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, marginBottom: '8px' }}>
-                            Nomi (Label)
+                            {t('titleLabel')} - {activeTab.toUpperCase()}
                         </label>
                         <input
                             type="text"
-                            value={label}
-                            onChange={e => setLabel(e.target.value)}
+                            value={label[activeTab]}
+                            onChange={e => setLabel(prev => ({ ...prev, [activeTab]: e.target.value }))}
                             placeholder="Masalan: Tug'ilgan kun"
                             style={{
                                 width: '100%', padding: '10px', borderRadius: '8px',
@@ -105,17 +117,17 @@ export default function CategoryForm({ isOpen, onClose, category, onSuccess }: C
 
                     <div style={{ marginBottom: '24px' }}>
                         <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, marginBottom: '8px' }}>
-                            Kategoriya Rasmi
+                            {t('categoryLabel')} {t('image')}
                         </label>
                         <ImageUpload value={imageUrl} onChange={setImageUrl} />
                         <p style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>
-                            Tavsiya etilgan o'lcham: 400x400px (Kvadrat)
+                            {t('recommendedSize')}: 400x400px ({t('square')})
                         </p>
                     </div>
 
                     <div style={{ marginBottom: '24px' }}>
                         <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, marginBottom: '8px' }}>
-                            Belgi (Icon / Emoji) - Fallback
+                            {t('icon')} (Emoji) - {t('iconFallback')}
                         </label>
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                             {['🎂', '🍰', '🧁', '🍪', '🥐', '🥯', '🥞', '🧇'].map(emoji => (
@@ -149,7 +161,7 @@ export default function CategoryForm({ isOpen, onClose, category, onSuccess }: C
                         }}
                     >
                         {loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                        Saqlash
+                        {t('saveCategory')}
                     </button>
                 </form>
             </div>

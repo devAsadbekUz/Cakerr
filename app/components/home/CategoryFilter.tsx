@@ -7,10 +7,13 @@ import { useRouter } from 'next/navigation';
 
 interface Category {
     id: string;
-    label: string;
+    label: string | { uz: string; ru: string };
     icon: string;
     image_url?: string;
 }
+
+import { useLanguage } from '@/app/context/LanguageContext';
+import { getLocalized } from '@/app/utils/i18n';
 
 interface CategoryFilterProps {
     activeCategory: string;
@@ -19,6 +22,7 @@ interface CategoryFilterProps {
 }
 
 export default function CategoryFilter({ activeCategory, onSelectCategory, categories }: CategoryFilterProps) {
+    const { lang } = useLanguage();
     const router = useRouter();
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -51,14 +55,14 @@ export default function CategoryFilter({ activeCategory, onSelectCategory, categ
                 >
                     <div className={styles.imageWrapper}>
                         {cat.image_url ? (
-                            <Image src={cat.image_url} alt={cat.label} fill style={{ objectFit: 'cover' }} sizes="80px" />
+                            <Image src={cat.image_url} alt={getLocalized(cat.label, lang)} fill style={{ objectFit: 'cover' }} sizes="80px" />
                         ) : (
                             <span style={{ fontSize: '24px' }}>
                                 {cat.icon || '🍰'}
                             </span>
                         )}
                     </div>
-                    <span className={styles.label}>{cat.label}</span>
+                    <span className={styles.label}>{getLocalized(cat.label, lang)}</span>
                 </button>
             ))}
         </div>

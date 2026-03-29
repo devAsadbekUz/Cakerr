@@ -54,9 +54,9 @@ export default function AdminLoginPage() {
                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
                     <div style={{
                         width: '64px', height: '64px',
-                        background: '#FCE7F3', borderRadius: '18px',
+                        background: 'hsla(var(--color-primary), 0.1)', borderRadius: '18px',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: '#BE185D'
+                        color: 'hsl(var(--color-primary-dark))'
                     }}>
                         <Lock size={32} />
                     </div>
@@ -125,7 +125,7 @@ export default function AdminLoginPage() {
                     style={{
                         background: 'none',
                         border: 'none',
-                        color: '#BE185D',
+                        color: 'hsl(var(--color-primary-dark))',
                         fontSize: '14px',
                         fontWeight: 500,
                         cursor: 'pointer',

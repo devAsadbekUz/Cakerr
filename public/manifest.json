@@ -1,11 +1,11 @@
 {
-  "name": "Cakerr Bakery",
-  "short_name": "Cakerr",
-  "description": "Premium Cake Delivery in Tashkent",
+  "name": "TORTEL'E Pastry Chef",
+  "short_name": "TORTEL'E",
+  "description": "Premium Cakes by TORTEL'E",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#FFF5F5",
-  "theme_color": "#D32F2F",
+  "background_color": "#FBF1F6",
+  "theme_color": "#E298C1",
   "icons": [
     {
       "src": "/icon-192.png",

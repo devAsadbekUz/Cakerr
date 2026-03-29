@@ -1,7 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useSupabase } from './SupabaseContext';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useSupabase } from './AuthContext';
 import { addressService } from '../services/addressService';
 import { cartService } from '../services/cartService';
 
@@ -255,15 +255,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         }
     }, [savedAddresses, isInitialized]);
 
-    const addItem = async (newItem: Omit<CartItem, 'cartId'>) => {
-        // Generate a temporary ID for immediate UI feedback
+    const addItem = useCallback(async (newItem: Omit<CartItem, 'cartId'>) => {
         const tempId = `temp-${newItem.id}-${Date.now()}`;
         const itemWithId = { ...newItem, cartId: tempId };
-
-        // Save state for rollback
         const previousCart = [...cart];
 
-        // OPTIMISTIC: Update state immediately
         setCart((prev) => {
             const existingItemIndex = prev.findIndex(
                 (item) =>
@@ -293,50 +289,36 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                 });
 
                 if (error) throw error;
-
-                // Sync the temporary item with the structural data from the server (like the real DB ID)
                 if (data) {
                     const serverItem = mapDBCartItemToCartItem(data);
                     setCart((prev) => prev.map(item => item.cartId === tempId ? serverItem : item));
                 }
             } catch (err: any) {
                 console.error('[Cart Optimization] AddItem Error:', err);
-                setCart(previousCart); // ROLLBACK
+                setCart(previousCart);
                 alert(`Savatga qo'shishda xatolik yuz berdi: ${err.message}`);
             }
         }
-    };
+    }, [cart, user]);
 
-    const removeItem = async (cartId: string) => {
-        // PRESERVE: Save current state for potential rollback
+    const removeItem = useCallback(async (cartId: string) => {
         const previousCart = [...cart];
-
-        // OPTIMISTIC: Update state immediately
         setCart((prev) => prev.filter((item) => item.cartId !== cartId));
 
         if (user && !cartId.startsWith('temp-')) {
             try {
                 const { success, error } = await cartService.removeItem(cartId);
-                if (!success || error) {
-                    throw error || new Error('Delete failed');
-                }
-                // No need to fetchDBCart() - we already updated the state optimistically!
+                if (!success || error) throw error || new Error('Delete failed');
             } catch (err: any) {
                 console.error('[Cart Optimization] Rollback removal:', err);
-                setCart(previousCart); // ROLLBACK on error
+                setCart(previousCart);
                 alert('O\'chirishda xatolik yuz berdi. Iltimos qayta urinib ko\'ring.');
             }
         }
-        // Guest mode already handled by the optimistic update above
-    };
+    }, [cart, user]);
 
-    // For debouncing quantity updates
-    const debounceTimers = React.useRef<{ [key: string]: NodeJS.Timeout }>({});
-
-    const updateQuantity = async (cartId: string, quantity: number) => {
+    const updateQuantity = useCallback(async (cartId: string, quantity: number) => {
         const newQty = Math.max(1, quantity);
-        
-        // OPTIMISTIC: Update state immediately
         setCart((prev) =>
             prev.map((item) =>
                 item.cartId === cartId ? { ...item, quantity: newQty } : item
@@ -344,12 +326,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         );
 
         if (user && !cartId.startsWith('temp-')) {
-            // DEBOUNCE: Clear existing timer for this item
             if (debounceTimers.current[cartId]) {
                 clearTimeout(debounceTimers.current[cartId]);
             }
 
-            // Sync with DB after 400ms of inactivity
             debounceTimers.current[cartId] = setTimeout(async () => {
                 try {
                     const { error } = await cartService.updateItem(cartId, { quantity: newQty });
@@ -357,32 +337,27 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                     delete debounceTimers.current[cartId];
                 } catch (err) {
                     console.error('[Cart Optimization] UpdateQuantity Error:', err);
-                    // On error, we might want to re-fetch to be sure, or just warn
-                    // A full fetchDBCart() here is safe as it's an error case
                     fetchDBCart();
                 }
             }, 400);
         }
-    };
+    }, [user]);
 
-    const clearCart = async () => {
+    const clearCart = useCallback(async () => {
         const previousCart = [...cart];
-        
-        // OPTIMISTIC
         setCart([]);
-
         if (user) {
             try {
                 const { success, error } = await cartService.clearCart();
                 if (!success || error) throw error;
             } catch (err) {
                 console.error('[Cart Optimization] ClearCart Error:', err);
-                setCart(previousCart); // ROLLBACK
+                setCart(previousCart);
             }
         }
-    };
+    }, [cart, user]);
 
-    const addSavedAddress = async (newAddr: Omit<SavedAddress, 'id'>) => {
+    const addSavedAddress = useCallback(async (newAddr: Omit<SavedAddress, 'id'>) => {
         if (user) {
             const { data, error } = await addressService.addAddress({
                 label: newAddr.label,
@@ -398,9 +373,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             const id = `addr-${Date.now()}`;
             setSavedAddresses(prev => [...prev, { ...newAddr, id }]);
         }
-    };
+    }, [user, savedAddresses.length]);
 
-    const updateSavedAddress = async (id: string, updates: Partial<SavedAddress>) => {
+    const updateSavedAddress = useCallback(async (id: string, updates: Partial<SavedAddress>) => {
         if (user && !id.startsWith('addr-')) {
             await addressService.updateAddress(id, {
                 label: updates.label,
@@ -412,40 +387,57 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         } else {
             setSavedAddresses(prev => prev.map(a => a.id === id ? { ...a, ...updates } : a));
         }
-    };
+    }, [user]);
 
-    const removeSavedAddress = async (id: string) => {
+    const removeSavedAddress = useCallback(async (id: string) => {
         if (user && !id.startsWith('addr-')) {
             await addressService.deleteAddress(id);
             fetchDBAddresses();
         } else {
             setSavedAddresses(prev => prev.filter(a => a.id !== id));
         }
-    };
+    }, [user]);
 
-    const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 0), 0);
-    const subtotal = cart.reduce((sum, item) => sum + (Number(item.price) || 0) * (item.quantity || 0), 0);
+    // For debouncing quantity updates
+    const debounceTimers = useRef<{ [key: string]: NodeJS.Timeout }>({});
+
+    const totalItems = useMemo(() => cart.reduce((sum, item) => sum + (item.quantity || 0), 0), [cart]);
+    const subtotal = useMemo(() => cart.reduce((sum, item) => sum + (Number(item.price) || 0) * (item.quantity || 0), 0), [cart]);
+
+    const value = useMemo(() => ({
+        cart,
+        addItem,
+        removeItem,
+        updateQuantity,
+        clearCart,
+        totalItems,
+        subtotal,
+        deliveryAddress,
+        setDeliveryAddress,
+        deliveryCoords,
+        setDeliveryCoords,
+        savedAddresses,
+        addSavedAddress,
+        updateSavedAddress,
+        removeSavedAddress,
+    }), [
+        cart,
+        addItem,
+        removeItem,
+        updateQuantity,
+        clearCart,
+        totalItems,
+        subtotal,
+        deliveryAddress,
+        deliveryCoords,
+        savedAddresses,
+        addSavedAddress,
+        updateSavedAddress,
+        removeSavedAddress
+    ]);
 
     return (
-        <CartContext.Provider
-            value={{
-                cart,
-                addItem,
-                removeItem,
-                updateQuantity,
-                clearCart,
-                totalItems,
-                subtotal,
-                deliveryAddress,
-                setDeliveryAddress,
-                deliveryCoords,
-                setDeliveryCoords,
-                savedAddresses,
-                addSavedAddress,
-                updateSavedAddress,
-                removeSavedAddress,
-            }}
-        >
+        <CartContext.Provider value={value}>
             {children}
         </CartContext.Provider>
     );

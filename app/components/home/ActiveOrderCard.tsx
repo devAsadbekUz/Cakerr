@@ -1,8 +1,7 @@
 'use client';
 
-import React from 'react';
-import Link from 'next/link';
 import { Package, ChevronRight } from 'lucide-react';
+import { useLanguage } from '@/app/context/LanguageContext';
 import styles from './ActiveOrderCard.module.css';
 
 interface ActiveOrderCardProps {
@@ -13,6 +12,7 @@ interface ActiveOrderCardProps {
 }
 
 export default function ActiveOrderCard({ orderId, itemName, status, progress }: ActiveOrderCardProps) {
+    const { t } = useLanguage();
     return (
         <div className={styles.container}>
             <div className={styles.iconWrapper}>
@@ -20,13 +20,13 @@ export default function ActiveOrderCard({ orderId, itemName, status, progress }:
             </div>
             <div className={styles.content}>
                 <div className={styles.header}>
-                    <span className={styles.label}>Faol buyurtma</span>
+                    <span className={styles.label}>{t('activeOrder')}</span>
                     <div className={styles.infoRow}>
-                        <span className={styles.statusLabel}>Holati:</span>
+                        <span className={styles.statusLabel}>{t('status')}:</span>
                         <span className={styles.statusValue}>{status}</span>
                     </div>
                     <div className={styles.infoRow}>
-                        <span className={styles.itemLabel}>Mahsulot:</span>
+                        <span className={styles.itemLabel}>{t('mahsulot')}:</span>
                         <span className={styles.itemName}>{itemName}</span>
                     </div>
 
@@ -41,10 +41,14 @@ export default function ActiveOrderCard({ orderId, itemName, status, progress }:
                     </div>
                 </div>
             </div>
-            <Link href={`/profil/buyurtmalar/${orderId}`} className={styles.link}>
-                <span>Kuzatish</span>
+            <button
+                onClick={() => (window.location.href = `/profil/buyurtmalar/${orderId}`)}
+                className={styles.link}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0 }}
+            >
+                <span>{t('track')}</span>
                 <ChevronRight size={16} />
-            </Link>
+            </button>
         </div>
     );
 }

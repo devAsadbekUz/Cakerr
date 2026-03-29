@@ -74,8 +74,8 @@
 }
 
 .filterBtnActive {
-    background: #BE185D;
-    border-color: #BE185D;
+    background: hsl(var(--color-primary-dark));
+    border-color: hsl(var(--color-primary-dark));
     color: white;
 }
 
@@ -102,7 +102,7 @@
 
 .toggleBtnActive {
     background: white;
-    color: #BE185D;
+    color: hsl(var(--color-primary-dark));
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
@@ -134,8 +134,8 @@
 }
 
 .sectionHighlight {
-    background: #FFF5F7;
-    border: 2px solid #FCE7F3;
+    background: hsla(var(--color-primary), 0.05);
+    border: 2px solid hsla(var(--color-primary), 0.1);
 }
 
 .inboxView {
@@ -263,7 +263,7 @@
 }
 
 .customerCard {
-    background: #FDF2F8;
+    background: hsla(var(--color-primary), 0.05);
     padding: 20px;
     border-radius: 16px;
     display: flex;
@@ -318,7 +318,7 @@
 .miniBtn {
     padding: 6px 14px;
     background: #FDF2F8;
-    color: #BE185D;
+    color: hsl(var(--color-primary-dark));
     border: 1px solid #FBCFE8;
     border-radius: 10px;
     font-size: 12px;
@@ -328,10 +328,10 @@
 }
 
 .miniBtn:hover {
-    background: #BE185D;
+    background: hsl(var(--color-primary-dark));
     color: white;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(190, 24, 93, 0.2);
+    box-shadow: 0 4px 12px hsla(var(--color-primary), 0.2);
 }
 
 .itemConfig {
@@ -351,7 +351,7 @@
 .itemPrice {
     font-size: 18px;
     font-weight: 800;
-    color: #BE185D;
+    color: hsl(var(--color-primary-dark));
 }
 
 .itemQtyBadge {
@@ -441,7 +441,7 @@
     top: -24px;
     font-size: 12px;
     font-weight: 800;
-    color: #BE185D;
+    color: hsl(var(--color-primary-dark));
 }
 
 .barLabel {
@@ -604,7 +604,7 @@
     height: 32px;
     border-radius: 10px;
     background: #FDF2F8;
-    color: #BE185D;
+    color: hsl(var(--color-primary-dark));
     font-weight: 800;
     font-size: 13px;
     display: flex;
@@ -644,7 +644,7 @@
 
 .topProductBar {
     height: 100%;
-    background: linear-gradient(90deg, #BE185D, #EC4899);
+    background: linear-gradient(90deg, hsl(var(--color-primary-dark)), hsl(var(--color-primary)));
     border-radius: 4px;
     transition: width 0.5s ease;
 }
@@ -729,7 +729,7 @@
 .revenueTrendValue {
     font-size: 10px;
     font-weight: 700;
-    color: #BE185D;
+    color: hsl(var(--color-primary-dark));
     margin-bottom: 4px;
 }
 
@@ -742,7 +742,7 @@
 }
 
 .revenueTrendBarToday {
-    background: linear-gradient(180deg, #BE185D, #EC4899);
+    background: linear-gradient(180deg, hsl(var(--color-primary-dark)), hsl(var(--color-primary)));
 }
 
 .revenueTrendLabel {

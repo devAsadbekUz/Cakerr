@@ -107,7 +107,7 @@
 .itemPrice {
     font-size: 16px;
     font-weight: 700;
-    color: #E91E63;
+    color: hsl(var(--color-primary-dark));
 }
 
 .stepper {
@@ -161,7 +161,7 @@
 }
 
 .totalValue {
-    color: #E91E63;
+    color: hsl(var(--color-primary-dark));
 }
 
 .checkoutBtn {
@@ -170,13 +170,13 @@
     left: 20px;
     right: 20px;
     height: 56px;
-    background: #E91E63;
-    color: white;
+    background: hsl(var(--color-primary));
+    color: hsl(var(--color-primary-text));
     border: none;
     border-radius: 16px;
     font-size: 16px;
     font-weight: 700;
-    box-shadow: 0 8px 24px rgba(233, 30, 99, 0.3);
+    box-shadow: 0 8px 24px hsla(var(--color-primary), 0.3);
     cursor: pointer;
     z-index: 50;
     display: flex;
@@ -202,13 +202,13 @@
 .emptyIconWrapper {
     width: 120px;
     height: 120px;
-    background: #FFF0F5;
+    background: hsla(var(--color-primary), 0.1);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 24px;
-    color: #E91E63;
+    color: hsl(var(--color-primary-dark));
 }
 
 .emptyTitle {
@@ -227,14 +227,14 @@
 }
 
 .primaryBtn {
-    background: #E91E63;
-    color: white;
+    background: hsl(var(--color-primary));
+    color: hsl(var(--color-primary-text));
     padding: 12px 24px;
     border-radius: 12px;
     font-weight: 700;
     text-decoration: none;
     transition: transform 0.2s, background-color 0.2s;
-    box-shadow: 0 4px 14px rgba(233, 30, 99, 0.2);
+    box-shadow: 0 4px 14px hsla(var(--color-primary), 0.2);
 }
 
 .primaryBtn:active {

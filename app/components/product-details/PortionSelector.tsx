@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { useLanguage } from '@/app/context/LanguageContext';
 
 import styles from './PortionSelector.module.css';
 
@@ -15,34 +16,37 @@ interface PortionSelectorProps {
   options?: PortionOption[];
 }
 
-const DEFAULT_OPTIONS = [
-  { value: '2', label: 'kishilik' },
-  { value: '4', label: 'kishilik' },
-  { value: '6', label: 'kishilik' },
-  { value: '8', label: 'kishilik' },
-  { value: '10-12', label: 'kishilik' },
-  { value: '12-16', label: 'kishilik' },
-  { value: '16+', label: 'kishilik' },
-];
-
 export default function PortionSelector({
   selected,
   onSelect,
-  options = DEFAULT_OPTIONS
+  options
 }: PortionSelectorProps) {
+  const { t } = useLanguage();
+
+  const DEFAULT_OPTIONS = [
+    { value: '2', label: t('kishilik') },
+    { value: '4', label: t('kishilik') },
+    { value: '6', label: t('kishilik') },
+    { value: '8', label: t('kishilik') },
+    { value: '10-12', label: t('kishilik') },
+    { value: '12-16', label: t('kishilik') },
+    { value: '16+', label: t('kishilik') },
+  ];
+
+  const currentOptions = options || DEFAULT_OPTIONS;
 
   const uniqueOptions = useMemo(() => {
     const seen = new Set();
-    return options.filter(opt => {
+    return currentOptions.filter(opt => {
       if (seen.has(opt.value)) return false;
       seen.add(opt.value);
       return true;
     });
-  }, [options]);
+  }, [currentOptions]);
 
   return (
     <div className={styles.container}>
-      <h3 className={styles.label}>Porsiyalar (Necha kishiga)</h3>
+      <h3 className={styles.label}>{t('portions')}</h3>
       <div className={styles.scrollWrapper}>
         <div className={styles.grid}>
           {uniqueOptions.map((opt, index) => (

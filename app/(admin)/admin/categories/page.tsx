@@ -23,16 +23,20 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import CategoryForm from '@/app/components/admin/CategoryForm';
 import { adminFetch, adminDelete, adminUpdate } from '@/app/utils/adminApi';
+import { useAdminI18n } from '@/app/context/AdminLanguageContext';
+import { getLocalized } from '@/app/utils/i18n';
 
 // --- Sortable row component ---
 function SortableRow({
     cat,
     onEdit,
     onDelete,
+    lang,
 }: {
     cat: any;
     onEdit: (cat: any) => void;
     onDelete: (id: string) => void;
+    lang: 'uz' | 'ru';
 }) {
     const {
         attributes,
@@ -61,13 +65,13 @@ function SortableRow({
             <td style={{ padding: '12px 16px', fontSize: '24px' }}>
                 {cat.image_url ? (
                     <div style={{ width: '40px', height: '40px', borderRadius: '8px', overflow: 'hidden', background: '#F3F4F6', position: 'relative' }}>
-                        <Image src={cat.image_url} alt={cat.label} fill style={{ objectFit: 'cover' }} sizes="40px" />
+                        <Image src={cat.image_url} alt={getLocalized(cat.label, lang)} fill style={{ objectFit: 'cover' }} sizes="40px" />
                     </div>
                 ) : (
                     <span>{cat.icon}</span>
                 )}
             </td>
-            <td style={{ padding: '12px 16px', fontWeight: 600, color: '#111827' }}>{cat.label}</td>
+            <td style={{ padding: '12px 16px', fontWeight: 600, color: '#111827' }}>{getLocalized(cat.label, lang)}</td>
             <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                 <button
                     onClick={() => onEdit(cat)}
@@ -94,6 +98,7 @@ function SortableRow({
 
 // --- Main page ---
 export default function CategoriesPage() {
+    const { lang, t } = useAdminI18n();
     const [categories, setCategories] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -120,10 +125,10 @@ export default function CategoriesPage() {
     }, []);
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Rostdan ham o\'chirmoqchimisiz?')) return;
+        if (!confirm(t('confirmDelete'))) return;
         const success = await adminDelete('categories', id);
         if (success) fetchCategories();
-        else alert('Xatolik yuz berdi');
+        else alert(t('error'));
     };
 
     const handleDragEnd = (event: DragEndEvent) => {
@@ -149,7 +154,7 @@ export default function CategoriesPage() {
             setOrderChanged(false);
         } catch (err) {
             console.error('Failed to save order:', err);
-            alert('Tartibni saqlashda xatolik yuz berdi');
+            alert(t('error'));
         }
         setSaving(false);
     };
@@ -161,7 +166,7 @@ export default function CategoriesPage() {
                 justifyContent: 'space-between', alignItems: 'center',
                 gap: '16px', marginBottom: '24px'
             }}>
-                <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#111827', margin: 0 }}>Kategoriyalar</h1>
+                <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#111827', margin: 0 }}>{t('categories')}</h1>
                 <div style={{ display: 'flex', gap: '8px' }}>
                     {orderChanged && (
                         <button
@@ -175,7 +180,7 @@ export default function CategoriesPage() {
                             }}
                         >
                             <Save size={18} />
-                            {saving ? 'Saqlanmoqda...' : 'Tartibni saqlash'}
+                            {saving ? t('saving') : t('saveOrder')}
                         </button>
                     )}
                     <button
@@ -187,17 +192,17 @@ export default function CategoriesPage() {
                         }}
                     >
                         <Plus size={18} />
-                        Qo'shish
+                        {t('add')}
                     </button>
                 </div>
             </div>
 
             {loading ? (
-                <div>Yuklanmoqda...</div>
+                <div>{t('loading')}</div>
             ) : categories.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px', color: '#6B7280' }}>
                     <FolderOpen size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
-                    <p>Hozircha kategoriyalar yo'q</p>
+                    <p>{t('noCategories')}</p>
                 </div>
             ) : (
                 <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E5E7EB', overflowX: 'auto' }}>
@@ -206,9 +211,9 @@ export default function CategoriesPage() {
                             <thead style={{ background: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
                                 <tr>
                                     <th style={{ padding: '16px', fontSize: '12px', color: '#6B7280', textTransform: 'uppercase', width: '44px' }}></th>
-                                    <th style={{ padding: '16px', fontSize: '12px', color: '#6B7280', textTransform: 'uppercase' }}>Belgi</th>
-                                    <th style={{ padding: '16px', fontSize: '12px', color: '#6B7280', textTransform: 'uppercase' }}>Nomi</th>
-                                    <th style={{ padding: '16px', fontSize: '12px', color: '#6B7280', textTransform: 'uppercase', textAlign: 'right' }}>Amallar</th>
+                                    <th style={{ padding: '16px', fontSize: '12px', color: '#6B7280', textTransform: 'uppercase' }}>{t('icon')}</th>
+                                    <th style={{ padding: '16px', fontSize: '12px', color: '#6B7280', textTransform: 'uppercase' }}>{t('name')}</th>
+                                    <th style={{ padding: '16px', fontSize: '12px', color: '#6B7280', textTransform: 'uppercase', textAlign: 'right' }}>{t('actions')}</th>
                                 </tr>
                             </thead>
                             <SortableContext items={categories.map(c => c.id)} strategy={verticalListSortingStrategy}>
@@ -219,6 +224,7 @@ export default function CategoriesPage() {
                                             cat={cat}
                                             onEdit={(c) => { setEditingCategory(c); setIsFormOpen(true); }}
                                             onDelete={handleDelete}
+                                            lang={lang}
                                         />
                                     ))}
                                 </tbody>
@@ -231,7 +237,7 @@ export default function CategoriesPage() {
                             padding: '12px 16px', background: '#ECFDF5', borderTop: '1px solid #A7F3D0',
                             fontSize: '13px', color: '#065F46', textAlign: 'center'
                         }}>
-                            ⬆⬇ Tartib o'zgartirildi. &quot;Tartibni saqlash&quot; tugmasini bosing.
+                            ⬆⬇ {t('orderChanged')}
                         </div>
                     )}
                 </div>

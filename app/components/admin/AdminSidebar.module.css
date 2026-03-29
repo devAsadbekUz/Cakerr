@@ -60,6 +60,33 @@
     color: #E91E63;
 }
 
+.langSwitcher {
+    display: flex;
+    gap: 8px;
+    padding: 12px 24px;
+    margin-top: auto;
+    border-top: 1px solid #F3F4F6;
+}
+
+.langBtn {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #E5E7EB;
+    background: white;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    color: #6B7280;
+    transition: all 0.2s;
+}
+
+.langBtnActive {
+    background: #FCE4EC;
+    color: #E91E63;
+    border-color: #E91E63;
+}
+
 .logout {
     margin: 24px;
     display: flex;

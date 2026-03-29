@@ -9,6 +9,8 @@ import BottomAction from '@/app/components/product-details/BottomAction';
 import styles from './page.module.css';
 import { useCart } from '@/app/context/CartContext';
 import { useFavorites } from '@/app/context/FavoritesContext';
+import { useLanguage } from '@/app/context/LanguageContext';
+import { getLocalized } from '@/app/utils/i18n';
 import { createClient } from '@/app/utils/supabase/client';
 import React from 'react';
 import { Product, Variant } from '@/app/types';
@@ -26,15 +28,17 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Chip({ label, color }: { label: string; color: string }) {
+function Chip({ label, color }: { label: string | { uz: string; ru: string }; color: string }) {
+  const { lang } = useLanguage();
   return (
     <span className={`${styles.chip} ${styles[color]}`}>
-      {label}
+      {getLocalized(label, lang)}
     </span>
   );
 }
 
 export default function ProductDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { lang, t } = useLanguage();
   const { id } = React.use(params);
   const router = useRouter();
   const [product, setProduct] = useState<Product | null>(null);
@@ -109,7 +113,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
     } else {
       addItem({
         id: product.id,
-        name: product.title,
+        name: getLocalized(product.title, lang),
         price: currentPrice,
         image: product.image,
         quantity: localQuantity + 1,
@@ -139,7 +143,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
     } else {
       addItem({
         id: product.id,
-        name: product.title,
+        name: getLocalized(product.title, lang),
         price: currentPrice,
         image: product.image,
         quantity: localQuantity,
@@ -156,21 +160,17 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
 
   const handleShare = async () => {
     const shareData = {
-      title: product.title,
-      text: product.subtitle || `${product.title} - Cakerr`,
+      text: getLocalized(product.subtitle, lang) || `${getLocalized(product.title, lang)} - TORTEL'E`,
       url: window.location.href
     };
 
     try {
-      // Try native share API first (works on mobile and modern browsers)
       if (navigator.share) {
         await navigator.share(shareData);
       } else {
-        // Fallback: copy to clipboard
         await navigator.clipboard.writeText(window.location.href);
-        // Show a simple alert as toast (you can replace with a proper toast component)
         const toast = document.createElement('div');
-        toast.textContent = 'Havola nusxalandi!';
+        toast.textContent = t('linkCopied');
         toast.style.cssText = `
           position: fixed;
           bottom: 100px;
@@ -228,7 +228,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
 
           {product.is_ready && (
             <span className={styles.tag}>
-              <span style={{ marginRight: '6px' }}>✓</span> Tayyor
+              <span style={{ marginRight: '6px' }}>✓</span> {t('tayyor')}
             </span>
           )}
 
@@ -244,14 +244,14 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
 
         {/* Content */}
         <div className={styles.content}>
-          <h1 className={styles.title}>{product.title}</h1>
-          <p className={styles.subtitle}>{product.subtitle || 'Mazali va yangi tayyorlangan tort'}</p>
+          <h1 className={styles.title}>{getLocalized(product.title, lang)}</h1>
+          <p className={styles.subtitle}>{getLocalized(product.subtitle, lang) || t('defaultSubtitle')}</p>
 
           {/* Info Alert */}
           <div className={styles.alert}>
             <CircleAlert size={20} color="#15803D" className={styles.alertIcon} />
             <p className={styles.alertText}>
-              {product.description || 'Bu tayyor tort. Siz faqat porsiya miqdorini tanlaysiz va buyurtma berasiz!'}
+              {getLocalized(product.description, lang) || t('defaultDescription')}
             </p>
           </div>
 
@@ -266,41 +266,41 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
 
           {/* Details Sections */}
           {product.details?.shapes && product.details.shapes.length > 0 && (
-            <Section title="Shakl">
-              {product.details.shapes.map((t: string) => <Chip key={t} label={t} color="green" />)}
+            <Section title={t('shapes')}>
+              {product.details.shapes.map((t: any) => <Chip key={typeof t === 'string' ? t : t.uz} label={t} color="green" />)}
             </Section>
           )}
 
           {product.details?.flavors && product.details.flavors.length > 0 && (
-            <Section title="Ichki ta'mlar">
-              {product.details.flavors.map((t: string) => <Chip key={t} label={t} color="pink" />)}
+            <Section title={t('flavors')}>
+              {product.details.flavors.map((t: any) => <Chip key={typeof t === 'string' ? t : t.uz} label={t} color="pink" />)}
             </Section>
           )}
 
           {product.details?.coating && product.details.coating.length > 0 && (
-            <Section title="Ustki qoplama">
-              {product.details.coating.map((t: string) => <Chip key={t} label={t} color="blue" />)}
+            <Section title={t('coating')}>
+              {product.details.coating.map((t: any) => <Chip key={typeof t === 'string' ? t : t.uz} label={t} color="blue" />)}
             </Section>
           )}
 
 
           {product.details?.innerCoating && (
-            <Section title="Ichki qoplama">
-              {product.details.innerCoating.map((t: string) => <Chip key={t} label={t} color="orange" />)}
+            <Section title={t('innerCoating')}>
+              {product.details.innerCoating.map((t: any) => <Chip key={typeof t === 'string' ? t : t.uz} label={t} color="orange" />)}
             </Section>
           )}
 
           {product.details?.decorations && (
-            <Section title="Bezaklar">
-              {product.details.decorations.map((t: string) => <Chip key={t} label={t} color="purple" />)}
+            <Section title={t('decorations')}>
+              {product.details.decorations.map((t: any) => <Chip key={typeof t === 'string' ? t : t.uz} label={t} color="purple" />)}
             </Section>
           )}
 
           {/* Dynamic Description from Admin/DB */}
           {product.description && (
             <div className={styles.descriptionText}>
-              <h3 className={styles.sectionTitle} style={{ marginBottom: '8px' }}>Tavsif</h3>
-              {product.description}
+              <h3 className={styles.sectionTitle} style={{ marginBottom: '8px' }}>{t('description')}</h3>
+              {getLocalized(product.description, lang)}
             </div>
           )}
 

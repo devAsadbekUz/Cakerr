@@ -12,6 +12,7 @@ import {
     subDays
 } from 'date-fns';
 import styles from '../AdminDashboard.module.css';
+import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 
 import {
     DndContext,
@@ -36,6 +37,7 @@ import { SortableBannerItem, Banner } from '@/app/components/admin/settings/Bann
 import { BannerForm } from '@/app/components/admin/settings/BannerForm';
 
 export default function AdminSettingsPage() {
+    const { lang, t } = useAdminI18n();
     const [banners, setBanners] = useState<Banner[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
@@ -111,7 +113,7 @@ export default function AdminSettingsPage() {
             setOrderChanged(false);
         } catch (err) {
             console.error('Failed to save order:', err);
-            alert('Tartibni saqlashda xatolik yuz berdi');
+            alert(t('error'));
         }
         setSavingOrder(false);
     };
@@ -138,12 +140,12 @@ export default function AdminSettingsPage() {
             fetchBanners();
         } catch (error: any) {
             console.error('Bannerni saqlashda xatolik:', error);
-            alert(`Xatolik yuz berdi: ${error.message || 'Noma\'lum xatolik'}`);
+            alert(`${t('error')}: ${error.message || ''}`);
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Haqiqatdan ham ushbu bannerni o\'chirmoqchimisiz?')) return;
+        if (!confirm(t('confirmDeleteBanner'))) return;
         try {
             const { error, count } = await supabase
                 .from('hero_banners')
@@ -153,13 +155,13 @@ export default function AdminSettingsPage() {
             if (error) throw error;
 
             if (count === 0) {
-                alert("Banner o'chirilmadi. Sizda bu operatsiya uchun ruxsat yo'q bo'lishi mumkin (RLS).");
+                alert(t('bannerNotDeleted'));
             } else {
                 fetchBanners();
             }
         } catch (error: any) {
             console.error('Bannerni o\'chirishda xatolik:', error);
-            alert(`Xatolik yuz berdi: ${error.message || 'Noma\'lum xatolik'}`);
+            alert(`${t('error')}: ${error.message || ''}`);
         }
     };
 
@@ -173,15 +175,15 @@ export default function AdminSettingsPage() {
             const { exportToExcel, formatOrderDataForExcel, formatProductDataForExcel, formatUserDataForExcel } = await import('@/app/utils/admin/excelUtils');
 
             const dataSets = [
-                { sheetName: 'Buyurtmalar', data: formatOrderDataForExcel(orders || []) },
-                { sheetName: 'Mahsulotlar', data: formatProductDataForExcel(products || []) },
-                { sheetName: 'Mijozlar', data: formatUserDataForExcel(profiles || []) }
+                { sheetName: t('sheetOrders'), data: formatOrderDataForExcel(orders || []) },
+                { sheetName: t('sheetProducts'), data: formatProductDataForExcel(products || []) },
+                { sheetName: t('sheetCustomers'), data: formatUserDataForExcel(profiles || []) }
             ];
 
-            exportToExcel(dataSets, `Cakerr_Eksport_${format(new Date(), 'dd-MM-yyyy')}`);
+            exportToExcel(dataSets, `TORTELE_Eksport_${format(new Date(), 'dd-MM-yyyy')}`);
         } catch (error) {
             console.error('Export failed:', error);
-            alert('Eksport qilishda xatolik yuz berdi');
+            alert(t('error'));
         } finally {
             setLoading(false);
         }
@@ -196,25 +198,25 @@ export default function AdminSettingsPage() {
             if (error) throw error;
             fetchBanners();
         } catch (error: any) {
-            console.error('Banner holatinitag\'s o\'zgartirishda xatolik:', error);
-            alert(`Xatolik yuz berdi: ${error.message || 'Noma\'lum xatolik'}`);
+            console.error('Banner holatini o\'zgartirishda xatolik:', error);
+            alert(`${t('error')}: ${error.message || ''}`);
         }
     };
 
     return (
         <div className={styles.container}>
             <header className={styles.header}>
-                <h1 className={styles.title}>Sozlamalar</h1>
+                <h1 className={styles.title}>{t('settings')}</h1>
                 <p style={{ color: '#6B7280', marginTop: '4px' }}>
-                    Bosh sahifa bannerlari va umumiy sozlamalar. {userRole && <span style={{ marginLeft: '10px', color: userRole === 'admin' ? '#059669' : '#EF4444', fontWeight: 700 }}>Rol: {userRole}</span>}
+                    {t('settingsSubtitle')} {userRole && <span style={{ marginLeft: '10px', color: userRole === 'admin' ? '#059669' : '#EF4444', fontWeight: 700 }}>{t('roleLabel')}: {userRole}</span>}
                 </p>
             </header>
 
             <section className={styles.section} style={{ background: 'white', border: '1px solid #E5E7EB' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                     <h2 style={{ fontSize: '20px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <Layout size={24} color="#BE185D" />
-                        Marketing Bannerlari
+                        <Layout size={24} color="hsl(var(--color-primary-dark))" />
+                        {t('bannerTitle')}
                     </h2>
                     <div style={{ display: 'flex', gap: '12px' }}>
                         {orderChanged && (
@@ -223,14 +225,14 @@ export default function AdminSettingsPage() {
                                 disabled={savingOrder}
                                 style={{ background: '#059669', color: 'white', border: 'none', padding: '10px 18px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, cursor: 'pointer', opacity: savingOrder ? 0.7 : 1 }}
                             >
-                                <Save size={18} /> {savingOrder ? 'Saqlanmoqda...' : 'Tartibni saqlash'}
+                                <Save size={18} /> {savingOrder ? t('saving') : t('saveOrder')}
                             </button>
                         )}
                         <button
                             onClick={() => setIsAdding(true)}
-                            style={{ background: '#BE185D', color: 'white', border: 'none', padding: '10px 18px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, cursor: 'pointer' }}
+                            style={{ background: 'hsl(var(--color-primary-dark))', color: 'white', border: 'none', padding: '10px 18px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, cursor: 'pointer' }}
                         >
-                            <Plus size={18} /> Qo'shish
+                            <Plus size={18} /> {t('add')}
                         </button>
                     </div>
                 </div>
@@ -244,9 +246,9 @@ export default function AdminSettingsPage() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     {loading ? (
-                        <p style={{ textAlign: 'center', padding: '40px', color: '#9CA3AF' }}>Yuklanmoqda...</p>
+                        <p style={{ textAlign: 'center', padding: '40px', color: '#9CA3AF' }}>{t('loading')}</p>
                     ) : banners.length === 0 ? (
-                        <p style={{ textAlign: 'center', padding: '40px', color: '#9CA3AF' }}>Bannerlar mavjud emas</p>
+                        <p style={{ textAlign: 'center', padding: '40px', color: '#9CA3AF' }}>{t('noBanners')}</p>
                     ) : (
                         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                             <SortableContext items={banners.map(b => b.id)} strategy={verticalListSortingStrategy}>
@@ -272,10 +274,10 @@ export default function AdminSettingsPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
                     <div style={{ flex: 1, minWidth: '300px' }}>
                         <h2 style={{ fontSize: '20px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                            <Download size={24} color="#BE185D" />
-                            Ma'lumotlarni eksport qilish
+                            <Download size={24} color="hsl(var(--color-primary-dark))" />
+                            {t('exportTitle')}
                         </h2>
-                        <p style={{ color: '#6B7280', margin: 0 }}>Barcha buyurtmalar, mahsulotlar va mijozlar ro'yxatini Excel formatida yuklab oling.</p>
+                        <p style={{ color: '#6B7280', margin: 0 }}>{t('exportSubtitle')}</p>
                     </div>
                     <button
                         onClick={handleExport}
@@ -284,7 +286,7 @@ export default function AdminSettingsPage() {
                         style={{ height: '48px', padding: '0 24px', background: '#059669', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 700, cursor: 'pointer', opacity: loading ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: '8px' }}
                     >
                         <Download size={18} />
-                        {loading ? 'Tayyorlanmoqda...' : 'Excel yuklab olish'}
+                        {loading ? t('exportLoading') : t('exportButton')}
                     </button>
                 </div>
             </section>

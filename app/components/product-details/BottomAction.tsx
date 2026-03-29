@@ -1,6 +1,7 @@
 'use client';
 
 import { ShoppingCart, Minus, Plus } from 'lucide-react';
+import { useLanguage } from '@/app/context/LanguageContext';
 import styles from './BottomAction.module.css';
 
 export default function BottomAction({
@@ -20,15 +21,16 @@ export default function BottomAction({
   onMainAction: (e: React.MouseEvent) => void;
   inline?: boolean;
 }) {
+  const { t } = useLanguage();
   // Calculate total price = unit price × quantity
   const numericPrice = typeof price === 'number' ? price : parseInt(String(price).replace(/\D/g, ''), 10) || 0;
   const totalPrice = numericPrice * quantity;
-  const displayPrice = `${totalPrice.toLocaleString('uz-UZ')} so'm`;
+  const displayPrice = `${totalPrice.toLocaleString('en-US')} ${t('som')}`;
 
   return (
     <div className={`${styles.bar} ${inline ? styles.inline : ''}`}>
       <div className={styles.priceInfo}>
-        <span className={styles.label}>Jami narx</span>
+        <span className={styles.label}>{t('totalPrice')}</span>
         <span className={styles.value}>{displayPrice}</span>
       </div>
 
@@ -56,12 +58,12 @@ export default function BottomAction({
           {isAdded ? (
             <>
               <ShoppingCart size={20} className={styles.cartIcon} />
-              <span>Savat</span>
+              <span>{t('cart')}</span>
             </>
           ) : (
             <>
               <ShoppingCart size={20} className={styles.cartIcon} />
-              <span>Qo'shish</span>
+              <span>{t('add')}</span>
             </>
           )}
         </button>

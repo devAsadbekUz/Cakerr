@@ -13,6 +13,8 @@ import {
     Share2,
     Cookie
 } from 'lucide-react';
+import { useLanguage } from '@/app/context/LanguageContext';
+import { getLocalized } from '@/app/utils/i18n';
 import MenuItem from '@/app/components/profile/MenuItem';
 import OrderCard from '@/app/components/profile/OrderCard';
 import Link from 'next/link';
@@ -24,7 +26,7 @@ import ComingSoonModal from '@/app/components/profile/ComingSoonModal';
 import EditProfileModal from '@/app/components/profile/EditProfileModal';
 import { orderService } from '@/app/services/orderService';
 
-import { useSupabase } from '@/app/context/SupabaseContext';
+import { useSupabase } from '@/app/context/AuthContext';
 import { createClient } from '@/app/utils/supabase/client';
 import { getAuthHeader } from '@/app/utils/telegram';
 
@@ -40,8 +42,24 @@ const getProgressValue = (status: string) => {
     }
 };
 
+const getStatusLabel = (status: string, t: any) => {
+    if (!status) return '';
+    const s = status.toLowerCase();
+    switch (s) {
+        case 'new': return t('statusNew');
+        case 'confirmed': return t('statusConfirmed');
+        case 'preparing': return t('statusPreparing');
+        case 'ready': return t('statusReady');
+        case 'delivering': return t('statusDelivering');
+        case 'completed': return t('statusCompleted');
+        case 'cancelled': return t('statusCancelled');
+        default: return status;
+    }
+};
+
 export default function ProfilPage() {
     const router = useRouter();
+    const { lang, t } = useLanguage();
     const { user, loading: authLoading } = useSupabase();
     const supabase = createClient();
     const [orders, setOrders] = useState<any[]>([]);
@@ -81,16 +99,20 @@ export default function ProfilPage() {
                     .filter((o: any) => o.status === 'completed')
                     .map((o: any) => {
                         const item = o.order_items?.[0];
+                        const dateObj = new Date(o.created_at);
+                        const monthNames = t('months') as unknown as string[];
+                        const formattedDate = `${dateObj.getDate()} ${monthNames[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
+
                         return {
                             id: o.id,
-                            date: new Date(o.created_at).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' }),
-                            items: `${item?.name || 'Mahsulot'} (${item?.configuration?.portion || ''})`,
+                            date: formattedDate,
+                            items: `${getLocalized(item?.name, lang) || 'Mahsulot'} (${item?.configuration?.portion || ''})`,
                             price: o.total_price,
                             image: item?.configuration?.image_url || item?.configuration?.uploaded_photo_url || '/images/cake-placeholder.jpg',
                             productId: item?.product_id,
-                            name: item?.name,
+                            name: getLocalized(item?.name, lang),
                             portion: item?.configuration?.portion,
-                            flavor: item?.configuration?.flavor
+                            flavor: getLocalized(item?.configuration?.flavor, lang)
                         };
                     });
                 setOrders(completed);
@@ -152,21 +174,21 @@ export default function ProfilPage() {
     }, [user?.coins]);
 
     if (authLoading || (user && loading)) {
-        return <div className={styles.container} style={{ padding: '40px', textAlign: 'center' }}>Yuklanmoqda...</div>;
+        return <div className={styles.container} style={{ padding: '40px', textAlign: 'center' }}>{t('loading')}</div>;
     }
 
     if (!user) {
         return (
             <div className={styles.container}>
                 <div className={styles.header}>
-                    <h1 className={styles.title}>Profil</h1>
-                    <p className={styles.subtitle}>Buyurtmalaringizni kuzatish uchun tizimga kiring</p>
+                    <h1 className={styles.title}>{t('profileTitle')}</h1>
+                    <p className={styles.subtitle}>{t('loginPrompt')}</p>
                 </div>
                 <button
                     className={styles.loginBtn}
                     onClick={() => router.push('/profil/login')}
                 >
-                    Tizimga kirish
+                    {t('login')}
                 </button>
             </div>
         );
@@ -195,7 +217,7 @@ export default function ProfilPage() {
                         )}
                     </div>
                     <div className={styles.userInfo}>
-                        <h2>{user.user_metadata?.full_name || 'Mijoz'}</h2>
+                        <h2>{user.user_metadata?.full_name || (lang === 'uz' ? 'Mijoz' : 'Клиент')}</h2>
                         <div className={styles.contactInfo}>
                             {user.email && <p className={styles.userEmail}>{user.email}</p>}
                             {(user.phone || user.phone_number) && (
@@ -211,11 +233,11 @@ export default function ProfilPage() {
                 <div className={styles.statsCard}>
                     <div className={styles.statItem}>
                         <span className={styles.statValue}>{stats.orderCount}</span>
-                        <span className={styles.statLabel}>Buyurtmalar</span>
+                        <span className={styles.statLabel}>{t('orders')}</span>
                     </div>
                     <div className={styles.statItem}>
-                        <span className={styles.statValue}>{stats.coins}</span>
-                        <span className={styles.statLabel}>Shirin Tangalar</span>
+                        <span className={styles.statValue}>{(stats.coins || 0).toLocaleString('en-US')}</span>
+                        <span className={styles.statLabel}>{t('shirinTangalar')}</span>
                     </div>
                 </div>
             </div>
@@ -223,15 +245,11 @@ export default function ProfilPage() {
             <div className={styles.content}>
                 {activeOrder && (
                     <div className={styles.section}>
-                        <h3 className={styles.sectionTitle}>Faol buyurtmalar</h3>
+                        <h3 className={styles.sectionTitle}>{t('activeOrders')}</h3>
                         <ActiveOrderCard
                             orderId={activeOrder.id}
-                            itemName={activeOrder.order_items?.[0]?.name || 'Buyurtma'}
-                            status={activeOrder.status === 'new' ? 'Yangi' :
-                                activeOrder.status === 'confirmed' ? 'Tasdiqlandi' :
-                                    activeOrder.status === 'preparing' ? 'Tayyorlanmoqda' :
-                                        activeOrder.status === 'ready' ? 'Tayyor' :
-                                            activeOrder.status === 'delivering' ? 'Yetkazilmoqda' : activeOrder.status}
+                            itemName={getLocalized(activeOrder.order_items?.[0]?.name, lang) || (lang === 'uz' ? 'Buyurtma' : 'Заказ')}
+                            status={getStatusLabel(activeOrder.status, t)}
                             progress={getProgressValue(activeOrder.status)}
                         />
                     </div>
@@ -241,8 +259,8 @@ export default function ProfilPage() {
                 {orders.length > 0 && (
                     <div className={styles.section}>
                         <div className={styles.menuHeader}>
-                            <h3 className={styles.sectionTitle}>Tez buyurtma</h3>
-                            <Link href="/profil/buyurtmalar" className={styles.seeAll}>Barchasi</Link>
+                            <h3 className={styles.sectionTitle}>{t('quickOrder')}</h3>
+                            <Link href="/profil/buyurtmalar" className={styles.seeAll}>{t('seeAll')}</Link>
                         </div>
                         <div className={styles.reorderList}>
                             {orders.map(order => (
@@ -254,51 +272,51 @@ export default function ProfilPage() {
 
                 {/* Main Menu */}
                 <div className={styles.section}>
-                    <h3 className={styles.sectionTitle}>Asosiy menyu</h3>
+                    <h3 className={styles.sectionTitle}>{t('mainMenu')}</h3>
                     <MenuItem
                         icon={History}
-                        label="Buyurtmalar tarixi"
+                        label={t('orderHistory')}
                         color="#4F46E5"
                         onClick={() => router.push('/profil/buyurtmalar')}
                     />
                     <MenuItem
                         icon={MapPin}
-                        label="Saqlangan manzillar"
+                        label={t('savedAddresses')}
                         color="#10B981"
                         onClick={() => setIsAddressesOpen(true)}
                     />
                     <MenuItem
                         icon={Calendar}
-                        label="Maxsus sanalar (Tug'ilgan kunlar)"
+                        label={t('specialDates')}
                         color="#F59E0B"
-                        onClick={() => setModalState({ isOpen: true, type: 'calendar', featureName: 'Maxsus sanalar' })}
+                        onClick={() => setModalState({ isOpen: true, type: 'calendar', featureName: t('specialDates') })}
                     />
                 </div>
 
                 {/* App Settings */}
                 <div className={styles.section}>
-                    <h3 className={styles.sectionTitle}>Boshqalar</h3>
+                    <h3 className={styles.sectionTitle}>{t('others')}</h3>
                     <MenuItem
                         icon={Cookie}
-                        label="Mening ta'mlarim"
+                        label={t('myPreferences')}
                         color="#EC4899"
-                        onClick={() => setModalState({ isOpen: true, type: 'preferences', featureName: "Mening ta'mlarim" })}
+                        onClick={() => setModalState({ isOpen: true, type: 'preferences', featureName: t('myPreferences') })}
                     />
                     <MenuItem
                         icon={Share2}
-                        label="Ilovani ulashish"
+                        label={t('shareApp')}
                         color="#3B82F6"
                         onClick={() => router.push('/profil/ulashish')}
                     />
                     <MenuItem
                         icon={HelpCircle}
-                        label="Yordam markazi"
+                        label={t('helpCenter')}
                         color="#6B7280"
                         onClick={() => router.push('/profil/yordam')}
                     />
                     <MenuItem
                         icon={LogOut}
-                        label="Chiqish"
+                        label={t('logout')}
                         color="#EF4444"
                         onClick={handleLogout}
                     />

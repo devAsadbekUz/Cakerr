@@ -5,18 +5,15 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft, Check, Calendar, MapPin, MessageSquare, Banknote, ShoppingBag, Map as MapIcon } from 'lucide-react';
 import styles from './page.module.css';
 import { useCart } from '@/app/context/CartContext';
+import { useLanguage } from '@/app/context/LanguageContext';
+import { getLocalized } from '@/app/utils/i18n';
 import { createClient } from '@/app/utils/supabase/client';
 import { getAuthHeader } from '@/app/utils/telegram';
 
-const MONTHS = [
-    "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
-    "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"
-];
-
-function formattedDateWithSlot(isoDate: string, slot?: string) {
+function formattedDateWithSlot(isoDate: string, months: string[], slot?: string) {
     const date = new Date(isoDate);
     const day = date.getDate();
-    const month = MONTHS[date.getMonth()];
+    const month = months[date.getMonth()];
     const formattedDate = `${day}-${month}`;
 
     if (slot) {
@@ -27,6 +24,7 @@ function formattedDateWithSlot(isoDate: string, slot?: string) {
 
 function SuccessContent() {
     const router = useRouter();
+    const { lang, t } = useLanguage();
     const searchParams = useSearchParams();
     const orderId = searchParams.get('orderId');
     const { deliveryAddress } = useCart();
@@ -88,18 +86,20 @@ function SuccessContent() {
         };
     }, [orderId, supabase]);
 
-    if (loading) return <div className={styles.container} style={{ padding: '40px', textAlign: 'center' }}>Yuklanmoqda...</div>;
+    if (loading) return <div className={styles.container} style={{ padding: '40px', textAlign: 'center' }}>{t('loading')}</div>;
+
+    const monthNames = t('months') as unknown as string[];
 
     // Use fetched order or fall back to context/defaults if something went wrong
     const displayData = {
         id: order?.id || orderId || 'Noma\'lum',
         deliveryDate: order?.delivery_time
-            ? formattedDateWithSlot(order.delivery_time, order.delivery_slot)
-            : 'Bugun',
+            ? formattedDateWithSlot(order.delivery_time, monthNames, order.delivery_slot)
+            : t('today') || 'Bugun',
         deliveryTime: '', // Combined into deliveryDate
-        address: order?.delivery_address?.street || deliveryAddress || 'Manzil ko\'rsatilmagan',
-        comment: order?.comment || 'Qo\'shimcha izohlar qoldirilmagan',
-        paymentMethod: 'Naqd pul (yetkazib berishda)',
+        address: order?.delivery_address?.street || deliveryAddress || t('noAddress'),
+        comment: order?.comment || t('noNote'),
+        paymentMethod: order?.payment_method === 'card' ? t('card') : t('cash'),
         total: order?.total_price || 0,
         subtotal: order?.total_price ? order.total_price - 25000 : 0,
         deliveryFee: 25000
@@ -116,9 +116,9 @@ function SuccessContent() {
                     <Check size={48} />
                 </div>
 
-                <h1 className={styles.title}>Buyurtma tasdiqlandi!</h1>
-                <p className={styles.subtitle}>Buyurtmangiz muvaffaqiyatli qabul qilindi</p>
-                <span className={styles.orderId}>Buyurtma ID: {displayData.id}</span>
+                <h1 className={styles.title}>{t('orderConfirmed')}</h1>
+                <p className={styles.subtitle}>{t('orderReceived')}</p>
+                <span className={styles.orderId}>{t('orderId')}: {displayData.id}</span>
             </header>
 
             <div className={styles.section}>
@@ -127,7 +127,7 @@ function SuccessContent() {
                         <Calendar size={20} />
                     </div>
                     <div className={styles.detailInfo}>
-                        <span className={styles.detailLabel}>Yetkazib berish vaqti</span>
+                        <span className={styles.detailLabel}>{t('deliveryTime')}</span>
                         <span className={styles.detailValue}>{displayData.deliveryDate}</span>
                         {displayData.deliveryTime && <span className={styles.detailValue}>{displayData.deliveryTime}</span>}
                     </div>
@@ -140,7 +140,7 @@ function SuccessContent() {
                         <MapPin size={20} />
                     </div>
                     <div className={styles.detailInfo}>
-                        <span className={styles.detailLabel}>Yetkazib berish manzili</span>
+                        <span className={styles.detailLabel}>{t('deliveryAddress')}</span>
                         <span className={styles.detailValue}>{displayData.address}</span>
                     </div>
                 </div>
@@ -152,7 +152,7 @@ function SuccessContent() {
                         <MessageSquare size={20} />
                     </div>
                     <div className={styles.detailInfo}>
-                        <span className={styles.detailLabel}>Qo'shimcha izohlar</span>
+                        <span className={styles.detailLabel}>{t('customerNote')}</span>
                         <span className={styles.detailValue}>{displayData.comment}</span>
                     </div>
                 </div>
@@ -164,40 +164,40 @@ function SuccessContent() {
                         <Banknote size={20} />
                     </div>
                     <div className={styles.detailInfo}>
-                        <span className={styles.detailLabel}>To'lov usuli</span>
+                        <span className={styles.detailLabel}>{t('paymentMethod')}</span>
                         <span className={styles.detailValue}>{displayData.paymentMethod}</span>
                     </div>
                 </div>
             </div>
 
             <div className={styles.summarySection}>
-                <h2 className={styles.summaryTitle}>Buyurtma xulasasi</h2>
+                <h2 className={styles.summaryTitle}>{t('summary')} || 'Xulosa'</h2>
                 <div className={styles.summaryRow}>
-                    <span className={styles.summaryLabel}>Mahsulotlar</span>
-                    <span className={styles.summaryValue}>{Math.max(0, displayData.subtotal).toLocaleString('uz-UZ')} so'm</span>
+                    <span className={styles.summaryLabel}>{t('items')}</span>
+                    <span className={styles.summaryValue}>{Math.max(0, displayData.subtotal).toLocaleString('uz-UZ')} {t('som')}</span>
                 </div>
                 <div className={styles.summaryRow}>
-                    <span className={styles.summaryLabel}>Yetkazib berish</span>
-                    <span className={styles.summaryValue}>{displayData.deliveryFee.toLocaleString('uz-UZ')} so'm</span>
+                    <span className={styles.summaryLabel}>{t('delivery')}</span>
+                    <span className={styles.summaryValue}>{displayData.deliveryFee.toLocaleString('uz-UZ')} {t('som')}</span>
                 </div>
                 <div className={`${styles.summaryRow} ${styles.totalRow}`}>
-                    <span>Jami</span>
-                    <span className={styles.totalValue}>{displayData.total.toLocaleString('uz-UZ')} so'm</span>
+                    <span>{t('total')}</span>
+                    <span className={styles.totalValue}>{displayData.total.toLocaleString('uz-UZ')} {t('som')}</span>
                 </div>
             </div>
 
             <div className={styles.thankYouNote}>
-                🎉 Buyurtmangiz uchun rahmat! Tortingizni mehru muhabbat bilan tayyorlayapmiz.
+                {t('thankYou')}
             </div>
 
             <footer className={styles.footer}>
                 <button className={styles.trackBtn} onClick={() => router.push(`/profil/buyurtmalar/${displayData.id}`)}>
                     <MapIcon size={20} />
-                    Buyurtmani kuzatish
+                    {t('trackOrder')}
                 </button>
                 <button className={styles.continueBtn} onClick={() => router.push('/')}>
                     <ShoppingBag size={20} />
-                    Xarid qilishni davom ettirish
+                    {t('continueShopping')}
                 </button>
             </footer>
         </div>
@@ -206,7 +206,7 @@ function SuccessContent() {
 
 export default function OrderSuccessPage() {
     return (
-        <Suspense fallback={<div className={styles.container} style={{ padding: '40px', textAlign: 'center' }}>Yuklanmoqda...</div>}>
+        <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>}>
             <SuccessContent />
         </Suspense>
     );

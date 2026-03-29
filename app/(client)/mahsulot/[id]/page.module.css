@@ -175,7 +175,7 @@
 }
 
 /* Chip Colors */
-.pink { background: #FCE7F3; color: #BE185D; }
+.pink { background: hsla(var(--color-primary), 0.1); color: hsl(var(--color-primary-dark)); }
 .blue { background: #DBEAFE; color: #1D4ED8; }
 .orange { background: #FFEDD5; color: #C2410C; }
 .purple { background: #F3E8FF; color: #7E22CE; }

@@ -4,7 +4,7 @@ import React, { useState, Suspense, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft, Send, Phone, ArrowRight, Loader2 } from 'lucide-react';
-import { useTelegram } from '@/app/context/TelegramContext';
+import { useTelegram } from '@/app/context/AuthContext';
 import { storeSession } from '@/app/utils/telegram';
 import { TELEGRAM_CONFIG } from '@/app/utils/telegramConfig';
 import styles from './page.module.css';
@@ -156,7 +156,7 @@ function LoginContent() {
             <div className={styles.container}>
                 <div className={styles.heroSection}>
                     <div className={styles.heroImageWrapper}>
-                        <Image src="/auth-hero.png" alt="Cakerr" fill className={styles.heroImage} priority style={{ objectFit: 'cover' }} />
+                        <Image src="/auth-hero.png" alt="TORTEL'E" fill className={styles.heroImage} priority style={{ objectFit: 'cover' }} />
                         <div className={styles.heroOverlay}></div>
                     </div>
                     <button className={styles.backBtn} onClick={() => router.back()}>
@@ -200,7 +200,7 @@ function LoginContent() {
         <div className={styles.container}>
             <div className={styles.heroSection}>
                 <div className={styles.heroImageWrapper}>
-                    <Image src="/auth-hero.png" alt="Cakerr" fill className={styles.heroImage} priority style={{ objectFit: 'cover' }} />
+                    <Image src="/auth-hero.png" alt="TORTEL'E" fill className={styles.heroImage} priority style={{ objectFit: 'cover' }} />
                     <div className={styles.heroOverlay}></div>
                 </div>
                 <button className={styles.backBtn} onClick={() => router.back()}>

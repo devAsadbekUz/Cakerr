@@ -2,6 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { X, TrendingUp, TrendingDown, Minus, Info } from 'lucide-react';
+import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 import styles from './ABCAnalysisModal.module.css';
 
 interface ProductStat {
@@ -17,6 +18,7 @@ interface ABCAnalysisModalProps {
 }
 
 export default function ABCAnalysisModal({ isOpen, onClose, data }: ABCAnalysisModalProps) {
+    const { lang, t } = useAdminI18n();
     const analysis = useMemo(() => {
         if (!data || data.length === 0) return [];
 
@@ -65,8 +67,8 @@ export default function ABCAnalysisModal({ isOpen, onClose, data }: ABCAnalysisM
             <div className={styles.modal} onClick={e => e.stopPropagation()}>
                 <div className={styles.header}>
                     <div>
-                        <h2 className={styles.title}>Mahsulotlar ABC tahlili</h2>
-                        <p className={styles.subtitle}>Daromad ulushi bo'yicha saralangan to'liq statistika</p>
+                        <h2 className={styles.title}>{t('abcAnalysisTitle')}</h2>
+                        <p className={styles.subtitle}>{t('abcAnalysisSubtitle')}</p>
                     </div>
                     <button className={styles.closeBtn} onClick={onClose}>
                         <X size={24} />
@@ -75,19 +77,19 @@ export default function ABCAnalysisModal({ isOpen, onClose, data }: ABCAnalysisM
 
                 <div className={styles.summaryGrid}>
                     <div className={`${styles.summaryCard} ${styles.cardA}`}>
-                        <div className={styles.groupLabel}>A Guruhi</div>
-                        <div className={styles.groupCount}>{groupCounts.A} mahsulot</div>
-                        <div className={styles.groupDesc}>Daromadning 80% qismini beradi</div>
+                        <div className={styles.groupLabel}>{t('groupA')}</div>
+                        <div className={styles.groupCount}>{groupCounts.A} {t('countProducts')}</div>
+                        <div className={styles.groupDesc}>{t('revenueShare80')}</div>
                     </div>
                     <div className={`${styles.summaryCard} ${styles.cardB}`}>
-                        <div className={styles.groupLabel}>B Guruhi</div>
-                        <div className={styles.groupCount}>{groupCounts.B} mahsulot</div>
-                        <div className={styles.groupDesc}>Daromadning keyingi 15% qismi</div>
+                        <div className={styles.groupLabel}>{t('groupB')}</div>
+                        <div className={styles.groupCount}>{groupCounts.B} {t('countProducts')}</div>
+                        <div className={styles.groupDesc}>{t('revenueShare15')}</div>
                     </div>
                     <div className={`${styles.summaryCard} ${styles.cardC}`}>
-                        <div className={styles.groupLabel}>C Guruhi</div>
-                        <div className={styles.groupCount}>{groupCounts.C} mahsulot</div>
-                        <div className={styles.groupDesc}>Qolgan 5% past daromadli qism</div>
+                        <div className={styles.groupLabel}>{t('groupC')}</div>
+                        <div className={styles.groupCount}>{groupCounts.C} {t('countProducts')}</div>
+                        <div className={styles.groupDesc}>{t('revenueShare5')}</div>
                     </div>
                 </div>
 
@@ -96,11 +98,11 @@ export default function ABCAnalysisModal({ isOpen, onClose, data }: ABCAnalysisM
                         <thead>
                             <tr>
                                 <th>#</th>
-                                <th>Mahsulot nomi</th>
-                                <th>Soni</th>
-                                <th>Daromad</th>
-                                <th>Ulush</th>
-                                <th>Guruh</th>
+                                <th>{t('productNameCol')}</th>
+                                <th>{t('quantityCol')}</th>
+                                <th>{t('revenueCol')}</th>
+                                <th>{t('shareCol')}</th>
+                                <th>{t('groupCol')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -108,8 +110,8 @@ export default function ABCAnalysisModal({ isOpen, onClose, data }: ABCAnalysisM
                                 <tr key={index}>
                                     <td>{index + 1}</td>
                                     <td className={styles.productName}>{item.name}</td>
-                                    <td>{item.quantity} dona</td>
-                                    <td className={styles.revenue}>{item.revenue.toLocaleString()} so'm</td>
+                                    <td>{item.quantity} {t('pcs')}</td>
+                                    <td className={styles.revenue}>{item.revenue.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}</td>
                                     <td>
                                         <div className={styles.shareWrapper}>
                                             <span className={styles.shareNum}>{item.share.toFixed(1)}%</span>
@@ -138,7 +140,7 @@ export default function ABCAnalysisModal({ isOpen, onClose, data }: ABCAnalysisM
                 <div className={styles.footer}>
                     <div className={styles.infoTip}>
                         <Info size={16} />
-                        <span>A guruhidagi mahsulotlar biznesingizning "lokomotivi" hisoblanadi.</span>
+                        <span>{t('abcAAdvice')}</span>
                     </div>
                 </div>
             </div>

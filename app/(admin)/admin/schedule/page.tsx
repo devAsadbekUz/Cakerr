@@ -11,9 +11,13 @@ import {
     eachDayOfInterval, isSameDay, addMonths, subMonths, isToday
 } from 'date-fns';
 import { availabilityService, GlobalTimeSlot } from '@/app/services/availabilityService';
+import { uz, ru } from 'date-fns/locale';
+import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 import styles from '../AdminDashboard.module.css';
 
 export default function SchedulePage() {
+    const { lang, t } = useAdminI18n();
+    const localeSelection = lang === 'uz' ? uz : ru;
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
     const [overrides, setOverrides] = useState<any[]>([]);
@@ -57,10 +61,10 @@ export default function SchedulePage() {
     // ─── Global Slot Handlers ────────────────────────────────────────────
     const validateSlotLabel = (label: string): string => {
         const trimmed = label.trim();
-        if (!trimmed) return 'Vaqt oraliği kiritilmadi';
+        if (!trimmed) return t('timeEmptyError');
         // Accepts formats like "09:00 - 11:00" or "9:00-11:00"
         const pattern = /^\d{1,2}:\d{2}\s*[-–]\s*\d{1,2}:\d{2}$/;
-        if (!pattern.test(trimmed)) return 'Format: "09:00 - 11:00"';
+        if (!pattern.test(trimmed)) return t('timeFormatError');
         return '';
     };
 
@@ -71,7 +75,7 @@ export default function SchedulePage() {
         // Normalize: ensure consistent format with spaces
         const normalized = newSlotLabel.trim().replace(/\s*[-–]\s*/, ' - ');
         if (globalSlots.some(s => s.label === normalized)) {
-            setSlotError('Bu vaqt oralig\'i allaqachon mavjud');
+            setSlotError(t('timeExistsError'));
             return;
         }
 
@@ -82,19 +86,19 @@ export default function SchedulePage() {
             setNewSlotLabel('');
             await fetchGlobalSlots();
         } catch (err: any) {
-            setSlotError(err.message || 'Xatolik yuz berdi');
+            setSlotError(err.message || t('error'));
         } finally {
             setAddingSlot(false);
         }
     };
 
     const handleDeleteSlot = async (id: string, label: string) => {
-        if (!confirm(`"${label}" vaqt oralig'ini o'chirmoqchimisiz? Bu buyurtmaga ta'sir qilmaydi.`)) return;
+        if (!confirm(t('confirmDeleteSlot').replace('{label}', label))) return;
         try {
             await availabilityService.deleteGlobalSlot(id);
             await fetchGlobalSlots();
         } catch (err: any) {
-            alert(`Xatolik: ${err.message || 'Noma\'lum xato'}`);
+            alert(`${t('error')}: ${err.message || t('unknown')}`);
         }
     };
 
@@ -136,7 +140,7 @@ export default function SchedulePage() {
             await fetchOverrides();
         } catch (error: any) {
             console.error('Toggle error:', error);
-            alert(`Xatolik: ${error.message || 'Noma\'lum xato'}`);
+            alert(`${t('error')}: ${error.message || t('unknown')}`);
         }
     };
 
@@ -149,8 +153,8 @@ export default function SchedulePage() {
     return (
         <div className={styles.container}>
             <header className={styles.header}>
-                <h1 className={styles.title}>Vaqt Boshqaruvi</h1>
-                <p style={{ color: '#6B7280', marginTop: '4px' }}>Ish vaqtlari va yetkazib berish slotlarini sozlang.</p>
+                <h1 className={styles.title}>{t('timeManagement')}</h1>
+                <p style={{ color: '#6B7280', marginTop: '4px' }}>{t('timeManagementDesc')}</p>
             </header>
 
             {/* ═══════════════════ GLOBAL SLOTS MANAGER ═══════════════════ */}
@@ -170,10 +174,10 @@ export default function SchedulePage() {
                     </div>
                     <div>
                         <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>
-                            Global Vaqt Sozlamalari
+                            {t('globalTimeSettings')}
                         </h2>
                         <p style={{ fontSize: '13px', color: '#6B7280', margin: 0, marginTop: '2px' }}>
-                            Bu yerda qo'shilgan slotlar barcha kunlar uchun amal qiladi
+                            {t('globalTimeSettingsDesc')}
                         </p>
                     </div>
                 </div>
@@ -182,7 +186,7 @@ export default function SchedulePage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
                     {globalSlots.length === 0 && (
                         <div style={{ textAlign: 'center', padding: '20px', color: '#9CA3AF', fontSize: '14px' }}>
-                            Hech qanday vaqt oralig'i mavjud emas
+                            {t('noTimeSlots')}
                         </div>
                     )}
                     {globalSlots.map((slot, index) => (
@@ -227,7 +231,7 @@ export default function SchedulePage() {
                                     alignItems: 'center',
                                     transition: 'color 0.2s',
                                 }}
-                                title="O'chirish"
+                                title={t('delete')}
                                 onMouseEnter={e => (e.currentTarget.style.color = '#EF4444')}
                                 onMouseLeave={e => (e.currentTarget.style.color = '#9CA3AF')}
                             >
@@ -287,7 +291,7 @@ export default function SchedulePage() {
                         }}
                     >
                         <Plus size={16} />
-                        {addingSlot ? 'Qo\'shilmoqda...' : 'Qo\'shish'}
+                        {addingSlot ? t('adding') : t('add')}
                     </button>
                 </div>
             </div>
@@ -296,7 +300,7 @@ export default function SchedulePage() {
             <div className={styles.calendarView}>
                 <div className={styles.calendarContainer}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                        <h2 style={{ fontSize: '20px', fontWeight: 700 }}>{format(currentMonth, 'MMMM yyyy')}</h2>
+                        <h2 style={{ fontSize: '20px', fontWeight: 700 }}>{format(currentMonth, 'MMMM yyyy', { locale: localeSelection })}</h2>
                         <div style={{ display: 'flex', gap: '8px' }}>
                             <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className={styles.modalClose}><ChevronLeft size={20} /></button>
                             <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className={styles.modalClose}><ChevronRight size={20} /></button>
@@ -307,6 +311,8 @@ export default function SchedulePage() {
                         selectedDate={selectedDate}
                         onSelectDate={setSelectedDate}
                         overrides={overrides}
+                        lang={lang}
+                        locale={localeSelection}
                     />
                 </div>
 
@@ -314,7 +320,7 @@ export default function SchedulePage() {
                     <div style={{ background: 'white', padding: '24px', borderRadius: '24px', border: '1px solid #E5E7EB' }}>
                         <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <CalendarIcon size={20} color="#BE185D" />
-                            {format(selectedDate, 'd-MMMM')} - Holati
+                            {format(selectedDate, 'd-MMMM', { locale: localeSelection })} - {t('statusLabel')}
                         </h2>
 
                         <div style={{ marginBottom: '24px' }}>
@@ -337,22 +343,22 @@ export default function SchedulePage() {
                                 }}
                             >
                                 {isDayBlocked ? <CheckCircle2 size={20} /> : <Ban size={20} />}
-                                {isDayBlocked ? "Kunning yopilishini bekor qilish" : "Butun kunni yopish"}
+                                {isDayBlocked ? t('reopenDay') : t('closeWholeDay')}
                             </button>
                         </div>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                             <p style={{ fontSize: '14px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', marginBottom: '4px' }}>
-                                Vaqt oraliqlari
+                                {t('timeSlotsTitle')}
                             </p>
 
                             {loading ? (
                                 <div style={{ color: '#9CA3AF', fontSize: '14px', textAlign: 'center', padding: '20px' }}>
-                                    Yuklanmoqda...
+                                    {t('loading')}
                                 </div>
                             ) : globalSlots.length === 0 ? (
                                 <div style={{ color: '#9CA3AF', fontSize: '14px', textAlign: 'center', padding: '20px' }}>
-                                    Global sozlamalar bo'limida vaqt qo'shing
+                                    {t('globalAdminNote')}
                                 </div>
                             ) : (
                                 globalSlots.map(slot => {
@@ -386,10 +392,10 @@ export default function SchedulePage() {
 
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 {isBlocked ? (
-                                                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#EF4444', background: '#FEF2F2', padding: '4px 8px', borderRadius: '6px' }}>Yopilgan</span>
+                                                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#EF4444', background: '#FEF2F2', padding: '4px 8px', borderRadius: '6px' }}>{t('closed')}</span>
                                                 ) : (
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#10B981' }}>
-                                                        <span style={{ fontSize: '12px', fontWeight: 700, background: '#F0FDF4', padding: '4px 8px', borderRadius: '6px' }}>Ochiq</span>
+                                                        <span style={{ fontSize: '12px', fontWeight: 700, background: '#F0FDF4', padding: '4px 8px', borderRadius: '6px' }}>{t('openStatus')}</span>
                                                         <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                             <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'white' }} />
                                                         </div>
@@ -406,7 +412,7 @@ export default function SchedulePage() {
                             <div style={{ marginTop: '20px', padding: '12px', background: '#FFF7ED', borderRadius: '12px', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                                 <AlertCircle size={16} color="#FB923C" style={{ marginTop: '2px' }} />
                                 <p style={{ fontSize: '12px', color: '#9A3412', margin: 0 }}>
-                                    Butun kun yopilgan holatda alohida vaqt oraliqlarini boshqarib bo'lmaydi.
+                                    {t('blockedDayNote')}
                                 </p>
                             </div>
                         )}
@@ -417,7 +423,7 @@ export default function SchedulePage() {
     );
 }
 
-function ScheduleCalendar({ currentMonth, selectedDate, onSelectDate, overrides }: any) {
+function ScheduleCalendar({ currentMonth, selectedDate, onSelectDate, overrides, lang, locale }: any) {
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(monthStart);
     const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
@@ -434,7 +440,7 @@ function ScheduleCalendar({ currentMonth, selectedDate, onSelectDate, overrides 
 
     return (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px' }}>
-            {['Du', 'Se', 'Cho', 'Pa', 'Ju', 'Sha', 'Ya'].map(day => (
+            {(lang === 'uz' ? ['Du', 'Se', 'Cho', 'Pa', 'Ju', 'Sha', 'Ya'] : ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']).map(day => (
                 <div key={day} style={{ textAlign: 'center', padding: '8px', fontSize: '12px', fontWeight: 700, color: '#6B7280' }}>{day}</div>
             ))}
             {calendarDays.map((day, idx) => {
@@ -454,7 +460,7 @@ function ScheduleCalendar({ currentMonth, selectedDate, onSelectDate, overrides 
                             transition: 'all 0.2s'
                         }}
                     >
-                        <span style={{ fontSize: '14px', fontWeight: isSelected ? 800 : 600 }}>{format(day, 'd')}</span>
+                        <span style={{ fontSize: '14px', fontWeight: isSelected ? 800 : 600 }}>{format(day, 'd', { locale })}</span>
                         {state === 'blocked' && !isSelected && (
                             <div style={{ position: 'absolute', top: '4px', right: '4px', width: '6px', height: '6px', borderRadius: '50%', background: '#EF4444' }} />
                         )}

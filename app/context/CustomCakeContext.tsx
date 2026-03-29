@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react';
 import { CustomOption } from '../services/customCakeService';
 
 export type BuilderMode = 'wizard' | 'upload' | null;
@@ -67,32 +67,32 @@ const CustomCakeContext = createContext<CustomCakeContextType | undefined>(undef
 export function CustomCakeProvider({ children }: { children: ReactNode }) {
     const [state, setState] = useState<CustomCakeState>(initialState);
 
-    const setMode = (mode: BuilderMode) => setState(prev => ({ ...prev, mode }));
+    const setMode = useCallback((mode: BuilderMode) => setState(prev => ({ ...prev, mode })), []);
 
-    const setShape = (shape: string) => setState(prev => ({ ...prev, shape }));
-    const setSize = (size: string) => setState(prev => ({ ...prev, size }));
-    const setSponge = (sponge: string) => setState(prev => ({ ...prev, sponge }));
-    const setCream = (cream: string) => setState(prev => ({ ...prev, cream }));
-    const toggleDecoration = (decoration: string) => {
+    const setShape = useCallback((shape: string) => setState(prev => ({ ...prev, shape })), []);
+    const setSize = useCallback((size: string) => setState(prev => ({ ...prev, size })), []);
+    const setSponge = useCallback((sponge: string) => setState(prev => ({ ...prev, sponge })), []);
+    const setCream = useCallback((cream: string) => setState(prev => ({ ...prev, cream })), []);
+    const toggleDecoration = useCallback((decoration: string) => {
         setState(prev => ({
             ...prev,
             decorations: prev.decorations.includes(decoration)
                 ? prev.decorations.filter(d => d !== decoration)
                 : [...prev.decorations, decoration]
         }));
-    };
-    const setText = (text: string) => setState(prev => ({ ...prev, text }));
-    const setDrawingData = (drawingData: string) => setState(prev => ({ ...prev, drawingData }));
+    }, []);
+    const setText = useCallback((text: string) => setState(prev => ({ ...prev, text })), []);
+    const setDrawingData = useCallback((drawingData: string) => setState(prev => ({ ...prev, drawingData })), []);
 
-    const setUploadedImage = (uploadedImage: string | null) => setState(prev => ({ ...prev, uploadedImage }));
-    const setUploadComment = (uploadComment: string) => setState(prev => ({ ...prev, uploadComment }));
-    const setOptions = (options: CustomOption[]) => setState(prev => ({ ...prev, options }));
+    const setUploadedImage = useCallback((uploadedImage: string | null) => setState(prev => ({ ...prev, uploadedImage })), []);
+    const setUploadComment = useCallback((uploadComment: string) => setState(prev => ({ ...prev, uploadComment })), []);
+    const setOptions = useCallback((options: CustomOption[]) => setState(prev => ({ ...prev, options })), []);
 
-    const nextStep = () => setState(prev => ({ ...prev, step: prev.step + 1 }));
-    const prevStep = () => setState(prev => ({ ...prev, step: Math.max(1, prev.step - 1) }));
-    const reset = () => setState(initialState);
+    const nextStep = useCallback(() => setState(prev => ({ ...prev, step: prev.step + 1 })), []);
+    const prevStep = useCallback(() => setState(prev => ({ ...prev, step: Math.max(1, prev.step - 1) })), []);
+    const reset = useCallback(() => setState(initialState), []);
 
-    const calculateTotal = () => {
+    const calculateTotal = useCallback(() => {
         let total = 0;
 
         // Find selected item prices
@@ -107,29 +107,29 @@ export function CustomCakeProvider({ children }: { children: ReactNode }) {
         selectedDecors.forEach(d => total += Number(d.price));
 
         return total;
-    };
+    }, [state.options, state.size, state.sponge, state.cream, state.decorations]);
+
+    const value = useMemo(() => ({
+        ...state,
+        setMode,
+        setShape,
+        setSize,
+        setSponge,
+        setCream,
+        toggleDecoration,
+        setText,
+        setDrawingData,
+        setUploadedImage,
+        setUploadComment,
+        setOptions,
+        nextStep,
+        prevStep,
+        reset,
+        calculateTotal,
+    }), [state, setMode, setShape, setSize, setSponge, setCream, toggleDecoration, setText, setDrawingData, setUploadedImage, setUploadComment, setOptions, nextStep, prevStep, reset, calculateTotal]);
 
     return (
-        <CustomCakeContext.Provider
-            value={{
-                ...state,
-                setMode,
-                setShape,
-                setSize,
-                setSponge,
-                setCream,
-                toggleDecoration,
-                setText,
-                setDrawingData,
-                setUploadedImage,
-                setUploadComment,
-                setOptions,
-                nextStep,
-                prevStep,
-                reset,
-                calculateTotal,
-            }}
-        >
+        <CustomCakeContext.Provider value={value}>
             {children}
         </CustomCakeContext.Provider>
     );

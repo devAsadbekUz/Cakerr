@@ -78,7 +78,7 @@ function buildProductContext(products: any[]): string {
     }).join('\n\n');
 }
 
-const SYSTEM_PROMPT = `Sen Cakerr yordamchi botisan — tort va shirinliklar do'koni uchun AI assistentsan.
+const SYSTEM_PROMPT = `Sen TORTEL'E yordamchi botisan — tort va shirinliklar do'koni uchun AI assistentsan.
 
 MUHIM QOIDALAR:
 - Faqat tortlar, shirinliklar, buyurtma berish va do'kon haqida gapir

@@ -5,9 +5,11 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, RotateCcw, Check } from 'lucide-react';
 import styles from './page.module.css';
+import { useLanguage } from '@/app/context/LanguageContext';
 import { useCart } from '@/app/context/CartContext';
-import { useSupabase } from '@/app/context/SupabaseContext';
+import { useSupabase } from '@/app/context/AuthContext';
 import { getAuthHeader } from '@/app/utils/telegram';
+import { getStatusConfig } from '@/app/utils/orderConfig';
 
 interface OrderItem {
     id: string;
@@ -31,6 +33,7 @@ interface Order {
 
 export default function OrderHistoryPage() {
     const router = useRouter();
+    const { lang, t } = useLanguage();
     const { addItem } = useCart();
     const { user, loading: authLoading } = useSupabase();
     const [orders, setOrders] = useState<Order[]>([]);
@@ -58,12 +61,7 @@ export default function OrderHistoryPage() {
                         date: new Date(o.created_at).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' }),
                         total: o.total_price,
                         status: o.status,
-                        statusLabel: o.status === 'new' ? 'Yangi' :
-                            o.status === 'confirmed' ? 'Tasdiqlandi' :
-                                o.status === 'preparing' ? 'Tayyorlanmoqda' :
-                                    o.status === 'ready' ? 'Tayyor' :
-                                        o.status === 'delivering' ? 'Yetkazilmoqda' :
-                                            o.status === 'completed' ? 'Yetkazilgan' : 'Bekor qilingan',
+                        statusLabel: getStatusConfig(o.status).labels[lang],
                         items: o.order_items.map((item: any) => ({
                             id: item.id,
                             productId: item.product_id,
@@ -123,7 +121,7 @@ export default function OrderHistoryPage() {
                 <button className={styles.backBtn} onClick={() => router.back()}>
                     <ChevronLeft size={24} />
                 </button>
-                <h1 className={styles.title}>Buyurtmalar tarixi</h1>
+                <h1 className={styles.title}>{t('orderHistory')}</h1>
             </header>
 
             <div className={styles.filters}>
@@ -131,25 +129,25 @@ export default function OrderHistoryPage() {
                     className={`${styles.filterBtn} ${filter === 'all' ? styles.filterBtnActive : ''}`}
                     onClick={() => setFilter('all')}
                 >
-                    Hammasi
+                    {t('all')}
                 </button>
                 <button
                     className={`${styles.filterBtn} ${filter === 'pending' ? styles.filterBtnActive : ''}`}
                     onClick={() => setFilter('pending')}
                 >
-                    Kutilmoqda
+                    {t('activeOrders') || 'Faol'}
                 </button>
                 <button
                     className={`${styles.filterBtn} ${filter === 'completed' ? styles.filterBtnActive : ''}`}
                     onClick={() => setFilter('completed')}
                 >
-                    Yetkazilgan
+                    {t('statusCompleted')}
                 </button>
                 <button
                     className={`${styles.filterBtn} ${filter === 'cancelled' ? styles.filterBtnActive : ''}`}
                     onClick={() => setFilter('cancelled')}
                 >
-                    Bekor qilingan
+                    {t('statusCancelled')}
                 </button>
             </div>
 

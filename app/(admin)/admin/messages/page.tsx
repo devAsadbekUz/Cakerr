@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/app/utils/supabase/client';
 import { format } from 'date-fns';
+import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 import styles from './page.module.css';
 
 interface UserProfile {
@@ -31,6 +32,7 @@ type RecipientType = 'individual' | 'broadcast' | 'segment';
 type Tab = 'compose' | 'history';
 
 export default function AdminMessagesPage() {
+    const { lang, t } = useAdminI18n();
     const [mounted, setMounted] = useState(false);
     const [activeTab, setActiveTab] = useState<Tab>('compose');
     const supabase = useMemo(() => createClient(), []);
@@ -142,7 +144,7 @@ export default function AdminMessagesPage() {
             if (res.ok && data.success) {
                 setToast({
                     type: 'success',
-                    message: `✅ ${data.sent}/${data.total} foydalanuvchiga muvaffaqiyatli yuborildi`
+                    message: `✅ ${t('confirmSendSuccess').replace('{sent}', data.sent).replace('{total}', data.total)}`
                 });
                 setMessageText('');
                 setSelectedUser(null);
@@ -150,11 +152,11 @@ export default function AdminMessagesPage() {
             } else {
                 setToast({
                     type: 'error',
-                    message: `❌ Xatolik: ${data.error || 'Noma\'lum xatolik'}`
+                    message: `❌ ${t('error')}: ${data.error || t('unknown')}`
                 });
             }
         } catch {
-            setToast({ type: 'error', message: '❌ Tarmoq xatoligi' });
+            setToast({ type: 'error', message: `❌ ${t('networkError')}` });
         }
 
         setSending(false);
@@ -162,9 +164,9 @@ export default function AdminMessagesPage() {
 
     const getRecipientLabel = () => {
         switch (recipientType) {
-            case 'individual': return selectedUser?.full_name || 'Tanlangan foydalanuvchi';
-            case 'broadcast': return `Barcha foydalanuvchilar (${totalBotUsers} kishi)`;
-            case 'segment': return 'Filtrlangan foydalanuvchilar';
+            case 'individual': return selectedUser?.full_name || t('selectUser');
+            case 'broadcast': return `${t('everyone')} (${totalBotUsers})`;
+            case 'segment': return t('segment');
         }
     };
 
@@ -184,21 +186,21 @@ export default function AdminMessagesPage() {
 
             {/* Header */}
             <header className={styles.header}>
-                <h1 className={styles.title}>Xabarlar</h1>
+                <h1 className={styles.title}>{t('messages')}</h1>
                 <div className={styles.tabs}>
                     <button
                         className={`${styles.tab} ${activeTab === 'compose' ? styles.tabActive : ''}`}
                         onClick={() => setActiveTab('compose')}
                     >
                         <Send size={16} />
-                        Yozish
+                        {t('compose')}
                     </button>
                     <button
                         className={`${styles.tab} ${activeTab === 'history' ? styles.tabActive : ''}`}
                         onClick={() => setActiveTab('history')}
                     >
                         <Clock size={16} />
-                        Tarix
+                        {t('history')}
                     </button>
                 </div>
             </header>
@@ -207,28 +209,28 @@ export default function AdminMessagesPage() {
                 <div className={styles.composeCard}>
                     {/* Recipient Type */}
                     <div className={styles.formGroup}>
-                        <label className={styles.label}>Kimga yuborish</label>
+                        <label className={styles.label}>{t('sendTo')}</label>
                         <div className={styles.recipientTypes}>
                             <button
                                 className={`${styles.recipientType} ${recipientType === 'broadcast' ? styles.recipientTypeActive : ''}`}
                                 onClick={() => { setRecipientType('broadcast'); setSelectedUser(null); }}
                             >
                                 <Users size={18} />
-                                Hammaga
+                                {t('everyone')}
                             </button>
                             <button
                                 className={`${styles.recipientType} ${recipientType === 'individual' ? styles.recipientTypeActive : ''}`}
                                 onClick={() => setRecipientType('individual')}
                             >
                                 <User size={18} />
-                                Bitta kishi
+                                {t('individual')}
                             </button>
                             <button
                                 className={`${styles.recipientType} ${recipientType === 'segment' ? styles.recipientTypeActive : ''}`}
                                 onClick={() => { setRecipientType('segment'); setSelectedUser(null); }}
                             >
                                 <Filter size={18} />
-                                Segment
+                                {t('segment')}
                             </button>
                         </div>
                     </div>
@@ -236,7 +238,7 @@ export default function AdminMessagesPage() {
                     {/* Individual: User Search */}
                     {recipientType === 'individual' && (
                         <div className={styles.formGroup}>
-                            <label className={styles.label}>Foydalanuvchini tanlang</label>
+                            <label className={styles.label}>{t('selectUser')}</label>
                             {selectedUser ? (
                                 <div className={styles.selectedUser}>
                                     <span>{selectedUser.full_name || selectedUser.phone_number}</span>
@@ -250,7 +252,7 @@ export default function AdminMessagesPage() {
                                     <input
                                         type="text"
                                         className={styles.searchInput}
-                                        placeholder="Ism yoki telefon raqam bo'yicha qidiring..."
+                                        placeholder={t('searchPlaceholder')}
                                         value={userSearch}
                                         onChange={(e) => { setUserSearch(e.target.value); setShowSearch(true); }}
                                         onFocus={() => setShowSearch(true)}
@@ -272,7 +274,7 @@ export default function AdminMessagesPage() {
                                                         {(user.full_name || '?')[0].toUpperCase()}
                                                     </div>
                                                     <div>
-                                                        <div className={styles.userName}>{user.full_name || 'Nomsiz'}</div>
+                                                        <div className={styles.userName}>{user.full_name || t('unknown')}</div>
                                                         <div className={styles.userPhone}>{user.phone_number}</div>
                                                     </div>
                                                 </button>
@@ -287,7 +289,7 @@ export default function AdminMessagesPage() {
                     {/* Segment: Filters */}
                     {recipientType === 'segment' && (
                         <div className={styles.formGroup}>
-                            <label className={styles.label}>Filtrlash</label>
+                            <label className={styles.label}>{t('filtering')}</label>
                             <div className={styles.segmentFilters}>
                                 <label className={`${styles.filterCheckbox} ${segmentFilter.hasOrdered ? styles.filterCheckboxActive : ''}`}>
                                     <input
@@ -296,8 +298,8 @@ export default function AdminMessagesPage() {
                                         onChange={(e) => setSegmentFilter({ ...segmentFilter, hasOrdered: e.target.checked })}
                                     />
                                     <div>
-                                        <div className={styles.filterLabel}>Buyurtma berganlar</div>
-                                        <div className={styles.filterDesc}>Kamida bitta buyurtma bergan foydalanuvchilar</div>
+                                        <div className={styles.filterLabel}>{t('orderedBefore')}</div>
+                                        <div className={styles.filterDesc}>{t('orderedBeforeDesc')}</div>
                                     </div>
                                 </label>
                             </div>
@@ -319,17 +321,17 @@ export default function AdminMessagesPage() {
                                 fontWeight: 500
                             }}>
                                 <AlertTriangle size={18} />
-                                Xabar botdagi barcha {totalBotUsers} foydalanuvchiga yuboriladi
+                                {t('allUsersCount').replace('{count}', totalBotUsers.toString())}
                             </div>
                         </div>
                     )}
 
                     {/* Message Text */}
                     <div className={styles.formGroup}>
-                        <label className={styles.label}>Xabar matni</label>
+                        <label className={styles.label}>{t('messageTextLabel')}</label>
                         <textarea
                             className={styles.textarea}
-                            placeholder="Xabaringizni yozing... (Markdown qo'llab-quvvatlanadi)"
+                            placeholder={t('messagePlaceholder')}
                             value={messageText}
                             onChange={(e) => setMessageText(e.target.value)}
                             maxLength={4096}
@@ -348,12 +350,12 @@ export default function AdminMessagesPage() {
                         {sending ? (
                             <>
                                 <div className={styles.spinner} />
-                                Yuborilmoqda...
+                                {t('loading')}
                             </>
                         ) : (
                             <>
                                 <Send size={20} />
-                                Xabar yuborish
+                                {t('sendMessageButton')}
                             </>
                         )}
                     </button>
@@ -362,12 +364,12 @@ export default function AdminMessagesPage() {
                 /* History Tab */
                 <div>
                     {historyLoading ? (
-                        <div className={styles.emptyState}>Yuklanmoqda...</div>
+                        <div className={styles.emptyState}>{t('loading')}</div>
                     ) : messages.length === 0 ? (
                         <div className={styles.emptyState}>
                             <div className={styles.emptyIcon}>📭</div>
-                            <div className={styles.emptyTitle}>Hali xabar yuborilmagan</div>
-                            <div className={styles.emptyText}>Birinchi xabaringizni yuborish uchun "Yozish" tugmasini bosing</div>
+                            <div className={styles.emptyTitle}>{t('noMessagesYet')}</div>
+                            <div className={styles.emptyText}>{t('noMessagesDesc')}</div>
                         </div>
                     ) : (
                         <div className={styles.historyList}>
@@ -379,9 +381,9 @@ export default function AdminMessagesPage() {
                                                     msg.recipient_type === 'individual' ? styles.badgeIndividual :
                                                         styles.badgeSegment
                                                 }`}>
-                                                {msg.recipient_type === 'broadcast' ? '📢 Hammaga' :
-                                                    msg.recipient_type === 'individual' ? '👤 Shaxsiy' :
-                                                        '🎯 Segment'}
+                                                {msg.recipient_type === 'broadcast' ? `📢 ${t('everyone')}` :
+                                                    msg.recipient_type === 'individual' ? `👤 ${t('personal')}` :
+                                                        `🎯 ${t('segment')}`}
                                             </span>
                                         </div>
                                         <span className={styles.historyDate}>
@@ -390,10 +392,10 @@ export default function AdminMessagesPage() {
                                     </div>
                                     <div className={styles.historyText}>{msg.message_text}</div>
                                     <div className={styles.historyStats}>
-                                        <span className={styles.statTotal}>📨 {msg.total_recipients} jami</span>
-                                        <span className={styles.statSuccess}>✅ {msg.successful_sends} yuborildi</span>
+                                        <span className={styles.statTotal}>📨 {msg.total_recipients} {t('totalRecipients')}</span>
+                                        <span className={styles.statSuccess}>✅ {msg.successful_sends} {t('sentSuccess')}</span>
                                         {msg.failed_sends > 0 && (
-                                            <span className={styles.statFail}>❌ {msg.failed_sends} xatolik</span>
+                                            <span className={styles.statFail}>❌ {msg.failed_sends} {t('sendErrors')}</span>
                                         )}
                                     </div>
                                 </div>
@@ -412,7 +414,7 @@ export default function AdminMessagesPage() {
                                 <AlertTriangle size={20} />
                             </div>
                             <div>
-                                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Xabar yuborilsinmi?</h3>
+                                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>{t('sendConfirmTitle')}</h3>
                                 <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#6B7280' }}>
                                     {getRecipientLabel()}
                                 </p>
@@ -423,11 +425,11 @@ export default function AdminMessagesPage() {
                         </div>
                         <div className={styles.modalActions}>
                             <button className={styles.btnCancel} onClick={() => setShowConfirm(false)}>
-                                Bekor qilish
+                                {t('cancel')}
                             </button>
                             <button className={styles.btnConfirm} onClick={confirmSend}>
                                 <Send size={16} style={{ marginRight: '6px' }} />
-                                Yuborish
+                                {t('sendMessageButton')}
                             </button>
                         </div>
                     </div>

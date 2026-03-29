@@ -5,8 +5,8 @@ import { getStatusConfig, getTelegramButtons, buildOrderMessage } from '@/app/ut
 export async function POST(request: NextRequest) {
     console.log('[Telegram Update] Received request');
     try {
-        const { orderId, newStatus } = await request.json();
-        console.log('[Telegram Update] Order ID:', orderId, 'New Status:', newStatus);
+        const { orderId, newStatus, lang = 'uz' } = await request.json();
+        console.log('[Telegram Update] Order ID:', orderId, 'New Status:', newStatus, 'Lang:', lang);
 
         if (!orderId || !newStatus) {
             console.error('[Telegram Update] Missing orderId or newStatus');
@@ -58,14 +58,12 @@ export async function POST(request: NextRequest) {
         }
 
         const statusConfig = getStatusConfig(newStatus);
-        const statusLabel = statusConfig.tgLabel;
-        console.log('[Telegram Update] Status configured:', statusLabel);
-
+        
         // Use shared utility to build message text
-        const messageText = buildOrderMessage(order, statusLabel);
+        const messageText = buildOrderMessage(order, lang as 'uz' | 'ru');
 
         // Get next action buttons from central config
-        const inline_keyboard = getTelegramButtons(newStatus, orderId);
+        const inline_keyboard = getTelegramButtons(newStatus, orderId, lang as 'uz' | 'ru');
 
         // Edit Telegram message
         const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
@@ -92,7 +90,18 @@ export async function POST(request: NextRequest) {
         // Notify the client directly if they have a telegram_id linked
         const profile = Array.isArray(order.profiles) ? order.profiles[0] : order.profiles;
         if (profile?.telegram_id) {
-            const clientMessage = `🍰 *Buyurtma holati yangilandi*\n\nHurmatli mijoz, sizning #${order.id.slice(0,8)} raqamli buyurtmangiz holati o'zgardi:\n\n*${statusConfig.label}*\n_${statusConfig.desc}_`;
+            const clientLabels = {
+                uz: {
+                    title: "🍰 *Buyurtma holati yangilandi*",
+                    text: `Hurmatli mijoz, sizning #${order.id.slice(0, 8)} raqamli buyurtmangiz holati o'zgardi:`
+                },
+                ru: {
+                    title: "🍰 *Статус заказа обновлен*",
+                    text: `Уважаемый клиент, статус вашего заказа #${order.id.slice(0, 8)} изменился:`
+                }
+            }[lang as 'uz' | 'ru'];
+
+            const clientMessage = `${clientLabels.title}\n\n${clientLabels.text}\n\n*${statusConfig.labels[lang as 'uz' | 'ru']}*\n_${statusConfig.descs[lang as 'uz' | 'ru']}_`;
             
             console.log('[Telegram Update] Sending notification to client:', profile.telegram_id);
             const notifyResponse = await fetch(`${TELEGRAM_API}/sendMessage`, {

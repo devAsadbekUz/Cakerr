@@ -3,18 +3,10 @@
 import React, { useState, useMemo } from 'react';
 import { X, ShoppingBag, TrendingUp, Clock, DollarSign, PieChart, BarChart3, Package } from 'lucide-react';
 import { format, subDays, isSameDay } from 'date-fns';
+import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 import styles from './DashboardExpandModal.module.css';
 
 // Status display config
-const STATUS_COLORS: Record<string, { bg: string; text: string; label: string }> = {
-    new: { bg: '#FEF3C7', text: '#92400E', label: 'Yangi' },
-    confirmed: { bg: '#DBEAFE', text: '#1E40AF', label: 'Tasdiqlangan' },
-    preparing: { bg: '#FDE68A', text: '#78350F', label: 'Tayyorlanmoqda' },
-    delivering: { bg: '#E0E7FF', text: '#3730A3', label: 'Yetkazilmoqda' },
-    completed: { bg: '#D1FAE5', text: '#065F46', label: 'Tugallangan' },
-    cancelled: { bg: '#FEE2E2', text: '#991B1B', label: 'Bekor qilingan' },
-};
-
 interface ExpandModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -24,32 +16,44 @@ interface ExpandModalProps {
 }
 
 export default function DashboardExpandModal({ isOpen, onClose, type, orders, analytics }: ExpandModalProps) {
+    const { lang, t } = useAdminI18n();
+    const STATUS_COLORS: Record<string, { bg: string; text: string; label: string }> = {
+        new: { bg: '#FEF3C7', text: '#92400E', label: t('status_new') },
+        confirmed: { bg: '#DBEAFE', text: '#1E40AF', label: t('status_confirmed') },
+        preparing: { bg: '#FDE68A', text: '#78350F', label: t('status_preparing') },
+        delivering: { bg: '#E0E7FF', text: '#3730A3', label: t('status_delivering') },
+        completed: { bg: '#D1FAE5', text: '#065F46', label: t('status_completed') },
+        cancelled: { bg: '#FEE2E2', text: '#991B1B', label: t('status_cancelled') },
+    };
+
     const [revenuePeriod, setRevenuePeriod] = useState<7 | 30 | 90>(30);
 
     if (!isOpen) return null;
+
+    const commonProps = { onClose, STATUS_COLORS, lang, t };
 
     return (
         <div className={styles.overlay} onClick={onClose}>
             <div className={styles.modal} onClick={e => e.stopPropagation()}>
                 {type === 'recentActivity' && (
-                    <RecentActivityFull orders={orders} onClose={onClose} />
+                    <RecentActivityFull orders={orders} {...commonProps} />
                 )}
                 {type === 'revenueTrend' && (
                     <RevenueTrendFull
                         orders={orders}
                         period={revenuePeriod}
                         setPeriod={setRevenuePeriod}
-                        onClose={onClose}
+                        {...commonProps}
                     />
                 )}
                 {type === 'weeklyOrders' && (
-                    <WeeklyOrdersFull orders={orders} onClose={onClose} />
+                    <WeeklyOrdersFull orders={orders} {...commonProps} />
                 )}
                 {type === 'orderStatuses' && (
-                    <OrderStatusesFull analytics={analytics} onClose={onClose} />
+                    <OrderStatusesFull analytics={analytics} {...commonProps} />
                 )}
                 {type === 'peakHours' && (
-                    <PeakHoursFull analytics={analytics} onClose={onClose} />
+                    <PeakHoursFull analytics={analytics} {...commonProps} />
                 )}
             </div>
         </div>
@@ -57,7 +61,7 @@ export default function DashboardExpandModal({ isOpen, onClose, type, orders, an
 }
 
 // ===================== RECENT ACTIVITY FULL =====================
-function RecentActivityFull({ orders, onClose }: { orders: any[]; onClose: () => void }) {
+function RecentActivityFull({ orders, onClose, STATUS_COLORS, t, lang }: any) {
     const sorted = useMemo(() =>
         [...orders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
         [orders]
@@ -69,8 +73,8 @@ function RecentActivityFull({ orders, onClose }: { orders: any[]; onClose: () =>
                 <div className={styles.headerLeft}>
                     <ShoppingBag size={22} color="#BE185D" />
                     <div>
-                        <h2 className={styles.title}>Barcha harakatlar</h2>
-                        <p className={styles.subtitle}>{sorted.length} ta buyurtma</p>
+                        <h2 className={styles.title}>{t('allActions')}</h2>
+                        <p className={styles.subtitle}>{sorted.length} {t('ordersLabel')}</p>
                     </div>
                 </div>
                 <button className={styles.closeBtn} onClick={onClose}><X size={20} /></button>
@@ -84,10 +88,10 @@ function RecentActivityFull({ orders, onClose }: { orders: any[]; onClose: () =>
                             </div>
                             <div className={styles.orderInfo}>
                                 <div className={styles.orderTitle}>
-                                    #{o.id.slice(0, 6)} - {o.profiles?.full_name || 'Mijoz'}
+                                    #{o.id.slice(0, 6)} - {o.profiles?.full_name || t('client')}
                                 </div>
                                 <div className={styles.orderMeta}>
-                                    {format(new Date(o.created_at), 'dd/MM/yyyy HH:mm')} • {o.total_price?.toLocaleString()} so&apos;m
+                                    {format(new Date(o.created_at), 'dd/MM/yyyy HH:mm')} • {o.total_price?.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}
                                 </div>
                             </div>
                             <div
@@ -102,7 +106,7 @@ function RecentActivityFull({ orders, onClose }: { orders: any[]; onClose: () =>
                         </div>
                     ))}
                     {sorted.length === 0 && (
-                        <div className={styles.emptyState}>Buyurtmalar yo&apos;q</div>
+                        <div className={styles.emptyState}>{t('noOrders')}</div>
                     )}
                 </div>
             </div>
@@ -112,13 +116,8 @@ function RecentActivityFull({ orders, onClose }: { orders: any[]; onClose: () =>
 
 // ===================== REVENUE TREND FULL =====================
 function RevenueTrendFull({
-    orders, period, setPeriod, onClose
-}: {
-    orders: any[];
-    period: 7 | 30 | 90;
-    setPeriod: (p: 7 | 30 | 90) => void;
-    onClose: () => void;
-}) {
+    orders, period, setPeriod, onClose, t, lang
+}: any) {
     const data = useMemo(() => {
         const today = new Date();
         const days = Array.from({ length: period }, (_, i) => {
@@ -157,8 +156,8 @@ function RevenueTrendFull({
                 <div className={styles.headerLeft}>
                     <DollarSign size={22} color="#BE185D" />
                     <div>
-                        <h2 className={styles.title}>Daromat trendi</h2>
-                        <p className={styles.subtitle}>Tugallangan buyurtmalar daromadi</p>
+                        <h2 className={styles.title}>{t('revenueTrendTitle')}</h2>
+                        <p className={styles.subtitle}>{t('completedRevenue')}</p>
                     </div>
                 </div>
                 <button className={styles.closeBtn} onClick={onClose}><X size={20} /></button>
@@ -171,7 +170,7 @@ function RevenueTrendFull({
                         className={`${styles.tab} ${period === p ? styles.tabActive : ''}`}
                         onClick={() => setPeriod(p)}
                     >
-                        {p} kun
+                        {p} {t('daysCount')}
                     </button>
                 ))}
             </div>
@@ -179,22 +178,22 @@ function RevenueTrendFull({
             <div className={styles.content}>
                 <div className={styles.summaryRow}>
                     <div className={styles.summaryCard}>
-                        <h4>Jami daromat</h4>
+                        <h4>{t('totalPayment')}</h4>
                         <div className="value" style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>
                             {totalRevenue >= 1_000_000
                                 ? `${(totalRevenue / 1_000_000).toFixed(1)}M`
                                 : `${(totalRevenue / 1_000).toFixed(0)}K`
-                            } so&apos;m
+                            } {lang === 'uz' ? "so'm" : "сум"}
                         </div>
                     </div>
                     <div className={styles.summaryCard}>
-                        <h4>Buyurtmalar</h4>
+                        <h4>{t('orders')}</h4>
                         <div className="value" style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>
                             {totalOrders}
                         </div>
                     </div>
                     <div className={styles.summaryCard}>
-                        <h4>O&apos;rtacha / kun</h4>
+                        <h4>{t('averagePerDay')}</h4>
                         <div className="value" style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>
                             {period > 0 ? (totalRevenue / period / 1000).toFixed(0) : 0}K
                         </div>
@@ -237,7 +236,7 @@ function RevenueTrendFull({
 }
 
 // ===================== WEEKLY ORDERS FULL =====================
-function WeeklyOrdersFull({ orders, onClose }: { orders: any[]; onClose: () => void }) {
+function WeeklyOrdersFull({ orders, onClose, t }: any) {
     const last30 = useMemo(() => {
         const today = new Date();
         const days = Array.from({ length: 30 }, (_, i) => {
@@ -272,8 +271,8 @@ function WeeklyOrdersFull({ orders, onClose }: { orders: any[]; onClose: () => v
                 <div className={styles.headerLeft}>
                     <TrendingUp size={22} color="#BE185D" />
                     <div>
-                        <h2 className={styles.title}>Kunlik buyurtmalar</h2>
-                        <p className={styles.subtitle}>So&apos;nggi 30 kun • Jami: {totalOrders}</p>
+                        <h2 className={styles.title}>{t('dailyOrders')}</h2>
+                        <p className={styles.subtitle}>{t('last30Days')} • {t('totalLabel')}: {totalOrders}</p>
                     </div>
                 </div>
                 <button className={styles.closeBtn} onClick={onClose}><X size={20} /></button>
@@ -301,7 +300,7 @@ function WeeklyOrdersFull({ orders, onClose }: { orders: any[]; onClose: () => v
                                     </div>
                                 </div>
                                 <span className={styles.barAmount}>
-                                    {day.count > 0 ? `${day.count} ta` : '—'}
+                                    {day.count > 0 ? `${day.count} ${t('ordersLabel')}` : '—'}
                                 </span>
                             </div>
                         );
@@ -313,15 +312,15 @@ function WeeklyOrdersFull({ orders, onClose }: { orders: any[]; onClose: () => v
 }
 
 // ===================== ORDER STATUSES FULL =====================
-function OrderStatusesFull({ analytics, onClose }: { analytics: any; onClose: () => void }) {
+function OrderStatusesFull({ analytics, onClose, t }: any) {
     return (
         <>
             <div className={styles.header}>
                 <div className={styles.headerLeft}>
                     <PieChart size={22} color="#BE185D" />
                     <div>
-                        <h2 className={styles.title}>Buyurtma holatlari</h2>
-                        <p className={styles.subtitle}>Jami {analytics.totalOrders} buyurtma</p>
+                        <h2 className={styles.title}>{t('orderStatusesTitle')}</h2>
+                        <p className={styles.subtitle}>{t('totalLabel')} {analytics.totalOrders} {t('ordersLabel')}</p>
                     </div>
                 </div>
                 <button className={styles.closeBtn} onClick={onClose}><X size={20} /></button>
@@ -348,19 +347,19 @@ function OrderStatusesFull({ analytics, onClose }: { analytics: any; onClose: ()
 }
 
 // ===================== PEAK HOURS FULL =====================
-function PeakHoursFull({ analytics, onClose }: { analytics: any; onClose: () => void }) {
+function PeakHoursFull({ analytics, onClose, t }: any) {
     const maxCount = Math.max(...analytics.peakHours.map((h: any) => h.count), 1);
     const totalOrders = analytics.peakHours.reduce((sum: number, h: any) => sum + h.count, 0);
     const peakHour = analytics.peakHours.reduce((max: any, h: any) => h.count > max.count ? h : max, analytics.peakHours[0]);
-
+ 
     return (
         <>
             <div className={styles.header}>
                 <div className={styles.headerLeft}>
                     <Clock size={22} color="#BE185D" />
                     <div>
-                        <h2 className={styles.title}>Buyurtma soatlari</h2>
-                        <p className={styles.subtitle}>Eng ko&apos;p: {peakHour?.label} ({peakHour?.count} ta)</p>
+                        <h2 className={styles.title}>{t('hourlyStatsTitle')}</h2>
+                        <p className={styles.subtitle}>{t('everyone')}: {peakHour?.label} ({peakHour?.count} {t('ordersLabel')})</p>
                     </div>
                 </div>
                 <button className={styles.closeBtn} onClick={onClose}><X size={20} /></button>
@@ -368,11 +367,11 @@ function PeakHoursFull({ analytics, onClose }: { analytics: any; onClose: () => 
             <div className={styles.content}>
                 <div className={styles.summaryRow}>
                     <div className={styles.summaryCard}>
-                        <h4>Jami buyurtmalar</h4>
+                        <h4>{t('totalLabel')} {t('orders').toLowerCase()}</h4>
                         <div style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>{totalOrders}</div>
                     </div>
                     <div className={styles.summaryCard}>
-                        <h4>Eng faol soat</h4>
+                        <h4>{t('peakActiveHour')}</h4>
                         <div style={{ fontSize: 24, fontWeight: 800, color: '#BE185D' }}>{peakHour?.label}</div>
                     </div>
                 </div>
@@ -405,7 +404,7 @@ function PeakHoursFull({ analytics, onClose }: { analytics: any; onClose: () => 
                                     </div>
                                 </div>
                                 <span className={styles.barAmount}>
-                                    {h.count > 0 ? `${h.count} ta` : '—'}
+                                    {h.count > 0 ? `${h.count} ${t('ordersLabel')}` : '—'}
                                 </span>
                             </div>
                         );

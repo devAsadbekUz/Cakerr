@@ -12,6 +12,10 @@ export const addressService = {
             });
 
             if (!response.ok) {
+                // If unauthorized (guest or expired session), just return empty silently
+                if (response.status === 401 || response.status === 403) {
+                    return [];
+                }
                 const errData = await response.json();
                 console.error('Error fetching addresses:', errData.error);
                 return [];

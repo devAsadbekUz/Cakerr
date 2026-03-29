@@ -14,22 +14,22 @@ import {
 import styles from './AdminDashboard.module.css';
 import { StatCard } from '@/app/components/admin/DashboardComponents';
 import { createClient } from '@/app/utils/supabase/client';
+import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 import ABCAnalysisModal from '@/app/components/admin/ABCAnalysisModal';
 import DashboardExpandModal from '@/app/components/admin/DashboardExpandModal';
 import { useAdminAnalytics } from '@/app/hooks/admin/useAdminAnalytics';
 import { CategoryDonutChart, RetentionFunnel, RevenueLineChart } from '@/app/components/admin/DashboardCharts';
 
-// Status display config (Keep for UI mapping if needed, but hook provides labels)
-const STATUS_COLORS: Record<string, { bg: string; text: string; label: string }> = {
-    new: { bg: '#FEF3C7', text: '#92400E', label: 'Yangi' },
-    confirmed: { bg: '#DBEAFE', text: '#1E40AF', label: 'Tasdiqlangan' },
-    preparing: { bg: '#FDE68A', text: '#78350F', label: 'Tayyorlanmoqda' },
-    delivering: { bg: '#E0E7FF', text: '#3730A3', label: 'Yetkazilmoqda' },
-    completed: { bg: '#D1FAE5', text: '#065F46', label: 'Tugallangan' },
-    cancelled: { bg: '#FEE2E2', text: '#991B1B', label: 'Bekor qilingan' },
-};
-
 export default function AdminAnalyticsPage() {
+    const { lang, t } = useAdminI18n();
+    const STATUS_COLORS: Record<string, { bg: string; text: string; label: string }> = {
+        new: { bg: '#FEF3C7', text: '#92400E', label: t('status_new') },
+        confirmed: { bg: '#DBEAFE', text: '#1E40AF', label: t('status_confirmed') },
+        preparing: { bg: '#FDE68A', text: '#78350F', label: t('status_preparing') },
+        delivering: { bg: '#E0E7FF', text: '#3730A3', label: t('status_delivering') },
+        completed: { bg: '#D1FAE5', text: '#065F46', label: t('status_completed') },
+        cancelled: { bg: '#FEE2E2', text: '#991B1B', label: t('status_cancelled') },
+    };
     const [orders, setOrders] = useState<any[]>([]);
     const [totalUsers, setTotalUsers] = useState(0);
     const [loading, setLoading] = useState(true);
@@ -59,12 +59,14 @@ export default function AdminAnalyticsPage() {
 
     useEffect(() => {
         setMounted(true);
-        fetchData();
+        let refreshTimeout: NodeJS.Timeout;
 
         const ordersChannel = supabase
             .channel('admin-orders')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-                fetchData();
+                // Debounce refresh to handle rapid updates
+                if (refreshTimeout) clearTimeout(refreshTimeout);
+                refreshTimeout = setTimeout(fetchData, 800);
             })
             .subscribe();
 
@@ -76,6 +78,7 @@ export default function AdminAnalyticsPage() {
             .subscribe();
 
         return () => {
+            if (refreshTimeout) clearTimeout(refreshTimeout);
             supabase.removeChannel(ordersChannel);
             supabase.removeChannel(profilesChannel);
         };
@@ -110,16 +113,16 @@ export default function AdminAnalyticsPage() {
         <div className={styles.container}>
             <header className={styles.header}>
                 <div>
-                    <h1 className={styles.title}>Menejer Paneli</h1>
-                    <p style={{ color: '#6B7280', marginTop: '4px' }}>Xush kelibsiz! Bugungi tahlillar bilan tanishing.</p>
+                    <h1 className={styles.title}>{t('managerPanel')}</h1>
+                    <p style={{ color: '#6B7280', marginTop: '4px' }}>{t('welcomeMessage')}</p>
                 </div>
 
                 <div className={styles.filterBar}>
                     {[
-                        { label: '30 kun', value: 30 },
-                        { label: '90 kun', value: 90 },
-                        { label: '180 kun', value: 180 },
-                        { label: 'Hammasi', value: null }
+                        { label: t('filter_30'), value: 30 },
+                        { label: t('filter_90'), value: 90 },
+                        { label: t('filter_180'), value: 180 },
+                        { label: t('filter_all'), value: null }
                     ].map((opt) => (
                         <button
                             key={opt.label}
@@ -132,42 +135,41 @@ export default function AdminAnalyticsPage() {
                 </div>
             </header>
 
-            {/* ==================== STAT CARDS ==================== */}
             <div className={styles.statsGrid}>
-                <StatCard title="Yangi" value={analytics.newOrdersCount} icon={AlertCircle} color="orange" />
-                <StatCard title="Bugun" value={analytics.todaysOrdersCount} icon={Clock} color="blue" />
-                <StatCard title="Daromat" value={`${(analytics.totalRevenue / 1000000).toFixed(1)}M`} icon={DollarSign} color="green" />
+                <StatCard title={t('status_new')} value={analytics.newOrdersCount} icon={AlertCircle} color="orange" />
+                <StatCard title={t('todaysOrders')} value={analytics.todaysOrdersCount} icon={Clock} color="blue" />
+                <StatCard title={t('revenue')} value={`${(analytics.totalRevenue / 1000000).toFixed(1)}M`} icon={DollarSign} color="green" />
                 <StatCard
-                    title="Mijozlar"
+                    title={t('customers')}
                     value={analytics.totalCustomers}
                     icon={Users}
                     color="purple"
-                    subtitle={`${analytics.activeBuyers} faol xaridor`}
+                    subtitle={`${analytics.activeBuyers} ${t('activeBuyersLabel')}`}
                 />
                 <StatCard
-                    title="O'rtacha chek"
+                    title={t('averageCheck')}
                     value={`${(analytics.aov / 1000).toFixed(0)}K`}
                     icon={BarChart3}
                     color="blue"
-                    subtitle="so'm / buyurtma"
+                    subtitle={`${lang === 'uz' ? "so'm" : "сум"} / ${t('orders').toLowerCase()}`}
                 />
                 <StatCard
-                    title="Qaytib keluvchi"
+                    title={t('repeatRate')}
                     value={`${analytics.repeatRate}%`}
                     icon={Repeat}
                     color="green"
-                    subtitle={`${analytics.repeatCustomers} mijoz`}
+                    subtitle={`${analytics.repeatCustomers} ${t('repeatCustomersCount')}`}
                 />
             </div>
 
             {loading ? (
-                <div style={{ textAlign: 'center', padding: '60px', color: '#6B7280' }}>Yuklanmoqda...</div>
+                <div style={{ textAlign: 'center', padding: '60px', color: '#6B7280' }}>{t('loading')}</div>
             ) : (
                 <>
                     {/* ==================== ROW: Revenue & Sales Trend Line Chart ==================== */}
                     <div className={styles.analyticsLayout} style={{ marginBottom: '32px' }}>
                         <RevenueLineChart
-                            title="Daromad va Sotuvlar Trendi (O'tmish va Kelajak)"
+                            title={t('revenueTrendTitle')}
                             data={analytics.revenueTrend.map(d => ({
                                 label: d.label,
                                 revenue: d.revenue,
@@ -183,15 +185,15 @@ export default function AdminAnalyticsPage() {
                         <div className={styles.chartCard}>
                             <div className={styles.chartHeader}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <TrendingUp size={20} color="#BE185D" />
-                                    <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>Haftalik buyurtmalar</h2>
+                                    <TrendingUp size={20} color="hsl(var(--color-primary-dark))" />
+                                    <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>{t('weeklyOrdersTitle')}</h2>
                                 </div>
-                                <span style={{ fontSize: '12px', color: '#6B7280', fontWeight: 600 }}>Joriy hafta</span>
+                                <span style={{ fontSize: '12px', color: '#6B7280', fontWeight: 600 }}>{t('currentWeek')}</span>
                                 <button
                                     onClick={() => setExpandModal('weeklyOrders')}
                                     className={styles.miniBtn}
                                 >
-                                    Hammasini ko&apos;rish
+                                    {t('viewAll')}
                                 </button>
                             </div>
 
@@ -219,14 +221,14 @@ export default function AdminAnalyticsPage() {
                         {/* Order Status Breakdown */}
                         <div className={styles.recentActivity}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
-                                <PieChart size={20} color="#BE185D" />
-                                <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>Buyurtma holatlari</h2>
+                                <PieChart size={20} color="hsl(var(--color-primary-dark))" />
+                                <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>{t('orderStatusesTitle')}</h2>
                             </div>
                             <button
                                 onClick={() => setExpandModal('orderStatuses')}
                                 className={styles.miniBtn}
                             >
-                                Hammasini ko&apos;rish
+                                {t('viewAll')}
                             </button>
                             <div className={styles.statusGrid}>
                                 {analytics.statusBreakdown.map(s => (
@@ -248,20 +250,19 @@ export default function AdminAnalyticsPage() {
                         <div className={styles.chartCard}>
                             <div className={styles.chartHeader}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <Package size={20} color="#BE185D" />
-                                    <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>Eng mashhur mahsulotlar</h2>
+                                    <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>{t('topProductsTitle')}</h2>
                                 </div>
                                 <button
                                     onClick={() => setShowABCModal(true)}
                                     className={styles.miniBtn}
                                 >
-                                    Batafsil stats
+                                    {t('detailedStats')}
                                 </button>
                             </div>
 
                             {analytics.topProducts.length === 0 ? (
                                 <div style={{ textAlign: 'center', padding: '40px', color: '#9CA3AF' }}>
-                                    Ma'lumot yo'q
+                                    {t('noData')}
                                 </div>
                             ) : (
                                 <div className={styles.topProductsList}>
@@ -271,7 +272,7 @@ export default function AdminAnalyticsPage() {
                                             <div className={styles.topProductInfo}>
                                                 <div className={styles.topProductName}>{product.name}</div>
                                                 <div className={styles.topProductStats}>
-                                                    {product.quantity} dona • {product.revenue.toLocaleString()} so'm
+                                                    {product.quantity} {t('pcs')} • {product.revenue.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}
                                                 </div>
                                             </div>
                                             <div className={styles.topProductBarOuter}>
@@ -290,14 +291,14 @@ export default function AdminAnalyticsPage() {
                         <div className={styles.chartCard}>
                             <div className={styles.chartHeader}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <Clock size={20} color="#BE185D" />
-                                    <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>Buyurtma soatlari</h2>
+                                    <Clock size={20} color="hsl(var(--color-primary-dark))" />
+                                    <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>{t('hourlyStatsTitle')}</h2>
                                 </div>
                                 <button
                                     onClick={() => setExpandModal('peakHours')}
                                     className={styles.miniBtn}
                                 >
-                                    Hammasini ko&apos;rish
+                                    {t('viewAll')}
                                 </button>
                             </div>
 
@@ -305,9 +306,9 @@ export default function AdminAnalyticsPage() {
                                 {analytics.peakHours.map((h) => {
                                     const intensity = h.count / maxHourCount;
                                     const bg = h.count === 0 ? '#F3F4F6' :
-                                        intensity > 0.7 ? '#BE185D' :
-                                            intensity > 0.4 ? '#EC4899' :
-                                                intensity > 0.15 ? '#FBCFE8' : '#FCE7F3';
+                                        intensity > 0.7 ? 'hsl(var(--color-primary-dark))' :
+                                            intensity > 0.4 ? 'hsl(var(--color-primary))' :
+                                                intensity > 0.15 ? 'hsla(var(--color-primary), 0.3)' : 'hsla(var(--color-primary), 0.1)';
                                     const textColor = intensity > 0.4 && h.count > 0 ? 'white' : '#374151';
 
                                     return (
@@ -315,7 +316,7 @@ export default function AdminAnalyticsPage() {
                                             key={h.hour}
                                             className={styles.peakHourCell}
                                             style={{ background: bg, color: textColor }}
-                                            title={`${h.label}: ${h.count} buyurtma`}
+                                            title={`${h.label}: ${h.count} ${t('orders').toLowerCase()}`}
                                         >
                                             <div className={styles.peakHourLabel}>{h.label}</div>
                                             <div className={styles.peakHourCount}>{h.count}</div>
@@ -332,14 +333,14 @@ export default function AdminAnalyticsPage() {
                         <div className={styles.chartCard}>
                             <div className={styles.chartHeader}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <DollarSign size={20} color="#BE185D" />
-                                    <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>Daromat trendi</h2>
+                                    <DollarSign size={20} color="hsl(var(--color-primary-dark))" />
+                                    <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>{t('revenueTrendTitle')}</h2>
                                 </div>
                                 <button
                                     onClick={() => setExpandModal('revenueTrend')}
                                     className={styles.miniBtn}
                                 >
-                                    Hammasini ko&apos;rish
+                                    {t('viewAll')}
                                 </button>
                             </div>
 
@@ -379,23 +380,23 @@ export default function AdminAnalyticsPage() {
                         {/* Recent Activity */}
                         <div className={styles.recentActivity}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                                <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>So&apos;nggi harakatlar</h2>
+                                <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>{t('recentActivityTitle')}</h2>
                                 <button
                                     onClick={() => setExpandModal('recentActivity')}
                                     className={styles.miniBtn}
                                 >
-                                    Hammasini ko&apos;rish
+                                    {t('viewAll')}
                                 </button>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                 {recentOrders.map(o => (
                                     <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'white', borderRadius: '16px', border: '1px solid #F3F4F6' }}>
-                                        <div style={{ padding: '8px', background: '#FDF2F8', borderRadius: '10px', color: '#BE185D' }}>
+                                        <div style={{ padding: '8px', background: 'hsla(var(--color-primary), 0.1)', borderRadius: '10px', color: 'hsl(var(--color-primary-dark))' }}>
                                             <ShoppingBag size={16} />
                                         </div>
                                         <div style={{ flex: 1 }}>
                                             <div style={{ fontSize: '14px', fontWeight: 700 }}>#{o.id.slice(0, 6)} - {o.profiles?.full_name}</div>
-                                            <div style={{ fontSize: '12px', color: '#6B7280' }}>{format(new Date(o.created_at), 'HH:mm')} • {o.total_price.toLocaleString()} so'm</div>
+                                            <div style={{ fontSize: '12px', color: '#6B7280' }}>{format(new Date(o.created_at), 'HH:mm')} • {o.total_price.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}</div>
                                         </div>
                                         <div style={{
                                             fontSize: '11px', fontWeight: 700, padding: '4px 8px', borderRadius: '6px',
@@ -414,7 +415,7 @@ export default function AdminAnalyticsPage() {
                     {/* ==================== ROW 4: Category Mix + Customer Retention ==================== */}
                     <div className={styles.analyticsLayout} style={{ marginTop: '32px' }}>
                         <CategoryDonutChart
-                            title="Yo'nalishlar bo'yicha daromad"
+                            title={t('categoryRevenueTitle')}
                             data={analytics.categoryMix}
                         />
 

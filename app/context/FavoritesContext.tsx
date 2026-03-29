@@ -1,7 +1,7 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useSupabase } from './SupabaseContext';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { useSupabase } from './AuthContext';
 import { getAuthHeader } from '@/app/utils/telegram';
 
 interface FavoritesContextType {
@@ -79,8 +79,6 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (!loading) {
             localStorage.setItem('favorites', JSON.stringify(favorites));
-            if (favorites.length > 0) {
-            }
         }
     }, [favorites, loading]);
 
@@ -117,7 +115,6 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
 
                     // For other errors, revert the optimistic update
                     setFavorites(favorites);
-                } else {
                 }
             } catch (error) {
                 console.error('[Favorites] Network error syncing favorite:', error);
@@ -128,8 +125,16 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
 
     const isFavorite = useCallback((id: string) => favorites.includes(id), [favorites]);
 
+    const value = useMemo(() => ({
+        favorites,
+        toggleFavorite,
+        isFavorite,
+        loading,
+        initialLoadDone
+    }), [favorites, toggleFavorite, isFavorite, loading, initialLoadDone]);
+
     return (
-        <FavoritesContext.Provider value={{ favorites, toggleFavorite, isFavorite, loading, initialLoadDone }}>
+        <FavoritesContext.Provider value={value}>
             {children}
         </FavoritesContext.Provider>
     );

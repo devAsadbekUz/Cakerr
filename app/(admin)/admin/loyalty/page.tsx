@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import styles from './LoyaltyManagement.module.css';
 import { Coins, TrendingUp, Wallet, ArrowDownCircle, ArrowUpCircle, Save, Loader2, Users, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
+import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 
 interface UserWithStats {
     id: string;
@@ -17,6 +18,7 @@ interface UserWithStats {
 }
 
 export default function LoyaltyPage() {
+    const { lang, t } = useAdminI18n();
     const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -169,10 +171,10 @@ export default function LoyaltyPage() {
                 }
             }
 
-            alert('Cashback foizi muvaffaqiyatli yangilandi!');
+            alert(t('loyaltyUpdateSuccess'));
         } catch (error) {
             console.error('Error saving rate:', error);
-            alert('Xatolik yuz berdi');
+            alert(t('error'));
         } finally {
             setSaving(false);
         }
@@ -185,40 +187,40 @@ export default function LoyaltyPage() {
     if (loading) {
         return (
             <div className={styles.container}>
-                <p>Yuklanmoqda...</p>
+                <p>{t('loading')}</p>
             </div>
         );
     }
 
     return (
         <div className={styles.container}>
-            <h1 className={styles.title}>Shirin Tangalar Management</h1>
+            <h1 className={styles.title}>{t('loyaltyTitle')}</h1>
 
             {/* Stats Dashboard */}
             <div className={styles.statsGrid}>
                 <div className={styles.statCard}>
-                    <div className={styles.statLabel}>Aylanmadagi tangalar</div>
+                    <div className={styles.statLabel}>{t('coinsInCirculation')}</div>
                     <div className={styles.statValue}>
                         <Wallet size={20} className={styles.positive} style={{ marginRight: 8 }} />
-                        {stats.inCirculation.toLocaleString('uz-UZ')}
+                        {stats.inCirculation.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')}
                     </div>
                 </div>
                 <div className={styles.statCard}>
-                    <div className={styles.statLabel}>Jami berilgan (Earned)</div>
+                    <div className={styles.statLabel}>{t('totalEarnedCoins')}</div>
                     <div className={styles.statValue}>
                         <ArrowUpCircle size={20} className={styles.positive} style={{ marginRight: 8 }} />
-                        {stats.totalEarned.toLocaleString('uz-UZ')}
+                        {stats.totalEarned.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')}
                     </div>
                 </div>
                 <div className={styles.statCard}>
-                    <div className={styles.statLabel}>Jami ishlatilgan (Spent)</div>
+                    <div className={styles.statLabel}>{t('totalSpentCoins')}</div>
                     <div className={styles.statValue}>
                         <ArrowDownCircle size={20} className={styles.negative} style={{ marginRight: 8 }} />
-                        {stats.totalSpent.toLocaleString('uz-UZ')}
+                        {stats.totalSpent.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')}
                     </div>
                 </div>
                 <div className={styles.statCard}>
-                    <div className={styles.statLabel}>Foydalanuvchilar</div>
+                    <div className={styles.statLabel}>{t('users')}</div>
                     <div className={styles.statValue}>
                         <Users size={20} style={{ marginRight: 8, color: '#6366F1' }} />
                         {users.length}
@@ -228,7 +230,7 @@ export default function LoyaltyPage() {
 
             {/* Settings Card */}
             <div className={styles.settingsCard}>
-                <h2 className={styles.sectionTitle}>Loyallik sozlamalari</h2>
+                <h2 className={styles.sectionTitle}>{t('loyaltySettings')}</h2>
                 <div className={styles.rateInputGroup}>
                     <div className={styles.inputWrapper}>
                         <input
@@ -247,11 +249,11 @@ export default function LoyaltyPage() {
                         disabled={saving}
                     >
                         {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                        <span style={{ marginLeft: 8 }}>Saqlash</span>
+                        <span style={{ marginLeft: 8 }}>{t('save')}</span>
                     </button>
                 </div>
                 <p style={{ marginTop: 12, fontSize: 13, color: '#6B7280' }}>
-                    Yangi buyurtmalardan beriladigan keshbek foizi. Masalan: 5% = 200,000 so'mlik buyurtmaga 10,000 tanga.
+                    {t('loyaltyRateDescription')}
                 </p>
             </div>
 
@@ -262,14 +264,14 @@ export default function LoyaltyPage() {
                     onClick={() => setActiveTab('users')}
                 >
                     <Users size={18} />
-                    Foydalanuvchilar ({users.length})
+                    {t('users')} ({users.length})
                 </button>
                 <button
                     className={`${styles.tab} ${activeTab === 'transactions' ? styles.tabActive : ''}`}
                     onClick={() => setActiveTab('transactions')}
                 >
                     <TrendingUp size={18} />
-                    Tranzaksiyalar ({transactions.length})
+                    {t('transactions')} ({transactions.length})
                 </button>
             </div>
 
@@ -280,11 +282,11 @@ export default function LoyaltyPage() {
                         <table className={styles.table}>
                             <thead>
                                 <tr>
-                                    <th>Mijoz</th>
-                                    <th>Buyurtmalar</th>
-                                    <th>Jami olgan</th>
-                                    <th>Ishlatgan</th>
-                                    <th>Balansi</th>
+                                    <th>{t('customer')}</th>
+                                    <th>{t('orders')}</th>
+                                    <th>{t('earned')}</th>
+                                    <th>{t('spent')}</th>
+                                    <th>{t('balance')}</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -292,7 +294,7 @@ export default function LoyaltyPage() {
                                 {users.length === 0 ? (
                                     <tr>
                                         <td colSpan={6} className={styles.emptyState}>
-                                            Foydalanuvchilar mavjud emas
+                                            {t('noData')}
                                         </td>
                                     </tr>
                                 ) : (
@@ -304,21 +306,21 @@ export default function LoyaltyPage() {
                                         >
                                             <td>
                                                 <div className={styles.userCell}>
-                                                    <span className={styles.userName}>{u.full_name || 'Noma\'lum'}</span>
+                                                    <span className={styles.userName}>{u.full_name || t('unknown')}</span>
                                                     <span className={styles.userPhone}>{u.phone_number || '-'}</span>
                                                 </div>
                                             </td>
                                             <td>{u.order_count}</td>
                                             <td>
-                                                <span className={styles.amountEarn}>+{u.total_earned.toLocaleString('uz-UZ')}</span>
+                                                <span className={styles.amountEarn}>+{u.total_earned.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')}</span>
                                             </td>
                                             <td>
-                                                <span className={styles.amountSpend}>-{u.total_spent.toLocaleString('uz-UZ')}</span>
+                                                <span className={styles.amountSpend}>-{u.total_spent.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')}</span>
                                             </td>
                                             <td>
                                                 <span className={styles.coinBalance}>
                                                     <Coins size={16} style={{ marginRight: 4 }} />
-                                                    {u.coins.toLocaleString('uz-UZ')}
+                                                    {u.coins.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')}
                                                 </span>
                                             </td>
                                             <td>
@@ -340,18 +342,18 @@ export default function LoyaltyPage() {
                         <table className={styles.table}>
                             <thead>
                                 <tr>
-                                    <th>Sana</th>
-                                    <th>Mijoz</th>
-                                    <th>Turi</th>
-                                    <th>Miqdori</th>
-                                    <th>Izoh</th>
+                                    <th>{t('date')}</th>
+                                    <th>{t('customer')}</th>
+                                    <th>{t('type')}</th>
+                                    <th>{t('amount')}</th>
+                                    <th>{t('comment')}</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {transactions.length === 0 ? (
                                     <tr>
                                         <td colSpan={5} className={styles.emptyState}>
-                                            Hozircha tranzaksiyalar mavjud emas
+                                            {t('noTransactions')}
                                         </td>
                                     </tr>
                                 ) : (
@@ -360,21 +362,21 @@ export default function LoyaltyPage() {
                                             <td>{format(new Date(t.created_at), 'dd.MM.yyyy HH:mm')}</td>
                                             <td>
                                                 <div className={styles.userCell}>
-                                                    <span className={styles.userName}>{t.profiles?.full_name || 'Noma\'lum'}</span>
+                                                    <span className={styles.userName}>{t.profiles?.full_name || t('unknown')}</span>
                                                     <span className={styles.userPhone}>{t.profiles?.phone_number || '-'}</span>
                                                 </div>
                                             </td>
                                             <td>
                                                 <span className={`${styles.badge} ${t.amount > 0 ? styles.earnBadge : styles.spendBadge}`}>
-                                                    {t.type === 'earn' ? 'Earn' : t.type === 'spend' ? 'Spend' : t.type}
+                                                    {t.type === 'earn' ? t('earn') : t.type === 'spend' ? t('spend') : t.type}
                                                 </span>
                                             </td>
                                             <td>
                                                 <span className={`${styles.amount} ${t.amount > 0 ? styles.amountEarn : styles.amountSpend}`}>
-                                                    {t.amount > 0 ? '+' : ''}{t.amount.toLocaleString('uz-UZ')}
+                                                    {t.amount > 0 ? '+' : ''}{t.amount.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')}
                                                 </span>
                                             </td>
-                                            <td>{t.description || (t.order_id ? `Buyurtma #${t.order_id.slice(0, 8)}` : '-')}</td>
+                                            <td>{t.description || (t.order_id ? `${t('order')} #${t.order_id.slice(0, 8)}` : '-')}</td>
                                         </tr>
                                     ))
                                 )}

@@ -1,7 +1,8 @@
-import { Headset } from 'lucide-react';
+import { Headset, Languages } from 'lucide-react';
 import SearchBar from '../home/SearchBar';
 import CategoryFilter from '../home/CategoryFilter';
 import styles from './Header.module.css';
+import { useLanguage } from '@/app/context/LanguageContext';
 
 interface HeaderProps {
     searchTerm: string;
@@ -22,31 +23,59 @@ export default function Header({
     categories,
     isCollapsed = false
 }: HeaderProps) {
+    const { lang, setLang, t } = useLanguage();
+
+    const toggleLanguage = () => {
+        setLang(lang === 'uz' ? 'ru' : 'uz');
+    };
+
     return (
         <div className={`${styles.fixedContainer} ${isCollapsed ? styles.collapsed : ''}`}>
             <div className={styles.headerSection}>
-                <h1 className={styles.title}>Tortlarni kashf eting</h1>
-                <button
-                    style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '50%',
-                        background: '#FFF3E0',
-                        border: 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#F57C00',
-                        cursor: 'pointer'
-                    }}
-                    onClick={onContactClick}
-                >
-                    <Headset size={20} />
-                </button>
+                <h1 className={styles.title}>TORTEL'E</h1>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <button
+                        className={styles.langBtn}
+                        onClick={toggleLanguage}
+                        style={{
+                            padding: '6px 10px',
+                            borderRadius: '12px',
+                            background: '#F3F4F6',
+                            border: '1px solid #E5E7EB',
+                            fontSize: '13px',
+                            fontWeight: 700,
+                            color: '#374151',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                        }}
+                    >
+                        <Languages size={14} />
+                        {lang.toUpperCase()}
+                    </button>
+                    <button
+                        style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            background: '#FFF3E0',
+                            border: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#F57C00',
+                            cursor: 'pointer'
+                        }}
+                        onClick={onContactClick}
+                    >
+                        <Headset size={20} />
+                    </button>
+                </div>
             </div>
 
             <div className={styles.searchWrapper}>
-                <SearchBar value={searchTerm} onChange={onSearchChange} />
+                <SearchBar value={searchTerm} onChange={onSearchChange} placeholder={t('searchPlaceholder')} />
             </div>
 
             <div className={styles.filterWrapper}>

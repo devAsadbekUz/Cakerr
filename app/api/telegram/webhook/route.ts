@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import crypto from 'crypto';
-import { getStatusConfig, getTelegramButtons, buildOrderMessage } from '@/app/utils/orderConfig';
+import { getStatusConfig, getTelegramButtons, buildOrderMessage, resolveOrderLanguage, parseLang } from '@/app/utils/orderConfig';
 
 export async function POST(request: NextRequest) {
     const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
+    const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
     const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
+    // Security check: Verify Telegram Webhook Secret Token if configured
+    const incomingSecret = request.headers.get('X-Telegram-Bot-Api-Secret-Token');
+    if (WEBHOOK_SECRET && incomingSecret !== WEBHOOK_SECRET) {
+        console.warn('[Telegram Webhook] Unauthorized request blocked (Secret mismatch)');
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     console.log('[Telegram Webhook] Incoming message');
+    // ... rest of the setup
 
     // Use service role for admin operations (Bypass RLS)
     const supabase = createClient(
@@ -50,7 +58,7 @@ export async function POST(request: NextRequest) {
                             reply_markup: {
                                 inline_keyboard: [[{
                                     text: '🍰 Buyurtma berish',
-                                    web_app: { url: process.env.NEXT_PUBLIC_APP_URL || 'https://cakerr.vercel.app' }
+                                    web_app: { url: process.env.NEXT_PUBLIC_APP_URL || 'https://torte-le.uz' }
                                 }]]
                             }
                         })
@@ -64,7 +72,7 @@ export async function POST(request: NextRequest) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         chat_id: chatId,
-                        text: `🍰 *Xush kelibsiz, ${firstName}! *\n\nCakerr botiga xush kelibsiz! Buyurtma berish uchun telefon raqamingizni ulashing.\n\nQuyidagi tugmani bosing 👇`,
+                        text: `🍰 *Xush kelibsiz, ${firstName}! *\n\nTORTEL'E botiga xush kelibsiz! Buyurtma berish uchun telefon raqamingizni ulashing.\n\nQuyidagi tugmani bosing 👇`,
                         parse_mode: 'Markdown',
                         reply_markup: {
                             keyboard: [[{
@@ -131,7 +139,7 @@ export async function POST(request: NextRequest) {
                             reply_markup: {
                                 inline_keyboard: [[{
                                     text: '🍰 Buyurtma berish',
-                                    web_app: { url: process.env.NEXT_PUBLIC_APP_URL || 'https://cakerr.vercel.app' }
+                                    web_app: { url: process.env.NEXT_PUBLIC_APP_URL || 'https://torte-le.uz' }
                                 }]]
                             }
                         })
@@ -168,13 +176,15 @@ export async function POST(request: NextRequest) {
             const messageId = update.callback_query.message.message_id;
             const chatId = update.callback_query.message.chat.id;
 
-            console.log('[Telegram Webhook] Callback data:', callbackData);
+            console.log(`[Telegram Webhook] Callback data received: "${callbackData}"`);
 
-            const [action, orderId] = callbackData.split('_');
+            const [action, orderId, extractedLang = 'uz'] = callbackData.split('_');
             let newStatus = action;
 
             if (action === 'confirm') newStatus = 'confirmed';
             else if (action === 'cancel') newStatus = 'cancelled';
+
+            console.log(`[Telegram Webhook] Action: ${action}, OrderId: ${orderId}, ExtractedLang: ${extractedLang}`);
 
             // Update order in database
             const { error: updateError } = await supabase
@@ -184,7 +194,7 @@ export async function POST(request: NextRequest) {
 
             if (updateError) {
                 console.error('[Telegram Webhook] Update error:', updateError);
-                await answerCallback(update.callback_query.id, 'Xatolik!', TELEGRAM_API);
+                await answerCallback(update.callback_query.id, 'Xatolik / Ошибка', TELEGRAM_API);
                 return NextResponse.json({ ok: true });
             }
 
@@ -193,6 +203,7 @@ export async function POST(request: NextRequest) {
                 .from('orders')
                 .select(`
                     id,
+                    status,
                     telegram_message_id, 
                     telegram_chat_id, 
                     client_tg_message_id,
@@ -209,14 +220,51 @@ export async function POST(request: NextRequest) {
                 .single();
 
             if (fetchError || !order) {
-                await answerCallback(update.callback_query.id, 'Xatolik!', TELEGRAM_API);
+                console.error('[Telegram Webhook] Fetch error:', fetchError);
+                await answerCallback(update.callback_query.id, 'Xatolik / Ошибка', TELEGRAM_API);
                 return NextResponse.json({ ok: true });
             }
 
+            // Prioritize language stored in order.delivery_address, then global setting, then callback data
+            const deliveryAddr = (order.delivery_address || {}) as any;
+
+            const { data: adminSettings } = await supabase
+                .from('app_settings')
+                .select('value')
+                .eq('key', 'admin_tg_lang')
+                .single();
+
+            const orderLang = resolveOrderLanguage({
+                orderSavedLang: deliveryAddr.lang,
+                adminPreferredLang: adminSettings?.value,
+                fallbackLang: extractedLang
+            });
+
+            console.log(`[Telegram Webhook] Localization Audit:`, {
+                orderId: orderId,
+                orderSavedLang: deliveryAddr.lang,
+                adminPreferredValue: adminSettings?.value,
+                extractedLang,
+                finalDecision: orderLang
+            });
+
+            // Healing logic: If language wasn't stored yet, or it's malformed, store it now for consistency
+            const existingOrderLang = parseLang(deliveryAddr.lang);
+            const needsHealing = !deliveryAddr.lang || (typeof deliveryAddr.lang === 'string' && deliveryAddr.lang.includes('"'));
+            
+            if (needsHealing) {
+                console.log(`[Telegram Webhook] Healing order ${orderId} with lang ${orderLang}`);
+                let healedAddress = typeof deliveryAddr === 'string' ? { street: deliveryAddr } : { ...deliveryAddr };
+                healedAddress.lang = orderLang;
+
+                await supabase.from('orders').update({
+                    delivery_address: healedAddress
+                }).eq('id', orderId);
+            }
+
             const statusConfig = getStatusConfig(newStatus);
-            const statusLabel = statusConfig.tgLabel;
-            const updatedText = buildOrderMessage(order, statusLabel);
-            const inline_keyboard = getTelegramButtons(newStatus, orderId);
+            const updatedText = buildOrderMessage(order, orderLang as 'uz' | 'ru');
+            const inline_keyboard = getTelegramButtons(newStatus, orderId, orderLang as 'uz' | 'ru');
 
             await fetch(`${TELEGRAM_API}/editMessageText`, {
                 method: 'POST',
@@ -248,7 +296,18 @@ export async function POST(request: NextRequest) {
                 // 2. If not terminal (confirmed, preparing, ready, delivering), send new ping
                 const isTerminal = ['completed', 'cancelled'].includes(newStatus);
                 if (!isTerminal) {
-                    const clientMessage = `🍰 *Buyurtma holati yangilandi*\n\nHurmatli mijoz, sizning #${order.id.slice(0, 8)} raqamli buyurtmangiz holati o'zgardi:\n\n*${statusConfig.label}*\n_${statusConfig.desc}_`;
+                    const clientLabels = {
+                        uz: {
+                            title: "🍰 *Buyurtma holati yangilandi*",
+                            text: `Hurmatli mijoz, sizning #${order.id.slice(0, 8)} raqamli buyurtmangiz holati o'zgardi:`
+                        },
+                        ru: {
+                            title: "🍰 *Статус заказа обновлен*",
+                            text: `Уважаемый клиент, статус вашего заказа #${order.id.slice(0, 8)} изменился:`
+                        }
+                    }[orderLang];
+
+                    const clientMessage = `${clientLabels.title}\n\n${clientLabels.text}\n\n*${statusConfig.labels[orderLang]}*\n_${statusConfig.descs[orderLang]}_`;
 
                     const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
                         method: 'POST',
@@ -276,7 +335,12 @@ export async function POST(request: NextRequest) {
                 }
             }
 
-            await answerCallback(update.callback_query.id, `Yangilandi: ${statusLabel}`, TELEGRAM_API);
+            const toastText = {
+                uz: `Yangilandi: ${statusConfig.tgLabels.uz}`,
+                ru: `Обновлено: ${statusConfig.tgLabels.ru}`
+            }[orderLang];
+
+            await answerCallback(update.callback_query.id, toastText || 'OK', TELEGRAM_API);
         }
 
         return NextResponse.json({ ok: true });

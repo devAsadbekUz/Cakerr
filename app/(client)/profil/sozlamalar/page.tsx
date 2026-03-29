@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ChevronLeft, User, Phone, Save, Loader2 } from 'lucide-react';
 import styles from './page.module.css';
 import { profileService } from '@/app/services/profileService';
-import { useSupabase } from '@/app/context/SupabaseContext';
+import { useSupabase } from '@/app/context/AuthContext';
 
 export default function SozlamalarPage() {
     const router = useRouter();

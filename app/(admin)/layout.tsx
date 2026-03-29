@@ -3,6 +3,7 @@
 import AdminSidebar from "@/app/components/admin/AdminSidebar";
 import AdminBottomNav from "@/app/components/admin/AdminBottomNav";
 import { usePathname } from "next/navigation";
+import { AdminLanguageProvider } from "@/app/context/AdminLanguageContext";
 import styles from "./AdminLayout.module.css";
 
 export default function AdminLayout({
@@ -22,12 +23,14 @@ export default function AdminLayout({
     // Trust middleware - it already validated admin access
     // No need to wait for SupabaseContext loading state
     return (
-        <div className={styles.layout}>
-            <AdminSidebar />
-            <main className={styles.mainContent}>
-                {children}
-            </main>
-            <AdminBottomNav />
-        </div>
+        <AdminLanguageProvider>
+            <div className={styles.layout}>
+                <AdminSidebar />
+                <main className={styles.mainContent}>
+                    {children}
+                </main>
+                <AdminBottomNav />
+            </div>
+        </AdminLanguageProvider>
     );
 }

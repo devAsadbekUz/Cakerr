@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, ChangeEvent, createContext, useCont
 import Header from '@/app/components/layout/Header';
 import ContactSheet from '@/app/components/home/ContactSheet';
 import { Product } from '@/app/types';
+import { useLanguage } from '@/app/context/LanguageContext';
 
 interface HomepageShellProps {
     categories: any[];
@@ -16,6 +17,7 @@ const SearchContext = createContext({ searchTerm: '' });
 export const useSearch = () => useContext(SearchContext);
 
 export default function HomepageShell({ categories, productsByCategory, children }: HomepageShellProps) {
+    const { t } = useLanguage();
     const [searchTerm, setSearchTerm] = useState('');
     const [activeCategory, setActiveCategory] = useState(categories[0]?.id || '');
     const [isContactOpen, setIsContactOpen] = useState(false);
@@ -83,9 +85,9 @@ export default function HomepageShell({ categories, productsByCategory, children
             
             // Simple threshold-based collapse for better performance than continuous delta checks
             if (currentScrollY > 150) {
-                if (!isHeaderCollapsed) setIsHeaderCollapsed(true);
+                setIsHeaderCollapsed(true);
             } else {
-                if (isHeaderCollapsed) setIsHeaderCollapsed(false);
+                setIsHeaderCollapsed(false);
             }
             
             lastScrollY.current = currentScrollY;
@@ -93,7 +95,7 @@ export default function HomepageShell({ categories, productsByCategory, children
 
         window.addEventListener('scroll', handleScroll, { passive: true });
         return () => window.removeEventListener('scroll', handleScroll);
-    }, [isHeaderCollapsed]);
+    }, []); // Removed dependency to avoid re-registering listener
 
     return (
         <SearchContext.Provider value={{ searchTerm }}>
@@ -114,7 +116,7 @@ export default function HomepageShell({ categories, productsByCategory, children
                     id="no-results-message"
                     style={{ textAlign: 'center', padding: '40px', color: '#6B7280', display: 'none' }}
                 >
-                    Hech narsa topilmadi 😔
+                    {t('noProducts')} 😔
                 </div>
             )}
 

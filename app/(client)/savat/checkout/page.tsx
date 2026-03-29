@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/app/context/CartContext';
+import { useLanguage } from '@/app/context/LanguageContext';
+import { getLocalized } from '@/app/utils/i18n';
 import styles from './page.module.css';
 import { ChevronLeft, ChevronRight, Calendar, Banknote, CreditCard, XCircle } from 'lucide-react';
 import CalendarModal from '@/app/components/checkout/CalendarModal';
 import AddressesModal from '@/app/components/checkout/AddressesModal';
 import SuccessModal from '@/app/components/checkout/SuccessModal';
-import { useSupabase } from '@/app/context/SupabaseContext';
+import { useSupabase } from '@/app/context/AuthContext';
 import { getAuthHeader } from '@/app/utils/telegram';
 import { createClient } from '@/app/utils/supabase/client';
 import { availabilityService } from '@/app/services/availabilityService';
@@ -18,6 +20,7 @@ import { format } from 'date-fns';
 
 export default function CheckoutPage() {
     const router = useRouter();
+    const { lang, t } = useLanguage();
     const { cart, subtotal, totalItems, deliveryAddress, deliveryCoords, clearCart, savedAddresses } = useCart();
     const { user } = useSupabase();
     const supabase = createClient();
@@ -100,7 +103,7 @@ export default function CheckoutPage() {
         }
 
         if (!selectedSlot) {
-            alert('Iltimos, yetkazib berish vaqtini tanlang');
+            alert(t('selectTimeError') || 'Iltimos, yetkazib berish vaqtini tanlang');
             return;
         }
 
@@ -126,7 +129,7 @@ export default function CheckoutPage() {
 
                 return {
                     product_id: isCustom ? null : item.id,
-                    name: item.name,
+                    name: getLocalized(item.name, lang),
                     quantity: item.quantity,
                     unit_price: item.price,
                     configuration: isCustom ? item.configuration : {
@@ -168,10 +171,7 @@ export default function CheckoutPage() {
 
             // 3. Send Telegram notification
             try {
-                const monthNames = [
-                    "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
-                    "Iyul", "Avgust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr"
-                ];
+                const monthNames = t('months') as unknown as string[];
                 const deliveryDateFormatted = selectedDateObj
                     ? `${selectedDateObj.getDate()}-${monthNames[selectedDateObj.getMonth()]}`
                     : 'Noma\'lum';
@@ -192,13 +192,14 @@ export default function CheckoutPage() {
                         deliveryDate: deliveryDateFormatted,
                         deliverySlot: selectedSlot,
                         items: cart.map(item => ({
-                            name: item.name,
+                            name: getLocalized(item.name, lang),
                             quantity: item.quantity,
                             price: item.price * item.quantity,
                             portion: item.portion || item.configuration?.portion
                         })),
                         comment: comment || undefined,
-                        total: total
+                        total: total,
+                        lang: lang
                     })
                 });
             } catch (telegramError) {
@@ -223,7 +224,7 @@ export default function CheckoutPage() {
                 <button className={styles.backBtn} onClick={() => router.back()}>
                     <ChevronLeft size={28} />
                 </button>
-                <h1 className={styles.title}>Buyurtmani rasmiylashtirish</h1>
+                <h1 className={styles.title}>{t('checkoutTitle')}</h1>
             </header>
 
 
@@ -232,7 +233,7 @@ export default function CheckoutPage() {
                 className={`${styles.card} ${styles.clickableCard}`}
                 onClick={() => setIsAddressesOpen(true)}
             >
-                <h2 className={styles.cardTitle}>Yetkazib berish manzili</h2>
+                <h2 className={styles.cardTitle}>{t('deliveryAddress')}</h2>
                 <div className={styles.addressRow}>
                     <div className={styles.addressDot} />
                     <div className={styles.addressText}>
@@ -249,7 +250,7 @@ export default function CheckoutPage() {
 
             {/* Delivery Time Section */}
             <div className={styles.card}>
-                <h2 className={styles.cardTitle}>Yetkazib berish vaqti</h2>
+                <h2 className={styles.cardTitle}>{t('deliveryTime')}</h2>
 
                 <div
                     className={styles.dateSelector}
@@ -257,7 +258,7 @@ export default function CheckoutPage() {
                 >
                     <Calendar size={20} className={styles.calendarIcon} />
                     <span className={selectedDate ? styles.dateValue : styles.datePlaceholder}>
-                        {selectedDate || 'Kunni tanlang'}
+                        {selectedDate || t('selectDay')}
                     </span>
                     <ChevronRight size={20} className={styles.chevron} />
                 </div>
@@ -269,10 +270,7 @@ export default function CheckoutPage() {
                     overrides={overrides}
                     onSelect={(date) => {
                         setSelectedDateObj(date);
-                        const monthNames = [
-                            "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
-                            "Iyul", "Avgust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr"
-                        ];
+                        const monthNames = t('months') as unknown as string[];
                         const formattedDate = `${date.getDate()}-${monthNames[date.getMonth()]}`;
                         setSelectedDate(formattedDate);
                     }}
@@ -299,10 +297,10 @@ export default function CheckoutPage() {
 
             {/* Comment Section */}
             <div className={styles.card}>
-                <h2 className={styles.cardTitle}>Qo'shimcha izoh</h2>
+                <h2 className={styles.cardTitle}>{t('customerNote')}</h2>
                 <textarea
                     className={styles.textarea}
-                    placeholder="Bu masalan qo'shimcha telefon yoki eslatma bo'lishi mumkin."
+                    placeholder={t('customerNotePlaceholder')}
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
                 />
@@ -313,9 +311,9 @@ export default function CheckoutPage() {
                 <div className={styles.card}>
                     <div className={styles.loyaltyHeader}>
                         <div className={styles.loyaltyTitleGroup}>
-                            <h2 className={styles.cardTitle}>Shirin Tangalar</h2>
+                            <h2 className={styles.cardTitle}>{t('shirinTangalar')}</h2>
                             <p className={styles.loyaltyBalance}>
-                                Balans: <strong>{(user.coins || 0).toLocaleString('uz-UZ')}</strong>
+                                {t('balance')}: <strong>{(user.coins || 0).toLocaleString('en-US')}</strong>
                             </p>
                         </div>
                         <label className={styles.toggle}>
@@ -346,7 +344,7 @@ export default function CheckoutPage() {
                             </div>
                             <div className={styles.coinValueRow}>
                                 <span className={styles.coinSpentText}>
-                                    Ishlatilmoqda: <strong>{coinsToSpend.toLocaleString('uz-UZ')}</strong> tanga
+                                    {t('using')}: <strong>{coinsToSpend.toLocaleString('en-US')}</strong>
                                 </span>
                                 <button
                                     className={styles.maxBtn}
@@ -356,7 +354,7 @@ export default function CheckoutPage() {
                                 </button>
                             </div>
                             <p className={styles.discountHelp}>
-                                -{coinsToSpend.toLocaleString('uz-UZ')} so'm chegirma
+                                -{coinsToSpend.toLocaleString('en-US')} {t('som')} {t('discount')}
                             </p>
                         </div>
                     )}
@@ -365,7 +363,7 @@ export default function CheckoutPage() {
 
             {/* Payment Method Section */}
             <div className={styles.card}>
-                <h2 className={styles.cardTitle}>To'lov usuli</h2>
+                <h2 className={styles.cardTitle}>{t('paymentMethod')}</h2>
                 <div className={styles.paymentGrid}>
                     <div
                         className={`${styles.paymentCard} ${paymentMethod === 'cash' ? styles.paymentCardActive : ''}`}
@@ -373,8 +371,8 @@ export default function CheckoutPage() {
                     >
                         <Banknote size={24} className={styles.paymentIcon} />
                         <div className={styles.paymentLabel}>
-                            <span className={styles.paymentTitle}>Naqd pul</span>
-                            <span className={styles.paymentSubtext}>Yetkazib berish vaqti to'lash</span>
+                            <span className={styles.paymentTitle}>{t('cash')}</span>
+                            <span className={styles.paymentSubtext}>{t('cashDesc')}</span>
                         </div>
                     </div>
                     <div
@@ -383,30 +381,30 @@ export default function CheckoutPage() {
                     >
                         <CreditCard size={24} className={styles.paymentIcon} />
                         <div className={styles.paymentLabel}>
-                            <span className={styles.paymentTitle}>Kartadan to'lash</span>
-                            <span className={styles.paymentSubtext}>UzCard, Humo</span>
+                            <span className={styles.paymentTitle}>{t('card')}</span>
+                            <span className={styles.paymentSubtext}>{t('cardDesc')}</span>
                         </div>
                     </div>
                 </div>
 
                 <div className={styles.summary}>
                     <div className={styles.summaryRow}>
-                        <span>Mahsulotlar:</span>
-                        <span>{subtotal.toLocaleString('uz-UZ')} so'm</span>
+                        <span>{t('items')}:</span>
+                        <span>{subtotal.toLocaleString('en-US')} {t('som')}</span>
                     </div>
                     <div className={styles.summaryRow}>
-                        <span>Yetkazib berish:</span>
-                        <span>{deliveryFee.toLocaleString('uz-UZ')} so'm</span>
+                        <span>{t('delivery')}:</span>
+                        <span>{deliveryFee.toLocaleString('en-US')} {t('som')}</span>
                     </div>
                     {useCoins && coinsToSpend > 0 && (
                         <div className={`${styles.summaryRow} ${styles.discountRow}`}>
-                            <span>Sadalat chegirmasi:</span>
-                            <span>-{coinsToSpend.toLocaleString('uz-UZ')} so'm</span>
+                            <span>{t('shirinTangalar')} {t('discount')}:</span>
+                            <span>-{coinsToSpend.toLocaleString('en-US')} {t('som')}</span>
                         </div>
                     )}
                     <div className={styles.totalRow}>
-                        <span>Jami:</span>
-                        <span>{total.toLocaleString('uz-UZ')} so'm</span>
+                        <span>{t('total')}:</span>
+                        <span>{total.toLocaleString('en-US')} {t('som')}</span>
                     </div>
                 </div>
 
@@ -415,7 +413,7 @@ export default function CheckoutPage() {
                     onClick={handleConfirmOrder}
                     disabled={isSubmitting || totalItems === 0}
                 >
-                    {isSubmitting ? 'Kutilmoqda...' : 'Buyurtmani tasdiqlash'}
+                    {isSubmitting ? t('processing') : t('confirmOrder')}
                 </button>
             </div>
 

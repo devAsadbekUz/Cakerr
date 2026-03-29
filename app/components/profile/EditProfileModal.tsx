@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { X, Check, Loader2, User as UserIcon } from 'lucide-react';
+import { useLanguage } from '@/app/context/LanguageContext';
 import styles from './EditProfileModal.module.css';
 import { createClient } from '@/app/utils/supabase/client';
 
@@ -25,6 +26,7 @@ interface EditProfileModalProps {
 }
 
 export default function EditProfileModal({ isOpen, onClose, user, onUpdate }: EditProfileModalProps) {
+    const { t } = useLanguage();
     const supabase = createClient();
     const [fullName, setFullName] = useState(user.user_metadata?.full_name || '');
     const [loading, setLoading] = useState(false);
@@ -76,7 +78,7 @@ export default function EditProfileModal({ isOpen, onClose, user, onUpdate }: Ed
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.error || 'Failed to update profile');
+                throw new Error(data.error || t('errorOccurred'));
             }
 
 
@@ -89,7 +91,7 @@ export default function EditProfileModal({ isOpen, onClose, user, onUpdate }: Ed
             onClose();
         } catch (error: any) {
             console.error('[EditProfile] Save fail:', error);
-            alert(error.message || 'Xatolik yuz berdi');
+            alert(error.message || t('errorOccurred'));
         } finally {
             setLoading(false);
         }
@@ -102,7 +104,7 @@ export default function EditProfileModal({ isOpen, onClose, user, onUpdate }: Ed
                     <button className={styles.closeBtn} onClick={onClose}>
                         <X size={24} />
                     </button>
-                    <h2 className={styles.title}>Profilni tahrirlash</h2>
+                    <h2 className={styles.title}>{t('editProfile')}</h2>
                     <button
                         className={styles.saveBtn}
                         onClick={handleSave}
@@ -126,13 +128,13 @@ export default function EditProfileModal({ isOpen, onClose, user, onUpdate }: Ed
 
                 <div className={styles.form}>
                     <div className={styles.inputGroup}>
-                        <label className={styles.label}>To'liq ismingiz</label>
+                        <label className={styles.label}>{t('fullName')}</label>
                         <input
                             type="text"
                             className={styles.input}
                             value={fullName}
                             onChange={(e) => setFullName(e.target.value)}
-                            placeholder="Masalan: Aziz Toshpulatov"
+                            placeholder={t('fullNamePlaceholder')}
                             autoFocus
                         />
                     </div>

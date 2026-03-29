@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
         }
 
         // 5. Send OTP via Telegram bot
-        const message = `🔐 *Cakerr tasdiqlash kodi*\n\nSizning kodingiz: \`${code}\`\n\n_Kod 5 daqiqadan keyin eskiradi._`;
+        const message = `🔐 *TORTEL'E tasdiqlash kodi*\n\nSizning kodingiz: \`${code}\`\n\n_Kod 5 daqiqadan keyin eskiradi._`;
 
         const tgResponse = await fetch(`${TELEGRAM_API}/sendMessage`, {
             method: 'POST',

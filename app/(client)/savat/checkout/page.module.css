@@ -16,7 +16,7 @@
     border: none;
     padding: 8px;
     cursor: pointer;
-    color: #E91E63;
+    color: hsl(var(--color-primary-dark));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -66,7 +66,7 @@
 .addressDot {
     width: 12px;
     height: 12px;
-    background-color: #E91E63;
+    background-color: hsl(var(--color-primary));
     border-radius: 50%;
 }
 
@@ -133,7 +133,7 @@
 }
 
 .timeSlotActive {
-    background-color: #E91E63;
+    background-color: hsl(var(--color-primary));
     color: #FFFFFF;
     border-color: #E91E63;
 }
@@ -208,8 +208,8 @@
 }
 
 .paymentCardActive {
-    border-color: #E91E63;
-    background-color: #FFF0F5;
+    border-color: hsl(var(--color-primary));
+    background-color: hsla(var(--color-primary), 0.1);
 }
 
 .paymentIcon {
@@ -220,7 +220,7 @@
 }
 
 .paymentCardActive .paymentIcon {
-    color: #E91E63;
+    color: hsl(var(--color-primary-dark));
     background-color: #FFFFFF;
 }
 
@@ -265,7 +265,7 @@
 
 .confirmBtn {
     width: 100%;
-    background-color: #E91E63;
+    background-color: hsl(var(--color-primary));
     color: #FFFFFF;
     border: none;
     border-radius: 32px;
@@ -303,7 +303,7 @@
 }
 
 .loyaltyBalance strong {
-    color: #E91E63;
+    color: hsl(var(--color-primary-dark));
 }
 
 /* Toggle Switch */
@@ -346,7 +346,7 @@
 }
 
 input:checked+.slider {
-    background-color: #E91E63;
+    background-color: hsl(var(--color-primary));
 }
 
 input:checked+.slider:before {
@@ -365,7 +365,7 @@ input:checked+.slider:before {
 
 .coinRange {
     width: 100%;
-    accent-color: #E91E63;
+    accent-color: hsl(var(--color-primary));
     height: 6px;
     background: #F3F4F6;
     border-radius: 5px;
@@ -386,13 +386,13 @@ input:checked+.slider:before {
 }
 
 .coinSpentText strong {
-    color: #E91E63;
+    color: hsl(var(--color-primary-dark));
     font-size: 16px;
 }
 
 .maxBtn {
     background-color: #FFF0F5;
-    color: #E91E63;
+    color: hsl(var(--color-primary-dark));
     border: 1px solid #FFC1D3;
     padding: 4px 12px;
     border-radius: 20px;

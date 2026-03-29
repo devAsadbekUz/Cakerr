@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { headers } from 'next/headers';
-import { getStatusConfig, getTelegramButtons, buildOrderMessage } from '@/app/utils/orderConfig';
+import { getStatusConfig, getTelegramButtons, buildOrderMessage, resolveOrderLanguage, parseLang } from '@/app/utils/orderConfig';
 
 // Service Role client
 const serviceClient = createClient(
@@ -23,7 +23,7 @@ export async function POST(
     }
 
     const { id: orderId } = await params;
-    const { status: newStatus } = await request.json();
+    const { status: newStatus, lang = 'uz' } = await request.json();
 
     if (!orderId || !newStatus) {
         return NextResponse.json({ error: 'Missing orderId or status' }, { status: 400 });
@@ -37,6 +37,7 @@ export async function POST(
             .eq('id', orderId)
             .select(`
                 id,
+                status,
                 telegram_message_id, 
                 telegram_chat_id, 
                 client_tg_message_id,
@@ -60,16 +61,54 @@ export async function POST(
         const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
         if (TELEGRAM_BOT_TOKEN) {
             const syncPromise = (async () => {
-                const statusConfig = getStatusConfig(newStatus);
                 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
                 const profile = Array.isArray(order.profiles) ? order.profiles[0] : order.profiles;
+
+                // Fetch Global Admin Preference for Telegram Group
+                const { data: adminSettings } = await serviceClient
+                    .from('app_settings')
+                    .select('value')
+                    .eq('key', 'admin_tg_lang')
+                    .single();
+
+                // Prioritize language stored in order.delivery_address if available
+                const deliveryAddr = (order.delivery_address || {}) as any;
+
+                const tgLang = resolveOrderLanguage({
+                    orderSavedLang: deliveryAddr.lang,
+                    adminPreferredLang: adminSettings?.value,
+                    fallbackLang: lang
+                });
+
+                console.log(`[Admin Order Status API] Localization Audit:`, {
+                    orderId: orderId,
+                    orderSavedValue: deliveryAddr.lang,
+                    adminPreferredValue: adminSettings?.value,
+                    requestedLang: lang,
+                    finalDecision: tgLang
+                });
+                
+                // Healing logic: If language wasn't stored yet, or it's malformed, store it now for consistency
+                const needsHealing = !deliveryAddr.lang || (typeof deliveryAddr.lang === 'string' && deliveryAddr.lang.includes('"'));
+                
+                if (needsHealing) {
+                    console.log(`[Admin Order Status API] Healing order ${orderId} with lang ${tgLang}`);
+                    let healedAddress = typeof deliveryAddr === 'string' ? { street: deliveryAddr } : { ...deliveryAddr };
+                    healedAddress.lang = tgLang;
+
+                    await serviceClient.from('orders').update({
+                        delivery_address: healedAddress
+                    }).eq('id', orderId);
+                }
+                
+                const statusConfig = getStatusConfig(newStatus);
 
                 const tasks = [];
 
                 // Task A: Update Admin Group Message (Edit existing)
                 if (order.telegram_message_id && order.telegram_chat_id) {
-                    const messageText = buildOrderMessage(order, statusConfig.tgLabel);
-                    const inline_keyboard = getTelegramButtons(newStatus, orderId);
+                    const messageText = buildOrderMessage(order, tgLang);
+                    const inline_keyboard = getTelegramButtons(newStatus, orderId, tgLang);
                     
                     tasks.push(fetch(`${TELEGRAM_API}/editMessageText`, {
                         method: 'POST',
@@ -99,10 +138,21 @@ export async function POST(
                     }
 
                     // 2. If not terminal (confirmed, preparing, ready, delivering), send new ping
-                    // If terminal (completed, cancelled), we just leave it deleted (or could send a final receipt)
                     const isTerminal = ['completed', 'cancelled'].includes(newStatus);
                     if (!isTerminal) {
-                        const clientMessage = `🍰 *Buyurtma holati yangilandi*\n\nHurmatli mijoz, sizning #${order.id.slice(0,8)} raqamli buyurtmangiz holati o'zgardi:\n\n*${statusConfig.label}*\n_${statusConfig.desc}_`;
+                        const safeClientLang: 'uz' | 'ru' = (lang === 'ru' || lang === 'uz') ? lang : 'uz';
+                        const clientLabels = {
+                            uz: {
+                                title: "🍰 *Buyurtma holati yangilandi*",
+                                text: `Hurmatli mijoz, sizning #${order.id.slice(0,8)} raqamli buyurtmangiz holati o'zgardi:`
+                            },
+                            ru: {
+                                title: "🍰 *Статус заказа обновлен*",
+                                text: `Уважаемый клиент, статус вашего заказа #${order.id.slice(0,8)} изменился:`
+                            }
+                        }[safeClientLang];
+
+                        const clientMessage = `${clientLabels.title}\n\n${clientLabels.text}\n\n*${statusConfig.labels[tgLang]}*\n_${statusConfig.descs[tgLang]}_`;
                         
                         const sendNewMsg = async () => {
                             const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
@@ -136,10 +186,6 @@ export async function POST(
                 await Promise.all(tasks).catch(err => console.error('[Admin Orders Status API] Parallel Sync error:', err));
             })();
 
-            // In Next.js App Router, we can't reliably fire-and-forget without a queue, 
-            // but for simple bot calls, parallelizing and then responding is enough.
-            // If you want it even faster, you could remove the 'await' from syncPromise
-            // but for reliability let's parallelize.
             await syncPromise; 
         }
 
