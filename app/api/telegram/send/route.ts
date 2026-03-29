@@ -68,13 +68,44 @@ export async function POST(request: NextRequest) {
             lng = coords?.[1];
         }
 
-        // Mock an order object for buildOrderMessage
+        // 1. Resolve language and persist context BEFORE sending to Telegram
+        let finalAddress: any = {};
+        try {
+            const { data: existingOrder } = await supabase
+                .from('orders')
+                .select('delivery_address')
+                .eq('id', orderId)
+                .single();
+
+            if (existingOrder?.delivery_address) {
+                if (typeof existingOrder.delivery_address === 'string') {
+                    finalAddress = { street: existingOrder.delivery_address };
+                } else {
+                    finalAddress = { ...existingOrder.delivery_address };
+                }
+            } else {
+                finalAddress = typeof address === 'string' ? { street: address } : (address || {});
+            }
+
+            finalAddress.lang = finalLang;
+            
+            // Atomic update to lock in the language context
+            await supabase.from('orders').update({
+                delivery_address: finalAddress,
+                telegram_chat_id: TELEGRAM_CHAT_ID
+            }).eq('id', orderId);
+
+        } catch (err) {
+            debugLog({ dbPreUpdateError: err });
+        }
+
+        // Define the order object for buildOrderMessage
         const mockOrder = {
             id: orderId,
             status: 'new',
             total_price: total,
             comment: comment || '',
-            delivery_address: { street: address, lat, lng },
+            delivery_address: finalAddress,
             delivery_time: deliveryDate,
             delivery_slot: deliverySlot,
             profiles: { full_name: customerName, phone_number: customerPhone },
@@ -91,7 +122,7 @@ export async function POST(request: NextRequest) {
 
         debugLog({ messageText, TELEGRAM_CHAT_ID });
 
-        // Send message to Telegram
+        // 2. Send message to Telegram
         const tgRes = await fetch(`${TELEGRAM_API}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -107,43 +138,13 @@ export async function POST(request: NextRequest) {
         debugLog({ tgResult: result });
 
         if (!result.ok) {
-            debugLog('Telegram Send Failed');
             return NextResponse.json({ error: 'Telegram API Error', details: result }, { status: 502 });
         }
 
-        // Update order with telegram message ID and language context
-        try {
-            // First, get the current state to avoid overwriting delivery_address details
-            const { data: existingOrder } = await supabase
-                .from('orders')
-                .select('delivery_address')
-                .eq('id', orderId)
-                .single();
-
-            let finalAddress: any = {};
-            if (existingOrder?.delivery_address) {
-                if (typeof existingOrder.delivery_address === 'string') {
-                    finalAddress = { street: existingOrder.delivery_address };
-                } else {
-                    finalAddress = { ...existingOrder.delivery_address };
-                }
-            } else {
-                finalAddress = typeof address === 'string' ? { street: address } : (address || {});
-            }
-
-            // Set the language context definitively
-            finalAddress.lang = finalLang;
-            
-            const { error: updateError } = await supabase.from('orders').update({
-                telegram_message_id: result.result.message_id,
-                telegram_chat_id: TELEGRAM_CHAT_ID,
-                delivery_address: finalAddress
-            }).eq('id', orderId);
-
-            if (updateError) debugLog({ dbUpdateError: updateError });
-        } catch (err) {
-            debugLog({ dbUpdateException: err });
-        }
+        // 3. Store the message_id for future edits
+        await supabase.from('orders').update({
+            telegram_message_id: result.result.message_id
+        }).eq('id', orderId);
 
         return NextResponse.json({ success: true, message_id: result.result.message_id });
 

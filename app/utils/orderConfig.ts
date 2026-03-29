@@ -208,24 +208,20 @@ export const resolveOrderLanguage = (params: {
     adminPreferredLang?: any;
     fallbackLang?: any;
 }): 'uz' | 'ru' => {
-    // 1. Check fallback/requested language first (e.g. extracted from Telegram Callback Data)
-    // This is the most reliable way to stay in the same language as the current button the user just clicked.
-    if (params.fallbackLang) {
-        return parseLang(params.fallbackLang);
-    }
-
-    // 2. Check saved order preference (This acts as an "anchor" if it's already in the DB correctly)
-    const savedRaw = params.orderSavedLang;
-    if (savedRaw) {
-        return parseLang(savedRaw);
-    }
-
-    // 3. Last resort: Check global Admin preference
+    // 1. Check common Admin preference (The currently globally selected language in the Dashboard)
+    // The user wants the bot to follow the Admin setting primarily.
     const adminRaw = params.adminPreferredLang;
     if (adminRaw) {
         return parseLang(adminRaw);
     }
 
-    return 'uz';
+    // 2. Check saved order preference (Historical context if Admin setting is somehow missing)
+    const savedRaw = params.orderSavedLang;
+    if (savedRaw) {
+        return parseLang(savedRaw);
+    }
+
+    // 3. Last resort: use the requested fallback (callback data or client input)
+    return parseLang(params.fallbackLang);
 };
 
