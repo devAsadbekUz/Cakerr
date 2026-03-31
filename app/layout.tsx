@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import { AuthProvider } from "./context/AuthContext";
 import { LanguageProvider } from "./context/LanguageContext";
+import { getAppPreviewUrl, getConfiguredAppUrl } from "./utils/appUrl";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -16,21 +17,22 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: getConfiguredAppUrl() ? new URL(getConfiguredAppUrl()!) : undefined,
   title: "TORTEL'E",
   description: "TORTEL'E - Eng mazali va sifatli tortlar hamda shirinliklar",
   openGraph: {
     title: "TORTEL'E",
     description: "Eng zo'r tortlar faqat bizda. O'z didingizga mos tortni buyurtma qiling!",
-    url: "https://torte-le.uz",
+    url: getConfiguredAppUrl() || undefined,
     siteName: "TORTEL'E",
-    images: [
+    images: getAppPreviewUrl() ? [
       {
-        url: "https://torte-le.uz/app-preview.jpg",
+        url: getAppPreviewUrl()!,
         width: 1200,
         height: 630,
         alt: "TORTEL'E Ilovasi",
       },
-    ],
+    ] : undefined,
     locale: "uz_UZ",
     type: "website",
   },
@@ -38,7 +40,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "TORTEL'E",
     description: "Eng zo'r tortlar faqat bizda. O'z didingizga mos tortni buyurtma qiling!",
-    images: ["https://torte-le.uz/app-preview.jpg"],
+    images: getAppPreviewUrl() ? [getAppPreviewUrl()!] : undefined,
   },
   icons: {
     icon: '/favicon.png',

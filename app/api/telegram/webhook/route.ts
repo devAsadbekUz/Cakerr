@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getStatusConfig, getTelegramButtons, buildOrderMessage, resolveOrderLanguage, parseLang } from '@/app/utils/orderConfig';
+import { resolveAppUrl } from '@/app/utils/appUrl';
 
 export async function POST(request: NextRequest) {
     const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
     const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
     const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
+    const appUrl = resolveAppUrl(request.nextUrl.origin);
 
     // Security check: Verify Telegram Webhook Secret Token if configured
     const incomingSecret = request.headers.get('X-Telegram-Bot-Api-Secret-Token');
@@ -47,6 +49,15 @@ export async function POST(request: NextRequest) {
                     .maybeSingle();
 
                 if (profile?.phone_number) {
+                    const replyMarkup = appUrl
+                        ? {
+                            inline_keyboard: [[{
+                                text: '🍰 Buyurtma berish',
+                                web_app: { url: appUrl }
+                            }]]
+                        }
+                        : undefined;
+
                     // Welcome back message - skip contact sharing
                     await fetch(`${TELEGRAM_API}/sendMessage`, {
                         method: 'POST',
@@ -55,12 +66,7 @@ export async function POST(request: NextRequest) {
                             chat_id: chatId,
                             text: `🍰 *Xush kelibsiz qaytib, ${firstName}! *\n\nSiz allaqachon ro'yxatdan o'tgansiz. Buyurtma berishni boshlang! 👇`,
                             parse_mode: 'Markdown',
-                            reply_markup: {
-                                inline_keyboard: [[{
-                                    text: '🍰 Buyurtma berish',
-                                    web_app: { url: process.env.NEXT_PUBLIC_APP_URL || 'https://torte-le.uz' }
-                                }]]
-                            }
+                            ...(replyMarkup ? { reply_markup: replyMarkup } : {})
                         })
                     });
                     return NextResponse.json({ ok: true });
@@ -129,6 +135,15 @@ export async function POST(request: NextRequest) {
                         .eq('telegram_id', telegramId);
 
                     // 3. Send success message
+                    const replyMarkup = appUrl
+                        ? {
+                            inline_keyboard: [[{
+                                text: '🍰 Buyurtma berish',
+                                web_app: { url: appUrl }
+                            }]]
+                        }
+                        : undefined;
+
                     await fetch(`${TELEGRAM_API}/sendMessage`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -136,12 +151,7 @@ export async function POST(request: NextRequest) {
                             chat_id: chatId,
                             text: `✅ *Rahmat!*\n\nTelefon raqamingiz muvaffaqiyatli ulandi: \`${normalizedPhone}\`\n\n🎂 Endi store'da avtomatik kirishingiz mumkin!`,
                             parse_mode: 'Markdown',
-                            reply_markup: {
-                                inline_keyboard: [[{
-                                    text: '🍰 Buyurtma berish',
-                                    web_app: { url: process.env.NEXT_PUBLIC_APP_URL || 'https://torte-le.uz' }
-                                }]]
-                            }
+                            ...(replyMarkup ? { reply_markup: replyMarkup } : {})
                         })
                     });
 

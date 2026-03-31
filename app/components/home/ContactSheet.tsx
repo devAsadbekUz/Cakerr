@@ -4,6 +4,7 @@ import { X, Phone, Send, MessageCircle, Instagram } from 'lucide-react';
 import styles from './ContactSheet.module.css';
 import { useEffect, useState, useRef } from 'react';
 import { TELEGRAM_CONFIG } from '@/app/utils/telegramConfig';
+import { useLanguage } from '@/app/context/LanguageContext';
 
 interface ContactSheetProps {
     isOpen: boolean;
@@ -11,6 +12,7 @@ interface ContactSheetProps {
 }
 
 export default function ContactSheet({ isOpen, onClose }: ContactSheetProps) {
+    const { t } = useLanguage();
     const [isAnimating, setIsAnimating] = useState(false);
     const [dragY, setDragY] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
@@ -65,10 +67,8 @@ export default function ContactSheet({ isOpen, onClose }: ContactSheetProps) {
                 <div className={styles.grabber} />
                 <div className={styles.header}>
                     <div className={styles.titleGroup}>
-                        <h2 className={styles.title}>Biz bilan bog'laning</h2>
-                        <p className={styles.subtitle}>
-                            Savollaringiz bormi? Biz bilan quyidagi usullar orqali bog'laning
-                        </p>
+                        <h2 className={styles.title}>{t('contactTitle')}</h2>
+                        <p className={styles.subtitle}>{t('contactSubtitle')}</p>
                     </div>
                     <button className={styles.closeBtn} onClick={onClose}>
                         <X size={20} />
@@ -78,7 +78,7 @@ export default function ContactSheet({ isOpen, onClose }: ContactSheetProps) {
                 <div className={styles.content}>
                     <ContactItem
                         icon={<Phone size={24} />}
-                        label="Telefon"
+                        label={t('phone')}
                         value="+998 88 956 57 00"
                         color="#4ADE80"
                         href="tel:+998889565700"
@@ -93,14 +93,14 @@ export default function ContactSheet({ isOpen, onClose }: ContactSheetProps) {
                     <ContactItem
                         icon={<Instagram size={24} />}
                         label="Instagram"
-                        value="moida_cooking_house"
+                        value="cakerr.vercel.app"
                         color="#E1306C"
-                        href="https://www.instagram.com/moida_cooking_house/"
+                        href="https://cakerr.vercel.app"
                     />
                 </div>
 
                 <div className={styles.footer}>
-                    Ish vaqti: Har kuni 9:00 - 21:00
+                    {t('workHours')}
                 </div>
             </div>
         </div>

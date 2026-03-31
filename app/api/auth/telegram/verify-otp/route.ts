@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
         const { phone, code } = await request.json();
 
         if (!phone || !code) {
-            return NextResponse.json({ error: 'Phone and code required', debug: 'Missing input' }, { status: 400 });
+            return NextResponse.json({ error: 'Phone and code required' }, { status: 400 });
         }
 
         // Normalize phone number to +998XXXXXXXXX format
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
             normalizedPhone = '+998' + normalizedPhone;
         }
 
-        // 1. Find ALL OTP codes for this phone (for debugging)
+        // Load OTP rows for this phone so we can validate the submitted code
         const { data: allCodes, error: allError } = await supabase
             .from('telegram_otp_codes')
             .select('*')
@@ -39,10 +39,13 @@ export async function POST(request: NextRequest) {
 
         // If no codes exist at all for this phone
         if (!allCodes || allCodes.length === 0) {
+            console.warn('[OTP Verify] No OTP codes found for phone', {
+                phone: normalizedPhone,
+                error: allError?.message || null
+            });
             return NextResponse.json({
-                error: 'no_codes',
-                message: `Kod topilmadi. Phone: ${normalizedPhone}`,
-                debug: `No OTP codes found for phone ${normalizedPhone}. Error: ${allError?.message || 'none'}`
+                error: 'invalid_code',
+                message: 'Kod noto\'g\'ri yoki eskirgan. Yangi kod oling.'
             }, { status: 400 });
         }
 
@@ -51,9 +54,8 @@ export async function POST(request: NextRequest) {
 
         if (!matchingCode) {
             return NextResponse.json({
-                error: 'wrong_code',
-                message: `Noto'g'ri kod. Kiritilgan: ${code}`,
-                debug: `Code ${code} not found. Available codes: ${allCodes.map(c => c.code).join(', ')}`
+                error: 'invalid_code',
+                message: 'Kod noto\'g\'ri yoki eskirgan. Yangi kod oling.'
             }, { status: 400 });
         }
 
@@ -61,8 +63,7 @@ export async function POST(request: NextRequest) {
         if (matchingCode.verified) {
             return NextResponse.json({
                 error: 'already_used',
-                message: 'Bu kod allaqachon ishlatilgan',
-                debug: 'Code already verified'
+                message: 'Bu kod allaqachon ishlatilgan'
             }, { status: 400 });
         }
 
@@ -70,8 +71,7 @@ export async function POST(request: NextRequest) {
         if (new Date(matchingCode.expires_at) < new Date()) {
             return NextResponse.json({
                 error: 'expired',
-                message: 'Kod eskirgan. Yangi kod oling.',
-                debug: `Expired at ${matchingCode.expires_at}, now is ${new Date().toISOString()}`
+                message: 'Kod eskirgan. Yangi kod oling.'
             }, { status: 400 });
         }
 
@@ -91,8 +91,7 @@ export async function POST(request: NextRequest) {
         if (!phoneLink) {
             return NextResponse.json({
                 error: 'no_phone_link',
-                message: 'Telefon raqami Telegramga ulanmagan',
-                debug: `Phone link not found: ${phoneLinkError?.message}`
+                message: 'Telefon raqami Telegramga ulanmagan'
             }, { status: 400 });
         }
 
@@ -117,10 +116,10 @@ export async function POST(request: NextRequest) {
                 .single();
 
             if (error) {
+                console.error('[OTP Verify] Profile update failed:', error.message);
                 return NextResponse.json({
                     error: 'profile_update_failed',
-                    message: 'Profil yangilanmadi',
-                    debug: error.message
+                    message: 'Profil yangilanmadi'
                 }, { status: 500 });
             }
             profile = data;
@@ -139,10 +138,10 @@ export async function POST(request: NextRequest) {
                 .single();
 
             if (error) {
+                console.error('[OTP Verify] Profile create failed:', error.message);
                 return NextResponse.json({
                     error: 'profile_create_failed',
-                    message: 'Profil yaratilmadi',
-                    debug: error.message
+                    message: 'Profil yaratilmadi'
                 }, { status: 500 });
             }
             profile = data;
@@ -167,10 +166,10 @@ export async function POST(request: NextRequest) {
         });
 
         if (sessionError) {
+            console.error('[OTP Verify] Session creation failed:', sessionError.message);
             return NextResponse.json({
                 error: 'session_failed',
-                message: 'Sessiya yaratilmadi',
-                debug: sessionError.message
+                message: 'Sessiya yaratilmadi'
             }, { status: 500 });
         }
 
@@ -194,10 +193,10 @@ export async function POST(request: NextRequest) {
         });
 
     } catch (error: any) {
+        console.error('[OTP Verify] Server error:', error?.message || error);
         return NextResponse.json({
             error: 'server_error',
-            message: 'Server xatosi',
-            debug: error.message
+            message: 'Server xatosi'
         }, { status: 500 });
     }
 }
