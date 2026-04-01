@@ -99,6 +99,106 @@ const uz: Record<string, string | string[]> = {
     fullName: "To'liq ismingiz",
     fullNamePlaceholder: "Masalan: Aziz Toshpulatov",
     errorOccurred: "Xatolik yuz berdi",
+    // SuccessModal
+    orderAccepted: "Buyurtma qabul qilindi! 🎉",
+    orderAcceptedMsg: "Buyurtmangiz uchun rahmat, tez orada jamoamiz sizga bog'lanadi",
+    // CalendarModal
+    weekdays: ['Du', 'Se', 'Cho', 'Pa', 'Ju', 'Sha', 'Ya'],
+    // AddressesModal
+    noSavedAddresses: "Saqlangan manzillar yo'q",
+    newAddress: "Yangi manzil",
+    deleteAddressConfirm: "manzilini o'chirmoqchimisiz?",
+    // ContactSheet
+    contactTitle: "Biz bilan bog'laning",
+    contactSubtitle: "Savollaringiz bormi? Biz bilan quyidagi usullar orqali bog'laning",
+    phone: "Telefon",
+    workHours: "Ish vaqti: Har kuni 9:00 - 21:00",
+    // ChatWidget
+    chatWelcome: "Salom! 🎂 Men TORTEL'E yordamchisiman. Tortlar, narxlar yoki buyurtma berish haqida savol bering!",
+    chatQuestion1: "Qanday tortlar bor?",
+    chatQuestion2: "Eng arzon tort?",
+    chatQuestion3: "Buyurtma qanday beraman?",
+    chatTitle: "TORTEL'E Yordamchi",
+    chatSubtitle: "AI bilan ishlaydi • Doim online",
+    chatPlaceholder: "Savolingizni yozing...",
+    chatError: "Xatolik yuz berdi. Qayta urinib ko'ring.",
+    chatOpen: "Chat ochish",
+    chatClose: "Chatni yopish",
+    // Favorites
+    noFavorites: "Sevimli tortlaringiz yo'q",
+    noFavoritesDesc: "Yoqtirgan tortlaringizni savatga qo'shing va ular shu yerda ko'rinadi!",
+    goHome: "Asosiyga o'tish",
+    // Addresses page
+    myAddresses: "Mening manzillarim",
+    addNewAddress: "Yangi manzil qo'shish",
+    noAddressesDesc: "Buyurtma berishni osonlashtirish uchun manzilingizni qo'shing.",
+    defaultAddress: "Asosiy manzil",
+    setAsDefault: "Asosiy qilib belgilash",
+    apartment: "Xonadon",
+    floor: "Qavat",
+    loginRequired: "Ushbu sahifani ko'rish uchun tizimga kiring.",
+    deleteAddressPrompt: "Ushbu manzilni o'chirmoqchimisiz?",
+    // Order history
+    quantity: "Soni",
+    portion: "Porsiya",
+    reorder: "Qayta buyurtma qilish",
+    ordersNotFound: "Buyurtmalar topilmadi",
+    // Error page
+    errorTitle: "Xatolik yuz berdi",
+    errorMessage: "Nimadir noto'g'ri ketdi. Iltimos, qaytadan urinib ko'ring.",
+    tryAgain: "Qaytadan urinish",
+    // OrderCard
+    reorderShort: "Qayta buyurtma",
+    // Help center (yordam)
+    topics: "Mavzular",
+    faqTitle: "Ko'p beriladigan savollar",
+    topicOrders: "Buyurtmalar",
+    topicAccount: "Akkaunt",
+    faqData: [
+        { question: "Buyurtmani qanday bekor qilsam bo'ladi?", answer: "Buyurtmani tayyorlanish boshlangunga qadar bekor qilishingiz mumkin. Profil bo'limidagi 'Buyurtmalar tarixi'ga o'ting va tegishli buyurtmani toping." },
+        { question: "Yetkazib berish qancha vaqt oladi?", answer: "Yetkazib berish odatda 2-4 soat ichida amalga oshiriladi. Tanlangan vaqt oralig'ida tortingiz yetkazib beriladi." },
+        { question: "To'lovni qanday amalga oshiraman?", answer: "Siz naqd pul yoki karta orqali to'lov qilishingiz mumkin. Kartadan to'lash uchun Payme yoki Click tizimlaridan foydalanishingiz mumkin." },
+        { question: "Maxsus tort buyurtma qilsam bo'ladimi?", answer: "Albatta! 'Yaratish' bo'limida o'zingizga yoqqan dizaynda tort yaratishingiz mumkin. Shakl, o'lcham, ta'm va bezakni tanlang." },
+        { question: "Tortni sovg'a sifatida yuborishim mumkinmi?", answer: "Ha, buyurtma berish paytida 'Sovg'a rejimi'ni tanlang. Qabul qiluvchining telefon raqamini kiriting va narx yashirin qoladi." }
+    ] as any,
+    // Share page (ulashish)
+    shareCardTitle: "Cakerr ilovasini ulashing",
+    shareCardDesc: "Do'stlaringiz bilan ulashing va ular ham mazali tortlardan bahramand bo'lishsin!",
+    copy: "Nusxalash",
+    copied2: "Nusxalandi",
+    shareHint: "Nusxalash tugmasini bosing va ilovani tanlang 📱",
+    comingSoon: "Tez kunda",
+    friendsLabel: "Do'stlar",
+    bonusLabel: "Bonus so'm",
+    whyShare: "Nima uchun ulashish kerak?",
+    shareBenefit1Title: "Bonus pul ishlang",
+    shareBenefit1Desc: "Har bir do'stingiz uchun 10,000 so'm oling",
+    shareBenefit2Title: "Do'stlaringizga sovg'a",
+    shareBenefit2Desc: "Ular birinchi buyurtmada 15% chegirma oladi",
+    shareBenefit3Title: "Maxsus imtiyozlar",
+    shareBenefit3Desc: "Ko'proq ulashing, ko'proq bonuslar oling",
+    // Map page
+    addressLoading: "Manzil tanlanmoqda...",
+    unknownAddress: "Noma'lum manzil",
+    mapLoading: "Xarita yuklanmoqda...",
+    mapNotReady: "Xarita hali yuklanmadi. Iltimos, biroz kuting.",
+    selectAddress: "Manzilni tanlang",
+    saveAddress: "Manzilni saqlash",
+    locationError: "Joylashuvingizni aniqlab bo'lmadi",
+    // Order tracking [id]
+    orderNotFound: "Buyurtma topilmadi",
+    authRequired: "Avtorizatsiyadan o'ting",
+    addressNotProvided: "Manzil ko'rsatilmagan",
+    pieceUnit: "ta",
+    // ComingSoonModal
+    comingSoonTitle: "Tez kunda!",
+    comingSoonDesc: " ustida ishlamoqdamiz va uni tez orada ishga tushiramiz.",
+    understood: "Tushunarli",
+    calendarFeature1: "Muhim sanalarni saqlang",
+    calendarFeature2: "Eslatmalar oling",
+    prefFeature1: "Sevimli ta'mlaringizni saqlang",
+    prefFeature2: "Maxsus tavsiyalar oling",
+    prefFeature3: "Shaxsiy chegirmalar",
 };
 
 const ru: Record<string, string | string[]> = {
@@ -196,6 +296,106 @@ const ru: Record<string, string | string[]> = {
     fullName: "Ваше полное имя",
     fullNamePlaceholder: "Например: Азиз Тошпулатов",
     errorOccurred: "Произошла ошибка",
+    // SuccessModal
+    orderAccepted: "Заказ принят! 🎉",
+    orderAcceptedMsg: "Спасибо за ваш заказ, наша команда свяжется с вами в ближайшее время",
+    // CalendarModal
+    weekdays: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+    // AddressesModal
+    noSavedAddresses: "Сохраненных адресов нет",
+    newAddress: "Новый адрес",
+    deleteAddressConfirm: "адресу удалить?",
+    // ContactSheet
+    contactTitle: "Свяжитесь с нами",
+    contactSubtitle: "Есть вопросы? Свяжитесь с нами любым удобным способом",
+    phone: "Телефон",
+    workHours: "Время работы: Каждый день 9:00 - 21:00",
+    // ChatWidget
+    chatWelcome: "Привет! 🎂 Я помощник TORTEL'E. Задайте вопрос о тортах, ценах или как сделать заказ!",
+    chatQuestion1: "Какие торты есть?",
+    chatQuestion2: "Самый дешевый торт?",
+    chatQuestion3: "Как сделать заказ?",
+    chatTitle: "TORTEL'E Помощник",
+    chatSubtitle: "Работает на AI • Всегда онлайн",
+    chatPlaceholder: "Напишите вопрос...",
+    chatError: "Произошла ошибка. Попробуйте ещё раз.",
+    chatOpen: "Открыть чат",
+    chatClose: "Закрыть чат",
+    // Favorites
+    noFavorites: "У вас нет избранных тортов",
+    noFavoritesDesc: "Добавьте понравившиеся торты и они появятся здесь!",
+    goHome: "На главную",
+    // Addresses page
+    myAddresses: "Мои адреса",
+    addNewAddress: "Добавить новый адрес",
+    noAddressesDesc: "Добавьте адрес, чтобы упростить оформление заказа.",
+    defaultAddress: "Основной адрес",
+    setAsDefault: "Сделать основным",
+    apartment: "Квартира",
+    floor: "Этаж",
+    loginRequired: "Войдите, чтобы просмотреть эту страницу.",
+    deleteAddressPrompt: "Этот адрес удалить?",
+    // Order history
+    quantity: "Кол-во",
+    portion: "Порция",
+    reorder: "Повторить заказ",
+    ordersNotFound: "Заказы не найдены",
+    // Error page
+    errorTitle: "Произошла ошибка",
+    errorMessage: "Что-то пошло не так. Пожалуйста, попробуйте снова.",
+    tryAgain: "Попробовать снова",
+    // OrderCard
+    reorderShort: "Повторить заказ",
+    // Help center (yordam)
+    topics: "Темы",
+    faqTitle: "Часто задаваемые вопросы",
+    topicOrders: "Заказы",
+    topicAccount: "Аккаунт",
+    faqData: [
+        { question: "Как отменить заказ?", answer: "Вы можете отменить заказ до начала его приготовления. Перейдите в раздел 'История заказов' в профиле и найдите нужный заказ." },
+        { question: "Сколько времени занимает доставка?", answer: "Доставка обычно занимает 2-4 часа. Торт будет доставлен в выбранный временной промежуток." },
+        { question: "Как произвести оплату?", answer: "Вы можете оплатить наличными или картой. Для оплаты картой можно использовать системы Payme или Click." },
+        { question: "Можно ли заказать торт на заказ?", answer: "Конечно! В разделе 'Создать' вы можете создать торт в понравившемся дизайне. Выберите форму, размер, вкус и украшения." },
+        { question: "Могу ли я отправить торт в подарок?", answer: "Да, при оформлении заказа выберите 'Режим подарка'. Введите номер телефона получателя — цена останется скрытой." }
+    ] as any,
+    // Share page (ulashish)
+    shareCardTitle: "Поделитесь приложением Cakerr",
+    shareCardDesc: "Поделитесь с друзьями — пусть они тоже наслаждаются вкусными тортами!",
+    copy: "Копировать",
+    copied2: "Скопировано",
+    shareHint: "Нажмите кнопку копирования и выберите приложение 📱",
+    comingSoon: "Скоро",
+    friendsLabel: "Друзья",
+    bonusLabel: "Бонусные сумы",
+    whyShare: "Зачем делиться?",
+    shareBenefit1Title: "Зарабатывайте бонусы",
+    shareBenefit1Desc: "Получите 10 000 сум за каждого друга",
+    shareBenefit2Title: "Подарок друзьям",
+    shareBenefit2Desc: "Они получат скидку 15% на первый заказ",
+    shareBenefit3Title: "Особые привилегии",
+    shareBenefit3Desc: "Больше делитесь — больше бонусов",
+    // Map page
+    addressLoading: "Определение адреса...",
+    unknownAddress: "Неизвестный адрес",
+    mapLoading: "Загрузка карты...",
+    mapNotReady: "Карта ещё не загрузилась. Пожалуйста, подождите.",
+    selectAddress: "Выберите адрес",
+    saveAddress: "Сохранить адрес",
+    locationError: "Не удалось определить местоположение",
+    // Order tracking [id]
+    orderNotFound: "Заказ не найден",
+    authRequired: "Требуется авторизация",
+    addressNotProvided: "Адрес не указан",
+    pieceUnit: "шт",
+    // ComingSoonModal
+    comingSoonTitle: "Скоро!",
+    comingSoonDesc: " — мы работаем над этим и запустим в ближайшее время.",
+    understood: "Понятно",
+    calendarFeature1: "Сохраняйте важные даты",
+    calendarFeature2: "Получайте напоминания",
+    prefFeature1: "Сохраните любимые вкусы",
+    prefFeature2: "Получайте особые рекомендации",
+    prefFeature3: "Персональные скидки",
 };
 
 export const clientTranslations: Record<Language, Record<string, string | string[]>> = { uz, ru };

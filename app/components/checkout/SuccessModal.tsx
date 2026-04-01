@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import { Check, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import styles from './SuccessModal.module.css';
+import { useLanguage } from '@/app/context/LanguageContext';
 
 interface SuccessModalProps {
     isOpen: boolean;
@@ -11,6 +12,8 @@ interface SuccessModalProps {
 }
 
 export default function SuccessModal({ isOpen, onClose }: SuccessModalProps) {
+    const { t } = useLanguage();
+
     useEffect(() => {
         if (isOpen) {
             // Trigger confetti
@@ -67,10 +70,8 @@ export default function SuccessModal({ isOpen, onClose }: SuccessModalProps) {
                     <Check className={styles.checkmark} />
                 </div>
 
-                <h2 className={styles.title}>Buyurtma qabul qilindi! 🎉</h2>
-                <p className={styles.message}>
-                    Buyurtmangiz uchun rahmat, tez orada jamoamiz sizga bog'lanadi
-                </p>
+                <h2 className={styles.title}>{t('orderAccepted')}</h2>
+                <p className={styles.message}>{t('orderAcceptedMsg')}</p>
 
                 <div className={styles.progressBar}>
                     <div className={styles.progressFill} />

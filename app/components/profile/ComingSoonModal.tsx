@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
 import { X, Calendar, Sparkles, Bell, Cookie, Heart, Star, Gift } from 'lucide-react';
 import styles from './ComingSoonModal.module.css';
+import { useLanguage } from '@/app/context/LanguageContext';
 
 interface ComingSoonModalProps {
     isOpen: boolean;
@@ -11,37 +11,39 @@ interface ComingSoonModalProps {
     featureType?: 'calendar' | 'preferences' | 'general';
 }
 
-const FEATURE_CONFIGS = {
-    calendar: {
-        icon: Calendar,
-        features: [
-            { icon: Calendar, text: 'Muhim sanalarni saqlang' },
-            { icon: Bell, text: 'Eslatmalar oling' }
-        ]
-    },
-    preferences: {
-        icon: Cookie,
-        features: [
-            { icon: Heart, text: "Sevimli ta'mlaringizni saqlang" },
-            { icon: Star, text: 'Maxsus tavsiyalar oling' },
-            { icon: Gift, text: 'Shaxsiy chegirmalar' }
-        ]
-    },
-    general: {
-        icon: Calendar,
-        features: [
-            { icon: Calendar, text: 'Muhim sanalarni saqlang' },
-            { icon: Bell, text: 'Eslatmalar oling' }
-        ]
-    }
-};
-
 export default function ComingSoonModal({
     isOpen,
     onClose,
-    featureName = "Bu funksiya",
+    featureName = "",
     featureType = 'general'
 }: ComingSoonModalProps) {
+    const { t } = useLanguage();
+
+    const FEATURE_CONFIGS = {
+        calendar: {
+            icon: Calendar,
+            features: [
+                { icon: Calendar, text: t('calendarFeature1') },
+                { icon: Bell, text: t('calendarFeature2') }
+            ]
+        },
+        preferences: {
+            icon: Cookie,
+            features: [
+                { icon: Heart, text: t('prefFeature1') },
+                { icon: Star, text: t('prefFeature2') },
+                { icon: Gift, text: t('prefFeature3') }
+            ]
+        },
+        general: {
+            icon: Calendar,
+            features: [
+                { icon: Calendar, text: t('calendarFeature1') },
+                { icon: Bell, text: t('calendarFeature2') }
+            ]
+        }
+    };
+
     if (!isOpen) return null;
 
     const config = FEATURE_CONFIGS[featureType];
@@ -66,9 +68,9 @@ export default function ComingSoonModal({
                     </div>
                 </div>
 
-                <h2 className={styles.title}>Tez kunda!</h2>
+                <h2 className={styles.title}>{t('comingSoonTitle')}</h2>
                 <p className={styles.description}>
-                    {featureName} ustida ishlamoqdamiz va uni tez orada ishga tushiramiz.
+                    {featureName}{t('comingSoonDesc')}
                 </p>
 
                 <div className={styles.features}>
@@ -86,7 +88,7 @@ export default function ComingSoonModal({
                 </div>
 
                 <button className={styles.okBtn} onClick={onClose}>
-                    Tushunarli
+                    {t('understood')}
                 </button>
             </div>
         </div>

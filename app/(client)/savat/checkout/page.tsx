@@ -12,6 +12,7 @@ import AddressesModal from '@/app/components/checkout/AddressesModal';
 import SuccessModal from '@/app/components/checkout/SuccessModal';
 import { useSupabase } from '@/app/context/AuthContext';
 import { getAuthHeader } from '@/app/utils/telegram';
+import { TELEGRAM_CONFIG } from '@/app/utils/telegramConfig';
 import { createClient } from '@/app/utils/supabase/client';
 import { availabilityService } from '@/app/services/availabilityService';
 import { format } from 'date-fns';
@@ -96,9 +97,20 @@ export default function CheckoutPage() {
         return dayOverrides.some(o => o.slot === null || o.slot === slot);
     };
 
+    const hasPhone = !!(user?.phone_number || user?.phone);
+
     const handleConfirmOrder = async () => {
         if (!user) {
             router.push('/profil/login?redirectTo=/savat/checkout');
+            return;
+        }
+
+        if (!hasPhone) {
+            alert(
+                lang === 'ru'
+                    ? `Для оформления заказа необходимо привязать номер телефона.\n\nОткройте бота @${TELEGRAM_CONFIG.botUsername} и поделитесь номером.`
+                    : `Buyurtma berish uchun telefon raqamingizni ulashingiz kerak.\n\n@${TELEGRAM_CONFIG.botUsername} botini oching va raqamingizni ulashing.`
+            );
             return;
         }
 
@@ -227,6 +239,35 @@ export default function CheckoutPage() {
                 <h1 className={styles.title}>{t('checkoutTitle')}</h1>
             </header>
 
+
+            {/* No phone warning banner */}
+            {user && !hasPhone && (
+                <div style={{
+                    margin: '0 16px 12px',
+                    padding: '14px 16px',
+                    background: '#FFF7ED',
+                    border: '1px solid #FED7AA',
+                    borderRadius: '12px',
+                    fontSize: '14px',
+                    color: '#9A3412',
+                    lineHeight: '1.5'
+                }}>
+                    <strong>⚠️ {lang === 'ru' ? 'Телефон не привязан' : 'Telefon raqam ulanmagan'}</strong>
+                    <p style={{ margin: '4px 0 0' }}>
+                        {lang === 'ru'
+                            ? 'Для оформления заказа привяжите номер через бота: '
+                            : 'Buyurtma berish uchun botda raqamingizni ulang: '}
+                        <a
+                            href={TELEGRAM_CONFIG.botLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: '#0088cc', fontWeight: 600 }}
+                        >
+                            @{TELEGRAM_CONFIG.botUsername}
+                        </a>
+                    </p>
+                </div>
+            )}
 
             {/* Address Section */}
             <div

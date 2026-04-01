@@ -5,6 +5,7 @@ import { X, Home, MapPin, Edit2, Plus, Trash2 } from 'lucide-react';
 import styles from './AddressesModal.module.css';
 import { useCart, SavedAddress } from '@/app/context/CartContext';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from '@/app/context/LanguageContext';
 
 interface AddressesModalProps {
     isOpen: boolean;
@@ -17,6 +18,7 @@ interface AddressesModalProps {
 export default function AddressesModal({ isOpen, onClose, onSelect, onNewAddress, onEdit }: AddressesModalProps) {
     const { savedAddresses, setDeliveryAddress, setDeliveryCoords, removeSavedAddress } = useCart();
     const router = useRouter();
+    const { t } = useLanguage();
 
     if (!isOpen) return null;
 
@@ -52,7 +54,7 @@ export default function AddressesModal({ isOpen, onClose, onSelect, onNewAddress
 
     const handleDelete = (addr: SavedAddress, e: React.MouseEvent) => {
         e.stopPropagation(); // Don't select, just delete
-        if (confirm(`"${addr.label}" manzilini o'chirmoqchimisiz?`)) {
+        if (confirm(`"${addr.label}" ${t('deleteAddressConfirm')}`)) {
             removeSavedAddress(addr.id);
         }
     };
@@ -61,7 +63,7 @@ export default function AddressesModal({ isOpen, onClose, onSelect, onNewAddress
         <div className={styles.overlay} onClick={onClose}>
             <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
                 <header className={styles.header}>
-                    <h2 className={styles.title}>Manzillar</h2>
+                    <h2 className={styles.title}>{t('address')}</h2>
                     <button className={styles.closeBtn} onClick={onClose}>
                         <X size={20} color="#111827" />
                     </button>
@@ -94,14 +96,14 @@ export default function AddressesModal({ isOpen, onClose, onSelect, onNewAddress
                         ))
                     ) : (
                         <div style={{ textAlign: 'center', padding: '40px 0', color: '#9CA3AF' }}>
-                            Saqlangan manzillar yo'q
+                            {t('noSavedAddresses')}
                         </div>
                     )}
                 </div>
 
                 <button className={styles.newAddressBtn} onClick={handleNewAddress}>
                     <Plus size={20} />
-                    Yangi manzil
+                    {t('newAddress')}
                 </button>
             </div>
         </div>

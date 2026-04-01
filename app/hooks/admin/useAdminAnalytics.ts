@@ -29,7 +29,20 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; label: string }>
     cancelled: { bg: '#FEE2E2', text: '#991B1B', label: 'Bekor qilingan' },
 };
 
-export function useAdminAnalytics(orders: any[], totalUsers: number, categories: any[], filterDays: number | null = null) {
+function parseCatLabel(raw: any, lang: string): string {
+    if (!raw) return '';
+    try {
+        const obj = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        if (obj && typeof obj === 'object') {
+            return obj[lang] || obj['uz'] || obj['ru'] || String(raw);
+        }
+    } catch {
+        // not JSON — plain string
+    }
+    return String(raw);
+}
+
+export function useAdminAnalytics(orders: any[], totalUsers: number, categories: any[], filterDays: number | null = null, lang = 'uz') {
     const targetOrders = useMemo(() => {
         if (!filterDays) return orders;
         const cutoff = subDays(new Date(), filterDays);
@@ -184,10 +197,10 @@ export function useAdminAnalytics(orders: any[], totalUsers: number, categories:
             .map(([id, revenue], idx) => {
                 const cat = categories.find(c => c.id === id);
                 const getLabel = () => {
-                    if (cat) return cat.label;
-                    if (id === 'custom') return 'Maxsus buyurtmalar';
-                    if (id === 'other') return 'Boshqa';
-                    return 'Noma\'lum';
+                    if (cat) return parseCatLabel(cat.label, lang);
+                    if (id === 'custom') return lang === 'ru' ? 'Индивидуальные заказы' : 'Maxsus buyurtmalar';
+                    if (id === 'other') return lang === 'ru' ? 'Другое' : 'Boshqa';
+                    return lang === 'ru' ? 'Неизвестно' : 'Noma\'lum';
                 };
                 return {
                     label: getLabel(),

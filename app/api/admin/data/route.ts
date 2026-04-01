@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
     const orderAsc = searchParams.get('orderAsc') === 'true';
     const filterColumn = searchParams.get('filterColumn');
     const filterValue = searchParams.get('filterValue');
+    const filterNull = searchParams.get('filterNull');
 
     if (!table || !ALLOWED_TABLES.includes(table)) {
         return NextResponse.json({ error: 'Invalid table' }, { status: 400 });
@@ -44,6 +45,10 @@ export async function GET(request: NextRequest) {
 
     if (filterColumn && filterValue) {
         query = query.eq(filterColumn, filterValue);
+    }
+
+    if (filterNull) {
+        query = query.is(filterNull, null);
     }
 
     if (orderBy) {

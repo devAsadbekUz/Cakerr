@@ -44,7 +44,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const supabase = createClient();
-const OWNER_EMAIL = 'moida.buvayda@gmail.com'.toLowerCase();
+const OWNER_EMAIL = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'moida.buvayda@gmail.com').toLowerCase();
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<UnifiedUser | null>(null);

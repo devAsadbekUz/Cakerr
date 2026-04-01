@@ -14,12 +14,15 @@ async function isAdminVerified(): Promise<boolean> {
     return headersList.get('x-admin-verified') === 'true';
 }
 
-export async function GET() {
+export async function GET(request: Request) {
     if (!await isAdminVerified()) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: orders, error } = await serviceClient
+    const { searchParams } = new URL(request.url);
+    const days = searchParams.get('days');
+
+    let query = serviceClient
         .from('orders')
         .select(`
             id, status, total_price, delivery_time, delivery_slot, created_at, comment, delivery_address,
@@ -31,6 +34,14 @@ export async function GET() {
         `)
         .order('created_at', { ascending: false })
         .limit(500);
+
+    if (days) {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - parseInt(days, 10));
+        query = query.gte('created_at', cutoff.toISOString());
+    }
+
+    const { data: orders, error } = await query;
 
     if (error) {
         console.error('[Admin Orders API] Error:', error);

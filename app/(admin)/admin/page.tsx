@@ -1,16 +1,13 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
     ShoppingBag, Clock, AlertCircle,
     TrendingUp, Users, DollarSign,
-    BarChart3, Repeat, Package, PieChart
+    BarChart3, Repeat, PieChart
 } from 'lucide-react';
 import { orderService } from '@/app/services/orderService';
-import {
-    format, isToday, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay,
-    subDays
-} from 'date-fns';
+import { format } from 'date-fns';
 import styles from './AdminDashboard.module.css';
 import { StatCard } from '@/app/components/admin/DashboardComponents';
 import { createClient } from '@/app/utils/supabase/client';
@@ -40,51 +37,63 @@ export default function AdminAnalyticsPage() {
     const [filterDays, setFilterDays] = useState<number | null>(30); // Default to 30 days
     const supabase = useMemo(() => createClient(), []);
 
-    const { analytics, weeklyData } = useAdminAnalytics(orders, totalUsers, categories, filterDays);
+    const { analytics, weeklyData } = useAdminAnalytics(orders, totalUsers, categories, filterDays, lang);
 
-    const fetchData = async () => {
-        const data = await orderService.getAllOrdersAdmin();
-        setOrders(data || []);
-
-        const [profilesRes, categoriesRes] = await Promise.all([
+    const fetchData = useCallback(async () => {
+        setLoading(true);
+        const [data, profilesRes, categoriesRes] = await Promise.all([
+            orderService.getAllOrdersAdmin(filterDays),
             supabase.from('profiles').select('*', { count: 'exact', head: true }),
             supabase.from('categories').select('id, label')
         ]);
 
+        setOrders(data || []);
         if (profilesRes.count !== null) setTotalUsers(profilesRes.count);
         if (categoriesRes.data) setCategories(categoriesRes.data);
 
         setLoading(false);
-    };
+    }, [supabase, filterDays]);
 
     useEffect(() => {
         setMounted(true);
-        let refreshTimeout: NodeJS.Timeout;
+        fetchData();
+
+        let updateTimeout: NodeJS.Timeout;
 
         const ordersChannel = supabase
             .channel('admin-orders')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-                // Debounce refresh to handle rapid updates
-                if (refreshTimeout) clearTimeout(refreshTimeout);
-                refreshTimeout = setTimeout(fetchData, 800);
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, async (payload: { new: { id: string } }) => {
+                const newOrder = await orderService.getOrderAdmin(payload.new.id);
+                if (newOrder) setOrders(prev => [newOrder, ...prev]);
+            })
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, (payload: { new: { id: string } }) => {
+                // Debounce rapid burst updates (e.g. bulk status changes)
+                if (updateTimeout) clearTimeout(updateTimeout);
+                updateTimeout = setTimeout(async () => {
+                    const updated = await orderService.getOrderAdmin(payload.new.id);
+                    if (updated) setOrders(prev => prev.map(o => o.id === updated.id ? updated : o));
+                }, 300);
+            })
+            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'orders' }, (payload: { old: { id: string } }) => {
+                setOrders(prev => prev.filter(o => o.id !== payload.old.id));
             })
             .subscribe();
 
         const profilesChannel = supabase
             .channel('admin-profiles')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profiles' }, () => {
-                fetchData();
+                setTotalUsers(prev => prev + 1);
             })
             .subscribe();
 
         return () => {
-            if (refreshTimeout) clearTimeout(refreshTimeout);
+            if (updateTimeout) clearTimeout(updateTimeout);
             supabase.removeChannel(ordersChannel);
             supabase.removeChannel(profilesChannel);
         };
-    }, []);
+    }, [fetchData, supabase]);
 
-    const recentOrders = useMemo(() => orders.slice(0, 5), [orders]);
+    const recentOrders = useMemo(() => orders.slice(0, 8), [orders]);
 
     // Derived max values for charts
     const maxWeeklyOrders = useMemo(() =>
@@ -100,11 +109,6 @@ export default function AdminAnalyticsPage() {
     const maxHourCount = useMemo(() =>
         Math.max(...analytics.peakHours.map(h => h.count), 1),
         [analytics.peakHours]
-    );
-
-    const maxRevenue = useMemo(() =>
-        Math.max(...analytics.revenueTrend.map(d => d.revenue), 1),
-        [analytics.revenueTrend]
     );
 
     if (!mounted) return null;
@@ -176,6 +180,7 @@ export default function AdminAnalyticsPage() {
                                 sales: d.count,
                                 isFuture: d.isFuture
                             }))}
+                            orders={orders}
                         />
                     </div>
 
@@ -220,16 +225,18 @@ export default function AdminAnalyticsPage() {
 
                         {/* Order Status Breakdown */}
                         <div className={styles.recentActivity}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
-                                <PieChart size={20} color="hsl(var(--color-primary-dark))" />
-                                <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>{t('orderStatusesTitle')}</h2>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <PieChart size={20} color="hsl(var(--color-primary-dark))" />
+                                    <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>{t('orderStatusesTitle')}</h2>
+                                </div>
+                                <button
+                                    onClick={() => setExpandModal('orderStatuses')}
+                                    className={styles.miniBtn}
+                                >
+                                    {t('viewAll')}
+                                </button>
                             </div>
-                            <button
-                                onClick={() => setExpandModal('orderStatuses')}
-                                className={styles.miniBtn}
-                            >
-                                {t('viewAll')}
-                            </button>
                             <div className={styles.statusGrid}>
                                 {analytics.statusBreakdown.map(s => (
                                     <div key={s.status} className={styles.statusCard} style={{ borderLeft: `4px solid ${s.text}` }}>
@@ -327,88 +334,44 @@ export default function AdminAnalyticsPage() {
                         </div>
                     </div>
 
-                    {/* ==================== ROW 3: Revenue Trend + Recent Activity ==================== */}
-                    <div className={styles.analyticsLayout} style={{ marginTop: '32px' }}>
-                        {/* Revenue Trend */}
-                        <div className={styles.chartCard}>
-                            <div className={styles.chartHeader}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <DollarSign size={20} color="hsl(var(--color-primary-dark))" />
-                                    <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>{t('revenueTrendTitle')}</h2>
-                                </div>
-                                <button
-                                    onClick={() => setExpandModal('revenueTrend')}
-                                    className={styles.miniBtn}
-                                >
-                                    {t('viewAll')}
-                                </button>
-                            </div>
-
-                            <div className={styles.revenueTrendContainer}>
-                                {/* Y-axis labels */}
-                                <div className={styles.revenueTrendYAxis}>
-                                    <span>{(maxRevenue / 1000).toFixed(0)}K</span>
-                                    <span>{(maxRevenue / 2000).toFixed(0)}K</span>
-                                    <span>0</span>
-                                </div>
-                                {/* Bars */}
-                                <div className={styles.revenueTrendBars}>
-                                    {analytics.revenueTrend.map((day, idx) => {
-                                        const heightPct = maxRevenue > 0 ? (day.revenue / maxRevenue) * 100 : 0;
-                                        const isLast = idx === analytics.revenueTrend.length - 1;
-                                        return (
-                                            <div key={idx} className={styles.revenueTrendColumn}>
-                                                <div className={styles.revenueTrendBarWrapper}>
-                                                    {day.revenue > 0 && (
-                                                        <span className={styles.revenueTrendValue}>
-                                                            {(day.revenue / 1000).toFixed(0)}K
-                                                        </span>
-                                                    )}
-                                                    <div
-                                                        className={`${styles.revenueTrendBar} ${isLast ? styles.revenueTrendBarToday : ''}`}
-                                                        style={{ height: `${Math.max(heightPct, 3)}%` }}
-                                                    />
-                                                </div>
-                                                <span className={styles.revenueTrendLabel}>{day.label}</span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Recent Activity */}
-                        <div className={styles.recentActivity}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    {/* ==================== ROW 3: Recent Activity (full-width) ==================== */}
+                    <div className={styles.chartCard} style={{ marginTop: '32px' }}>
+                        <div className={styles.chartHeader}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <ShoppingBag size={20} color="hsl(var(--color-primary-dark))" />
                                 <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>{t('recentActivityTitle')}</h2>
-                                <button
-                                    onClick={() => setExpandModal('recentActivity')}
-                                    className={styles.miniBtn}
-                                >
-                                    {t('viewAll')}
-                                </button>
                             </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                {recentOrders.map(o => (
-                                    <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'white', borderRadius: '16px', border: '1px solid #F3F4F6' }}>
-                                        <div style={{ padding: '8px', background: 'hsla(var(--color-primary), 0.1)', borderRadius: '10px', color: 'hsl(var(--color-primary-dark))' }}>
-                                            <ShoppingBag size={16} />
+                            <button
+                                onClick={() => setExpandModal('recentActivity')}
+                                className={styles.miniBtn}
+                            >
+                                {t('viewAll')}
+                            </button>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '12px' }}>
+                            {recentOrders.map(o => (
+                                <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', background: '#F9FAFB', borderRadius: '16px', border: '1px solid #F3F4F6' }}>
+                                    <div style={{ padding: '10px', background: 'hsla(var(--color-primary), 0.1)', borderRadius: '12px', color: 'hsl(var(--color-primary-dark))', flexShrink: 0 }}>
+                                        <ShoppingBag size={18} />
+                                    </div>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ fontSize: '14px', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                            #{o.id.slice(0, 6)} — {o.profiles?.full_name}
                                         </div>
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ fontSize: '14px', fontWeight: 700 }}>#{o.id.slice(0, 6)} - {o.profiles?.full_name}</div>
-                                            <div style={{ fontSize: '12px', color: '#6B7280' }}>{format(new Date(o.created_at), 'HH:mm')} • {o.total_price.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}</div>
-                                        </div>
-                                        <div style={{
-                                            fontSize: '11px', fontWeight: 700, padding: '4px 8px', borderRadius: '6px',
-                                            background: STATUS_COLORS[o.status]?.bg || '#F3F4F6',
-                                            color: STATUS_COLORS[o.status]?.text || '#6B7280',
-                                            textTransform: 'uppercase'
-                                        }}>
-                                            {STATUS_COLORS[o.status]?.label || o.status}
+                                        <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '2px' }}>
+                                            {format(new Date(o.created_at), 'HH:mm')} · {o.total_price.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}
                                         </div>
                                     </div>
-                                ))}
-                            </div>
+                                    <div style={{
+                                        fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '8px', flexShrink: 0,
+                                        background: STATUS_COLORS[o.status]?.bg || '#F3F4F6',
+                                        color: STATUS_COLORS[o.status]?.text || '#6B7280',
+                                        textTransform: 'uppercase'
+                                    }}>
+                                        {STATUS_COLORS[o.status]?.label || o.status}
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
 

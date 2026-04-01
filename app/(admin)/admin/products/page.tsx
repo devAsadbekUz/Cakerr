@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import { createClient } from '@/app/utils/supabase/client';
 import { Plus, Edit2, Trash2, Package as PackageIcon, LayoutGrid, List, Eye, EyeOff } from 'lucide-react';
@@ -18,19 +18,19 @@ export default function ProductsPage() {
     const [editingProduct, setEditingProduct] = useState<any>(null);
     const [viewMode, setViewMode] = useState<'table' | 'grid'>('grid');
     const [mounted, setMounted] = useState(false);
-    const supabase = createClient();
+    const supabase = useMemo(() => createClient(), []);
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true);
-        // Fetch Products via Service (which filters out deleted items)
-        const productsData = await productService.getAllProductsAdmin();
-        // Fetch Categories
-        const { data: categoriesData } = await supabase.from('categories').select('*');
+        const [productsData, categoriesRes] = await Promise.all([
+            productService.getAllProductsAdmin(),
+            supabase.from('categories').select('*')
+        ]);
 
         setProducts(productsData || []);
-        setCategories(categoriesData || []);
+        setCategories(categoriesRes.data || []);
         setLoading(false);
-    };
+    }, [supabase]);
 
     useEffect(() => {
         setMounted(true);
@@ -40,40 +40,54 @@ export default function ProductsPage() {
         if (window.innerWidth < 1024) {
             setViewMode('grid');
         }
-    }, []);
+    }, [fetchData]);
 
-    const handleDelete = async (id: string) => {
+    const handleDelete = useCallback(async (id: string) => {
         if (!confirm(t('confirmDelete'))) return;
 
-        // Use Hard Delete from Service
         const { error } = await productService.deleteProduct(id);
 
         if (error) {
             console.error('Delete error:', error);
             alert(t('error') + ': ' + error.message);
         } else {
-            fetchData();
+            setProducts(prev => prev.filter(p => p.id !== id));
         }
-    };
+    }, [t]);
 
-    const handleToggleAvailability = async (id: string, currentStatus: boolean) => {
+    const handleToggleAvailability = useCallback(async (id: string, currentStatus: boolean) => {
         const { error } = await productService.toggleProductAvailability(id, !currentStatus);
         if (error) {
             alert(t('error') + ': ' + error.message);
         } else {
-            // Optimistic update or just refetch
-            setProducts(products.map(p => p.id === id ? { ...p, is_available: !currentStatus } : p));
+            setProducts(prev => prev.map(p => p.id === id ? { ...p, is_available: !currentStatus } : p));
         }
-    };
+    }, [t]);
 
-    const handleToggleReady = async (id: string, currentStatus: boolean) => {
+    const handleToggleReady = useCallback(async (id: string, currentStatus: boolean) => {
         const { error } = await productService.toggleProductReady(id, !currentStatus);
         if (error) {
             alert('Xatolik: ' + error.message);
         } else {
-            setProducts(products.map(p => p.id === id ? { ...p, is_ready: !currentStatus } : p));
+            setProducts(prev => prev.map(p => p.id === id ? { ...p, is_ready: !currentStatus } : p));
         }
-    };
+    }, []);
+
+    const handleFormSuccess = useCallback((savedProduct: any) => {
+        const mapped = {
+            ...savedProduct,
+            image: savedProduct.image_url,
+            images: Array.isArray(savedProduct.images) ? savedProduct.images : (savedProduct.image_url ? [savedProduct.image_url] : []),
+            price: savedProduct.base_price,
+            is_ready: savedProduct.is_ready || false,
+        };
+        setProducts(prev => {
+            const exists = prev.some(p => p.id === mapped.id);
+            return exists
+                ? prev.map(p => p.id === mapped.id ? mapped : p)
+                : [mapped, ...prev];
+        });
+    }, []);
 
     if (!mounted) return null;
 
@@ -279,12 +293,29 @@ export default function ProductsPage() {
                                 ) : (
                                     <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px' }}>🍰</div>
                                 )}
-                                <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', gap: '8px' }}>
+                                <div style={{ position: 'absolute', top: '10px', right: '10px' }}>
                                     <button
                                         onClick={() => handleToggleAvailability(p.id, p.is_available)}
                                         title={p.is_available ? t('visible') : t('hidden')}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '5px',
+                                            padding: '5px 10px',
+                                            borderRadius: '20px',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            fontSize: '12px',
+                                            fontWeight: 600,
+                                            backdropFilter: 'blur(6px)',
+                                            background: p.is_available ? 'rgba(22, 163, 74, 0.85)' : 'rgba(107, 114, 128, 0.75)',
+                                            color: 'white',
+                                            boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+                                            transition: 'background 0.2s',
+                                        }}
                                     >
-                                        {p.is_available ? <Eye size={18} /> : <EyeOff size={18} />}
+                                        {p.is_available ? <Eye size={13} /> : <EyeOff size={13} />}
+                                        {p.is_available ? t('yes') : t('no')}
                                     </button>
                                 </div>
                             </div>
@@ -332,7 +363,7 @@ export default function ProductsPage() {
                 onClose={() => setIsFormOpen(false)}
                 product={editingProduct}
                 categories={categories}
-                onSuccess={fetchData}
+                onSuccess={handleFormSuccess}
             />
         </div>
     );

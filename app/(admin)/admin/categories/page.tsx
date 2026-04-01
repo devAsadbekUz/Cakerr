@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { Plus, Edit2, Trash2, FolderOpen, GripVertical, Save } from 'lucide-react';
 import {
@@ -26,17 +26,42 @@ import { adminFetch, adminDelete, adminUpdate } from '@/app/utils/adminApi';
 import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 import { getLocalized } from '@/app/utils/i18n';
 
+// --- Loading skeleton ---
+function SkeletonRow() {
+    return (
+        <tr style={{ borderBottom: '1px solid #F3F4F6' }}>
+            <td style={{ padding: '12px 16px', width: '44px' }}>
+                <div style={{ width: '18px', height: '18px', background: '#E5E7EB', borderRadius: '4px' }} />
+            </td>
+            <td style={{ padding: '12px 16px' }}>
+                <div style={{ width: '40px', height: '40px', background: '#E5E7EB', borderRadius: '8px' }} />
+            </td>
+            <td style={{ padding: '12px 16px' }}>
+                <div style={{ width: '120px', height: '16px', background: '#E5E7EB', borderRadius: '4px' }} />
+            </td>
+            <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                <div style={{ display: 'inline-flex', gap: '8px' }}>
+                    <div style={{ width: '32px', height: '32px', background: '#E5E7EB', borderRadius: '8px' }} />
+                    <div style={{ width: '32px', height: '32px', background: '#E5E7EB', borderRadius: '8px' }} />
+                </div>
+            </td>
+        </tr>
+    );
+}
+
 // --- Sortable row component ---
 function SortableRow({
     cat,
     onEdit,
     onDelete,
     lang,
+    deleting,
 }: {
     cat: any;
     onEdit: (cat: any) => void;
     onDelete: (id: string) => void;
     lang: 'uz' | 'ru';
+    deleting: boolean;
 }) {
     const {
         attributes,
@@ -52,7 +77,7 @@ function SortableRow({
         transition,
         borderBottom: '1px solid #F3F4F6',
         background: isDragging ? '#FDF2F8' : 'white',
-        opacity: isDragging ? 0.85 : 1,
+        opacity: isDragging || deleting ? 0.5 : 1,
         zIndex: isDragging ? 10 : 'auto',
         position: 'relative' as const,
     };
@@ -75,6 +100,7 @@ function SortableRow({
             <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                 <button
                     onClick={() => onEdit(cat)}
+                    disabled={deleting}
                     style={{
                         padding: '8px', background: '#EFF6FF', color: '#1D4ED8',
                         borderRadius: '8px', border: 'none', cursor: 'pointer', marginRight: '8px'
@@ -84,9 +110,10 @@ function SortableRow({
                 </button>
                 <button
                     onClick={() => onDelete(cat.id)}
+                    disabled={deleting}
                     style={{
                         padding: '8px', background: '#FEF2F2', color: '#DC2626',
-                        borderRadius: '8px', border: 'none', cursor: 'pointer'
+                        borderRadius: '8px', border: 'none', cursor: deleting ? 'not-allowed' : 'pointer'
                     }}
                 >
                     <Trash2 size={16} />
@@ -105,6 +132,9 @@ export default function CategoriesPage() {
     const [orderChanged, setOrderChanged] = useState(false);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState<any>(null);
+    const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+    // Track sort_order at last fetch to only save changed rows
+    const savedOrderRef = useRef<Record<string, number>>({});
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -112,26 +142,42 @@ export default function CategoriesPage() {
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
-    const fetchCategories = async () => {
+    const fetchCategories = useCallback(async () => {
         setLoading(true);
         const data = await adminFetch({ table: 'categories', orderBy: 'sort_order', orderAsc: true });
         setCategories(data);
         setOrderChanged(false);
+        // Record the saved sort_order baseline
+        const baseline: Record<string, number> = {};
+        data.forEach((c: any, i: number) => { baseline[c.id] = c.sort_order ?? i; });
+        savedOrderRef.current = baseline;
         setLoading(false);
-    };
+    }, []);
 
     useEffect(() => {
         fetchCategories();
-    }, []);
+    }, [fetchCategories]);
 
-    const handleDelete = async (id: string) => {
+    const handleDelete = useCallback(async (id: string) => {
         if (!confirm(t('confirmDelete'))) return;
-        const success = await adminDelete('categories', id);
-        if (success) fetchCategories();
-        else alert(t('error'));
-    };
 
-    const handleDragEnd = (event: DragEndEvent) => {
+        // Optimistic removal
+        setDeletingIds(prev => new Set(prev).add(id));
+        const snapshot = [...categories];
+        setCategories(prev => prev.filter(c => c.id !== id));
+
+        const success = await adminDelete('categories', id);
+        if (success) {
+            setDeletingIds(prev => { const s = new Set(prev); s.delete(id); return s; });
+        } else {
+            // Restore on failure
+            setCategories(snapshot);
+            setDeletingIds(prev => { const s = new Set(prev); s.delete(id); return s; });
+            alert(t('error'));
+        }
+    }, [categories, t]);
+
+    const handleDragEnd = useCallback((event: DragEndEvent) => {
         const { active, over } = event;
         if (!over || active.id === over.id) return;
 
@@ -141,23 +187,42 @@ export default function CategoriesPage() {
             return arrayMove(items, oldIndex, newIndex);
         });
         setOrderChanged(true);
-    };
+    }, []);
 
-    const saveOrder = async () => {
+    const saveOrder = useCallback(async () => {
         setSaving(true);
         try {
+            // Only update rows whose position actually changed
+            const toUpdate = categories
+                .map((cat, index) => ({ cat, index }))
+                .filter(({ cat, index }) => savedOrderRef.current[cat.id] !== index);
+
             await Promise.all(
-                categories.map((cat, index) =>
+                toUpdate.map(({ cat, index }) =>
                     adminUpdate('categories', cat.id, { sort_order: index })
                 )
             );
+
+            // Update baseline
+            categories.forEach((c, i) => { savedOrderRef.current[c.id] = i; });
             setOrderChanged(false);
         } catch (err) {
             console.error('Failed to save order:', err);
             alert(t('error'));
         }
         setSaving(false);
-    };
+    }, [categories, t]);
+
+    const handleFormSuccess = useCallback((saved: any) => {
+        setCategories(prev => {
+            const exists = prev.some(c => c.id === saved.id);
+            if (exists) {
+                return prev.map(c => c.id === saved.id ? { ...c, ...saved } : c);
+            }
+            // New category — append (will be last, sort_order assigned by DB)
+            return [...prev, saved];
+        });
+    }, []);
 
     return (
         <div>
@@ -198,7 +263,21 @@ export default function CategoriesPage() {
             </div>
 
             {loading ? (
-                <div>{t('loading')}</div>
+                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E5E7EB', overflow: 'hidden' }}>
+                    <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                        <thead style={{ background: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
+                            <tr>
+                                <th style={{ padding: '16px', width: '44px' }}></th>
+                                <th style={{ padding: '16px', fontSize: '12px', color: '#6B7280', textTransform: 'uppercase' }}>{t('icon')}</th>
+                                <th style={{ padding: '16px', fontSize: '12px', color: '#6B7280', textTransform: 'uppercase' }}>{t('name')}</th>
+                                <th style={{ padding: '16px', fontSize: '12px', color: '#6B7280', textTransform: 'uppercase', textAlign: 'right' }}>{t('actions')}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {Array.from({ length: 4 }).map((_, i) => <SkeletonRow key={i} />)}
+                        </tbody>
+                    </table>
+                </div>
             ) : categories.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px', color: '#6B7280' }}>
                     <FolderOpen size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
@@ -225,6 +304,7 @@ export default function CategoriesPage() {
                                             onEdit={(c) => { setEditingCategory(c); setIsFormOpen(true); }}
                                             onDelete={handleDelete}
                                             lang={lang}
+                                            deleting={deletingIds.has(cat.id)}
                                         />
                                     ))}
                                 </tbody>
@@ -247,7 +327,7 @@ export default function CategoriesPage() {
                 isOpen={isFormOpen}
                 onClose={() => setIsFormOpen(false)}
                 category={editingCategory}
-                onSuccess={fetchCategories}
+                onSuccess={handleFormSuccess}
             />
         </div>
     );

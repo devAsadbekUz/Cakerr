@@ -18,6 +18,8 @@ export const adminTranslations = {
         newProduct: "Yangi mahsulot",
         editCategory: "Kategoriyani tahrirlash",
         newCategory: "Yangi kategoriya",
+        editBanner: "Bannerni tahrirlash",
+        addBanner: "Yangi banner",
         titleLabel: "Nom (Title)",
         subtitleLabel: "Qisqa tarif (Subtitle)",
         descriptionLabel: "Batafsil tavsif",
@@ -28,13 +30,13 @@ export const adminTranslations = {
         variantsLabel: "O'lcham va Variantlar",
         attributesLabel: "Xususiyatlari",
         addVariant: "+ Qo'shish",
-        shapesLabel: "Shakl",
+        shapesLabel: "Vazn",
         flavorsLabel: "Ichki ta'mlar",
         coatingLabel: "Ustki qoplama",
         saveProduct: "Mahsulotni saqlash",
         saveCategory: "Kategoriyani saqlash",
         placeholderSubtitle: "Masalan: Eng shirin tort",
-        placeholderShapes: "Masalan: Dumaloq, Kvadrat",
+        placeholderShapes: "Masalan: 1 kg, 1.4 kg, 2 kg",
         placeholderFlavors: "Masalan: Shokoladli, Vanilli",
         placeholderCoating: "Masalan: Krem-chiz, Velur",
         priceError: "Narx kiriting",
@@ -103,7 +105,7 @@ export const adminTranslations = {
         viaBuilder: "Konstruktor orqali",
         portionSize: "Hajm/Portsiya",
         flavorCream: "Lazzat/Krem",
-        shape: "Shakl",
+        shape: "Vazn",
         sponge: "Biskvit",
         decorations: "Bezaklar",
         customerNote: "Mijoz izohi",
@@ -278,7 +280,17 @@ export const adminTranslations = {
         
         // Languages
         uzbek: "O'zbekcha",
-        russian: "Русский"
+        russian: "Русский",
+
+        // Chart labels
+        todayLabel: "BUGUN",
+        revenueLabel: "Daromad",
+        salesLabel: "Sotuvlar",
+        forecastLabel: "Bashorat (10 kun)",
+        retentionRepeat: "Doimiy mijozlar",
+        retentionNew: "Yangi mijozlar",
+        retentionRepeatSub: "ta (2+ marta)",
+        retentionNewSub: "ta (ilk marta)",
     },
     ru: {
         // Sidebar
@@ -299,6 +311,8 @@ export const adminTranslations = {
         newProduct: "Новый товар",
         editCategory: "Редактировать категорию",
         newCategory: "Новая категория",
+        editBanner: "Редактировать баннер",
+        addBanner: "Новый баннер",
         titleLabel: "Название",
         subtitleLabel: "Краткое описание",
         descriptionLabel: "Подробное описание",
@@ -309,13 +323,13 @@ export const adminTranslations = {
         variantsLabel: "Размеры и варианты",
         attributesLabel: "Характеристики",
         addVariant: "+ Добавить",
-        shapesLabel: "Форма",
+        shapesLabel: "Вес",
         flavorsLabel: "Вкусы (начинка)",
         coatingLabel: "Покрытие",
         saveProduct: "Сохранить товар",
         saveCategory: "Сохранить категорию",
         placeholderSubtitle: "Напр: Самый вкусный торт",
-        placeholderShapes: "Напр: Круглый, Квадратный",
+        placeholderShapes: "Напр: 1 кг, 1.4 кг, 2 кг",
         placeholderFlavors: "Напр: Шоколадный, Ванильный",
         placeholderCoating: "Напр: Крем-чиз, Велюр",
         priceError: "Введите цену",
@@ -384,7 +398,7 @@ export const adminTranslations = {
         viaBuilder: "Через конструктор",
         portionSize: "Объем/Порция",
         flavorCream: "Вкус/Крем",
-        shape: "Форма",
+        shape: "Вес",
         sponge: "Бисквит",
         decorations: "Украшения",
         customerNote: "Комментарий клиента",
@@ -559,7 +573,17 @@ export const adminTranslations = {
         
         // Languages
         uzbek: "Узбекский",
-        russian: "Русский"
+        russian: "Русский",
+
+        // Chart labels
+        todayLabel: "СЕГОДНЯ",
+        revenueLabel: "Доход",
+        salesLabel: "Продажи",
+        forecastLabel: "Прогноз (10 дн.)",
+        retentionRepeat: "Постоянные клиенты",
+        retentionNew: "Новые клиенты",
+        retentionRepeatSub: "(2+ раза)",
+        retentionNewSub: "(впервые)",
     }
 };
 

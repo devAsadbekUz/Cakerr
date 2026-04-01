@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { MessageCircle, X, Send } from 'lucide-react';
 import styles from './ChatWidget.module.css';
+import { useLanguage } from '@/app/context/LanguageContext';
 
 interface Message {
     id: string;
@@ -10,21 +11,12 @@ interface Message {
     content: string;
 }
 
-const QUICK_ACTIONS = [
-    'Qanday tortlar bor?',
-    'Eng arzon tort?',
-    'Buyurtma qanday beraman?',
-];
-
-const WELCOME_MESSAGE: Message = {
-    id: 'welcome',
-    role: 'assistant',
-    content: 'Salom! 🎂 Men TORTEL\'E yordamchisiman. Tortlar, narxlar yoki buyurtma berish haqida savol bering!',
-};
-
 export default function ChatWidget() {
+    const { t } = useLanguage();
+    const QUICK_ACTIONS = [t('chatQuestion1'), t('chatQuestion2'), t('chatQuestion3')];
+
     const [isOpen, setIsOpen] = useState(false);
-    const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
+    const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -32,6 +24,16 @@ export default function ChatWidget() {
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+
+    // Keep welcome message in sync with language
+    useEffect(() => {
+        setMessages(prev => {
+            const welcome = { id: 'welcome', role: 'assistant' as const, content: t('chatWelcome') };
+            if (prev.length === 0) return [welcome];
+            if (prev[0].id === 'welcome') return [welcome, ...prev.slice(1)];
+            return prev;
+        });
+    }, [t]);
 
     // Scroll to bottom when new messages arrive
     const scrollToBottom = useCallback(() => {
@@ -79,7 +81,7 @@ export default function ChatWidget() {
 
             if (!response.ok) {
                 const data = await response.json();
-                throw new Error(data.error || 'Xatolik yuz berdi');
+                throw new Error(data.error || t('chatError'));
             }
 
             // Handle streaming response
@@ -134,7 +136,7 @@ export default function ChatWidget() {
             }
         } catch (err: any) {
             console.error('[ChatWidget] Error:', err);
-            setError(err.message || 'Xatolik yuz berdi. Qayta urinib ko\'ring.');
+            setError(err.message || t('chatError'));
         } finally {
             setIsLoading(false);
         }
@@ -164,7 +166,7 @@ export default function ChatWidget() {
             <button
                 className={`${styles.toggleButton} ${isOpen ? styles.toggleButtonOpen : ''}`}
                 onClick={() => setIsOpen(!isOpen)}
-                aria-label={isOpen ? 'Chatni yopish' : 'Chat ochish'}
+                aria-label={isOpen ? t('chatClose') : t('chatOpen')}
                 id="chat-toggle-btn"
             >
                 {isOpen ? <X size={24} /> : <MessageCircle size={24} />}
@@ -187,8 +189,8 @@ export default function ChatWidget() {
                         <div className={styles.chatHeader}>
                             <div className={styles.botAvatar}>🎂</div>
                             <div className={styles.headerInfo}>
-                                <div className={styles.headerTitle}>TORTEL'E Yordamchi</div>
-                                <div className={styles.headerSubtitle}>AI bilan ishlaydi • Doim online</div>
+                                <div className={styles.headerTitle}>{t('chatTitle')}</div>
+                                <div className={styles.headerSubtitle}>{t('chatSubtitle')}</div>
                             </div>
                         </div>
 
@@ -245,7 +247,7 @@ export default function ChatWidget() {
                                 value={input}
                                 onChange={e => setInput(e.target.value)}
                                 onKeyDown={handleKeyDown}
-                                placeholder="Savolingizni yozing..."
+                                placeholder={t('chatPlaceholder')}
                                 disabled={isLoading}
                                 id="chat-input"
                                 autoComplete="off"

@@ -1,8 +1,9 @@
 .chartCard {
     background: white;
-    padding: 24px;
-    border-radius: 20px;
-    border: 1px solid #F3F4F6;
+    padding: 32px;
+    border-radius: 24px;
+    border: 1px solid #E5E7EB;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     display: flex;
     flex-direction: column;
 }
@@ -173,23 +174,54 @@
     color: #6B7280;
 }
 
+/* Range tabs */
+.rangeTabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+}
+
+.rangeTab {
+    padding: 5px 14px;
+    border-radius: 8px;
+    border: 1px solid #E5E7EB;
+    background: #F9FAFB;
+    color: #64748B;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.rangeTab:hover {
+    background: #F1F5F9;
+    border-color: #CBD5E1;
+    color: #374151;
+}
+
+.rangeTabActive {
+    background: #1E293B;
+    border-color: #1E293B;
+    color: white;
+}
+
 /* Revenue Line Chart Styles */
 .lineChartContainer {
     width: 100%;
-    height: 300px;
+    height: 360px;
     position: relative;
     overflow: hidden;
 }
 
 @media (max-width: 768px) {
     .lineChartContainer {
-        height: 220px;
+        height: 280px;
     }
 }
 
 @media (max-width: 480px) {
     .lineChartContainer {
-        height: 180px;
+        height: 240px;
     }
 }
 
@@ -205,9 +237,9 @@
 }
 
 .drawPath {
-    stroke-dasharray: 2000;
-    stroke-dashoffset: 2000;
-    animation: draw 2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    stroke-dasharray: 3000;
+    stroke-dashoffset: 3000;
+    animation: draw 1.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
 @keyframes draw {
@@ -218,9 +250,9 @@
 
 .valueLabel {
     opacity: 0;
-    animation: fadeIn 0.8s ease-out 2s forwards;
+    animation: fadeIn 0.6s ease-out 1.8s forwards;
     pointer-events: none;
-    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+    text-shadow: 0 1px 3px rgba(255, 255, 255, 0.9), 0 0 8px rgba(255, 255, 255, 0.6);
 }
 
 .fadeIn {
@@ -262,10 +294,11 @@
 
 @media (max-width: 768px) {
     .lineLegend {
-        display: none;
+        flex-wrap: wrap;
+        gap: 8px;
     }
 
     .lineChartContainer {
-        height: 180px;
+        height: 200px;
     }
 }

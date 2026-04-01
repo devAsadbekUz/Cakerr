@@ -3,12 +3,14 @@
 import { useState, useRef } from 'react';
 import Link from 'next/link';
 import styles from './HeroBanner.module.css';
+import { useLanguage } from '@/app/context/LanguageContext';
+import { getLocalized } from '@/app/utils/i18n';
 
 interface Banner {
     id: string;
-    badge_text: string;
-    title_text: string;
-    button_text: string;
+    badge_text: any;
+    title_text: any;
+    button_text: any;
     link_url: string;
     bg_color: string;
     sort_order: number;
@@ -19,6 +21,7 @@ interface HeroBannerProps {
 }
 
 export default function HeroBanner({ banners }: HeroBannerProps) {
+    const { lang } = useLanguage();
     const [activeIndex, setActiveIndex] = useState(0);
     const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -52,9 +55,9 @@ export default function HeroBanner({ banners }: HeroBannerProps) {
                             style={{ backgroundColor: banner.bg_color }}
                         >
                             <div className={styles.content}>
-                                <span className={styles.badge}>{banner.badge_text}</span>
-                                <h2 className={styles.title}>{banner.title_text}</h2>
-                                <button className={styles.button}>{banner.button_text}</button>
+                                <span className={styles.badge}>{getLocalized(banner.badge_text, lang)}</span>
+                                <h2 className={styles.title}>{getLocalized(banner.title_text, lang)}</h2>
+                                <button className={styles.button}>{getLocalized(banner.button_text, lang)}</button>
                             </div>
                             <div className={styles.decoration}></div>
                             <div className={styles.decoration2}></div>

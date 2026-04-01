@@ -2,7 +2,9 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
 // Only one admin - hardcode for performance
-const OWNER_EMAIL = 'moida.buvayda@gmail.com'.toLowerCase();
+const OWNER_EMAIL = process.env.ADMIN_EMAIL
+    ? process.env.ADMIN_EMAIL.toLowerCase()
+    : 'moida.buvayda@gmail.com'.toLowerCase();
 
 export async function middleware(request: NextRequest) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;

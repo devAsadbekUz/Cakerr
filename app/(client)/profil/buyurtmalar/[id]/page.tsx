@@ -62,12 +62,12 @@ export default function TrackingPage() {
 
                 if (response.status === 404) {
                     setOrder(null);
-                    setErrorMsg('Buyurtma topilmadi');
+                    setErrorMsg(t('orderNotFound'));
                 } else if (response.status === 401) {
-                    setErrorMsg('Avtorizatsiyadan o\'ting');
+                    setErrorMsg(t('authRequired'));
                     // router.push(`/profil/login?redirectTo=/profil/buyurtmalar/${orderId}`);
                 } else {
-                    setErrorMsg(`Xatolik: ${response.status}`);
+                    setErrorMsg(`${t('errorOccurred')}: ${response.status}`);
                 }
                 return;
             }
@@ -82,8 +82,8 @@ export default function TrackingPage() {
                     totalSteps: 6,
                     total: data.total_price,
                     address: {
-                        label: data.delivery_address?.label || 'Manzil',
-                        text: data.delivery_address?.street || 'Manzil ko\'rsatilmagan',
+                        label: data.delivery_address?.label || t('address'),
+                        text: data.delivery_address?.street || t('addressNotProvided'),
                         phone: data.delivery_address?.phone || ''
                     },
                     items: data.order_items.map((item: any) => ({
@@ -178,12 +178,12 @@ export default function TrackingPage() {
                     <AlertCircle size={48} style={{ margin: '0 auto 16px', opacity: 0.5 }} />
                     <p style={{ fontWeight: 500 }}>{errorMsg || t('noProducts')}</p>
                     <button onClick={() => router.push('/')} style={{ marginTop: '20px', color: '#BE185D', fontWeight: 600 }}>{t('back')}</button>
-                    {errorMsg === 'Avtorizatsiyadan o\'ting' && (
+                    {errorMsg === t('authRequired') && (
                         <button
                             onClick={() => router.push(`/profil/login?redirectTo=/profil/buyurtmalar/${orderId}`)}
                             style={{ display: 'block', margin: '12px auto', background: '#BE185D', color: 'white', padding: '8px 16px', borderRadius: 8 }}
                         >
-                            Kirish
+                            {t('login')}
                         </button>
                     )}
                 </div>
@@ -283,7 +283,7 @@ export default function TrackingPage() {
                                     </div>
                                     <div className={styles.productInfo}>
                                         <h3 className={styles.productName}>{item.name}</h3>
-                                        <span className={styles.productQty}>Soni: {item.qty} ta</span>
+                                        <span className={styles.productQty}>{t('quantity')}: {item.qty} {t('pieceUnit')}</span>
                                     </div>
                                     <span className={styles.productPrice}>{item.price.toLocaleString('uz-UZ')} so'm</span>
                                 </div>

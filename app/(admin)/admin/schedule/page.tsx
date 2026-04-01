@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
     Calendar as CalendarIcon, Clock,
     CheckCircle2, ChevronLeft, ChevronRight, AlertCircle, Ban,
@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import {
     format, startOfMonth, endOfMonth, startOfWeek, endOfWeek,
-    eachDayOfInterval, isSameDay, addMonths, subMonths, isToday
+    eachDayOfInterval, isSameDay, addMonths, subMonths,
 } from 'date-fns';
 import { availabilityService, GlobalTimeSlot } from '@/app/services/availabilityService';
 import { uz, ru } from 'date-fns/locale';
@@ -23,7 +23,6 @@ export default function SchedulePage() {
     const [overrides, setOverrides] = useState<any[]>([]);
     const [globalSlots, setGlobalSlots] = useState<GlobalTimeSlot[]>([]);
     const [loading, setLoading] = useState(true);
-    const [mounted, setMounted] = useState(false);
 
     // New slot input state
     const [newSlotLabel, setNewSlotLabel] = useState('');
@@ -34,45 +33,50 @@ export default function SchedulePage() {
     const dragIndex = useRef<number | null>(null);
     const [draggingId, setDraggingId] = useState<string | null>(null);
 
-    const fetchGlobalSlots = async () => {
+    // ─── Fetch functions ──────────────────────────────────────────────────────
+    const fetchGlobalSlots = useCallback(async () => {
         const slots = await availabilityService.getGlobalSlots();
         setGlobalSlots(slots);
-    };
+    }, []);
 
-    const fetchOverrides = async () => {
+    const fetchOverrides = useCallback(async (month: Date) => {
         try {
-            const start = format(startOfMonth(currentMonth), 'yyyy-MM-dd');
-            const end = format(endOfMonth(currentMonth), 'yyyy-MM-dd');
+            const start = format(startOfMonth(month), 'yyyy-MM-dd');
+            const end = format(endOfMonth(month), 'yyyy-MM-dd');
             const data = await availabilityService.getOverrides(start, end);
             setOverrides(data || []);
         } catch (error) {
             console.error('Error fetching overrides:', error);
-        } finally {
-            setLoading(false);
         }
-    };
+    }, []);
 
+    // On mount: fetch both in parallel
     useEffect(() => {
-        setMounted(true);
-        fetchGlobalSlots();
-        fetchOverrides();
-    }, [currentMonth]);
+        Promise.all([
+            fetchGlobalSlots(),
+            fetchOverrides(currentMonth),
+        ]).finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
-    // ─── Global Slot Handlers ────────────────────────────────────────────
-    const validateSlotLabel = (label: string): string => {
+    // When month changes: only re-fetch overrides
+    useEffect(() => {
+        fetchOverrides(currentMonth);
+    }, [currentMonth, fetchOverrides]);
+
+    // ─── Global Slot Handlers ─────────────────────────────────────────────────
+    const validateSlotLabel = useCallback((label: string): string => {
         const trimmed = label.trim();
         if (!trimmed) return t('timeEmptyError');
-        // Accepts formats like "09:00 - 11:00" or "9:00-11:00"
         const pattern = /^\d{1,2}:\d{2}\s*[-–]\s*\d{1,2}:\d{2}$/;
         if (!pattern.test(trimmed)) return t('timeFormatError');
         return '';
-    };
+    }, [t]);
 
-    const handleAddSlot = async () => {
+    const handleAddSlot = useCallback(async () => {
         const error = validateSlotLabel(newSlotLabel);
         if (error) { setSlotError(error); return; }
 
-        // Normalize: ensure consistent format with spaces
         const normalized = newSlotLabel.trim().replace(/\s*[-–]\s*/, ' - ');
         if (globalSlots.some(s => s.label === normalized)) {
             setSlotError(t('timeExistsError'));
@@ -82,69 +86,86 @@ export default function SchedulePage() {
         setAddingSlot(true);
         setSlotError('');
         try {
-            await availabilityService.addGlobalSlot(normalized);
+            // Pass current max order so service skips the extra SELECT
+            const maxOrder = globalSlots.reduce((m, s) => Math.max(m, s.sort_order ?? 0), 0);
+            const newSlot = await availabilityService.addGlobalSlot(normalized, maxOrder);
+            // Append locally — no refetch
+            setGlobalSlots(prev => [...prev, newSlot]);
             setNewSlotLabel('');
-            await fetchGlobalSlots();
         } catch (err: any) {
             setSlotError(err.message || t('error'));
         } finally {
             setAddingSlot(false);
         }
-    };
+    }, [newSlotLabel, globalSlots, validateSlotLabel, t]);
 
-    const handleDeleteSlot = async (id: string, label: string) => {
+    const handleDeleteSlot = useCallback(async (id: string, label: string) => {
         if (!confirm(t('confirmDeleteSlot').replace('{label}', label))) return;
+        // Optimistic removal
+        setGlobalSlots(prev => prev.filter(s => s.id !== id));
         try {
             await availabilityService.deleteGlobalSlot(id);
-            await fetchGlobalSlots();
         } catch (err: any) {
+            // Restore on failure
+            await fetchGlobalSlots();
             alert(`${t('error')}: ${err.message || t('unknown')}`);
         }
-    };
+    }, [t, fetchGlobalSlots]);
 
-    // ─── Drag Handlers ────────────────────────────────────────────────
-    const handleDragStart = (index: number, id: string) => {
+    // ─── Drag Handlers ────────────────────────────────────────────────────────
+    const handleDragStart = useCallback((index: number, id: string) => {
         dragIndex.current = index;
         setDraggingId(id);
-    };
+    }, []);
 
-    const handleDragOver = (e: React.DragEvent, index: number) => {
+    const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
         e.preventDefault();
         if (dragIndex.current === null || dragIndex.current === index) return;
 
-        // Reorder optimistically in UI
-        const reordered = [...globalSlots];
-        const [moved] = reordered.splice(dragIndex.current, 1);
-        reordered.splice(index, 0, moved);
-        dragIndex.current = index;
-        setGlobalSlots(reordered);
-    };
+        setGlobalSlots(prev => {
+            const reordered = [...prev];
+            const [moved] = reordered.splice(dragIndex.current!, 1);
+            reordered.splice(index, 0, moved);
+            dragIndex.current = index;
+            return reordered;
+        });
+    }, []);
 
-    const handleDrop = async () => {
+    const handleDrop = useCallback(async () => {
         setDraggingId(null);
         dragIndex.current = null;
-        // Persist new order to DB
         try {
             await availabilityService.reorderGlobalSlots(globalSlots.map(s => s.id));
         } catch (err) {
             console.error('Failed to save order:', err);
             await fetchGlobalSlots(); // Revert on error
         }
-    };
+    }, [globalSlots, fetchGlobalSlots]);
 
-    // ─── Per-date Override Handler ───────────────────────────────────────
-    const handleToggleSlot = async (slot: string | null) => {
+    // ─── Per-date Override Handler ────────────────────────────────────────────
+    const handleToggleSlot = useCallback(async (slot: string | null) => {
+        const dateStr = format(selectedDate, 'yyyy-MM-dd');
         try {
-            const dateStr = format(selectedDate, 'yyyy-MM-dd');
-            await availabilityService.toggleSlot(dateStr, slot);
-            await fetchOverrides();
+            const result = await availabilityService.toggleSlot(dateStr, slot);
+            // Update overrides locally — no refetch
+            if (result.action === 'removed') {
+                setOverrides(prev => prev.filter(o => !(
+                    o.date === dateStr &&
+                    (slot === null ? o.slot === null : o.slot === slot)
+                )));
+            } else {
+                setOverrides(prev => [...prev, {
+                    id: result.id,
+                    date: dateStr,
+                    slot,
+                    is_available: false,
+                }]);
+            }
         } catch (error: any) {
             console.error('Toggle error:', error);
             alert(`${t('error')}: ${error.message || t('unknown')}`);
         }
-    };
-
-    if (!mounted) return null;
+    }, [selectedDate, t]);
 
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
     const dayOverrides = overrides.filter(o => o.date === dateStr);
@@ -405,7 +426,7 @@ export default function SchedulePage() {
                                         </div>
                                     );
                                 })
-                            )}
+            )}
                         </div>
 
                         {isDayBlocked && (
@@ -424,15 +445,30 @@ export default function SchedulePage() {
 }
 
 function ScheduleCalendar({ currentMonth, selectedDate, onSelectDate, overrides, lang, locale }: any) {
-    const monthStart = startOfMonth(currentMonth);
-    const monthEnd = endOfMonth(monthStart);
-    const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
-    const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
-    const calendarDays = eachDayOfInterval({ start: startDate, end: endDate });
+    // Compute calendar days only when the month changes
+    const calendarDays = useMemo(() => {
+        const monthStart = startOfMonth(currentMonth);
+        const monthEnd = endOfMonth(monthStart);
+        const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
+        const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
+        return eachDayOfInterval({ start: startDate, end: endDate });
+    }, [currentMonth]);
 
-    const getDayState = (date: Date) => {
-        const dateStr = format(date, 'yyyy-MM-dd');
-        const dayOverrides = overrides.filter((o: any) => o.date === dateStr);
+    // Pre-build a map of dateStr → overrides[] so getDayState is O(1)
+    const overridesByDate = useMemo(() => {
+        const map = new Map<string, any[]>();
+        for (const o of overrides) {
+            const existing = map.get(o.date);
+            if (existing) existing.push(o);
+            else map.set(o.date, [o]);
+        }
+        return map;
+    }, [overrides]);
+
+    const monthStartRef = startOfMonth(currentMonth);
+
+    const getDayState = (dateStr: string) => {
+        const dayOverrides = overridesByDate.get(dateStr) ?? [];
         if (dayOverrides.some((o: any) => o.slot === null)) return 'blocked';
         if (dayOverrides.length > 0) return 'partial';
         return 'open';
@@ -444,9 +480,10 @@ function ScheduleCalendar({ currentMonth, selectedDate, onSelectDate, overrides,
                 <div key={day} style={{ textAlign: 'center', padding: '8px', fontSize: '12px', fontWeight: 700, color: '#6B7280' }}>{day}</div>
             ))}
             {calendarDays.map((day, idx) => {
-                const state = getDayState(day);
+                const dateStr = format(day, 'yyyy-MM-dd');
+                const state = getDayState(dateStr);
                 const isSelected = isSameDay(day, selectedDate);
-                const isCurrentMonth = isSameDay(startOfMonth(day), startOfMonth(currentMonth));
+                const isCurrentMonth = isSameDay(startOfMonth(day), monthStartRef);
 
                 return (
                     <div

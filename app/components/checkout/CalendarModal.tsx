@@ -7,6 +7,7 @@ import {
     eachDayOfInterval, isSameMonth, isSameDay, isPast
 } from 'date-fns';
 import styles from './CalendarModal.module.css';
+import { useLanguage } from '@/app/context/LanguageContext';
 
 interface CalendarModalProps {
     isOpen: boolean;
@@ -16,17 +17,18 @@ interface CalendarModalProps {
     overrides?: any[];
 }
 
-const MONTHS = [
-    'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
-    'Iyul', 'Avgust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'
-];
-
-const WEEKDAYS = ['Du', 'Se', 'Cho', 'Pa', 'Ju', 'Sha', 'Ya'];
+const MONTHS_UZ = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'];
+const MONTHS_RU = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 
 export default function CalendarModal({ isOpen, onClose, onSelect, selectedDate, overrides }: CalendarModalProps) {
+    const { lang, t } = useLanguage();
+    const MONTHS = lang === 'uz' ? MONTHS_UZ : MONTHS_RU;
+    const WEEKDAYS = t('weekdays') as unknown as string[];
     const [viewDate, setViewDate] = useState(new Date());
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const maxDate = new Date(today);
+    maxDate.setDate(maxDate.getDate() + 30);
 
     if (!isOpen) return null;
 
@@ -48,12 +50,15 @@ export default function CalendarModal({ isOpen, onClose, onSelect, selectedDate,
         calendarDays.push(...eachDayOfInterval({ start: extraStartDate, end: extraEndDate }));
     }
 
+    const canGoPrev = viewDate.getFullYear() > today.getFullYear() || viewDate.getMonth() > today.getMonth();
+    const canGoNext = viewDate.getFullYear() < maxDate.getFullYear() || viewDate.getMonth() < maxDate.getMonth();
+
     const prevMonth = () => {
-        setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
+        if (canGoPrev) setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
     };
 
     const nextMonth = () => {
-        setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1));
+        if (canGoNext) setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1));
     };
 
     const handleDateSelect = (date: Date) => {
@@ -85,10 +90,10 @@ export default function CalendarModal({ isOpen, onClose, onSelect, selectedDate,
                         {MONTHS[viewDate.getMonth()]} {viewDate.getFullYear()}
                     </h2>
                     <div className={styles.navGroup}>
-                        <button className={styles.navBtn} onClick={prevMonth}>
+                        <button className={styles.navBtn} onClick={prevMonth} disabled={!canGoPrev} style={{ opacity: canGoPrev ? 1 : 0.3 }}>
                             <ChevronLeft size={22} />
                         </button>
-                        <button className={styles.navBtn} onClick={nextMonth}>
+                        <button className={styles.navBtn} onClick={nextMonth} disabled={!canGoNext} style={{ opacity: canGoNext ? 1 : 0.3 }}>
                             <ChevronRight size={22} />
                         </button>
                     </div>
@@ -106,7 +111,8 @@ export default function CalendarModal({ isOpen, onClose, onSelect, selectedDate,
                         const isSelected = isDateSelected(day);
                         const isToday = isDateToday(day);
                         const status = getDayStatus(day);
-                        const disabled = (isPast(day) && !isToday) || (status === 'blocked' && isCurrentMonth);
+                        const isBeyondMax = day > maxDate;
+                        const disabled = (isPast(day) && !isToday) || isBeyondMax || (status === 'blocked' && !isBeyondMax);
 
                         return (
                             <button
@@ -118,8 +124,8 @@ export default function CalendarModal({ isOpen, onClose, onSelect, selectedDate,
                                     ${isSelected ? styles.selected : ''}
                                     ${status === 'blocked' && isCurrentMonth ? styles.blocked : ''}
                                 `}
-                                onClick={() => isCurrentMonth && !disabled && handleDateSelect(day)}
-                                disabled={!isCurrentMonth || disabled}
+                                onClick={() => !disabled && handleDateSelect(day)}
+                                disabled={disabled}
                             >
                                 {format(day, 'd')}
                                 {isCurrentMonth && status === 'blocked' && !isSelected && (

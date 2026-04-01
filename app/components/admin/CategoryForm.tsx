@@ -12,7 +12,7 @@ interface CategoryFormProps {
     isOpen: boolean;
     onClose: () => void;
     category?: any; // If passed, we are in Edit mode
-    onSuccess: () => void;
+    onSuccess: (saved: any) => void;
 }
 
 export default function CategoryForm({ isOpen, onClose, category, onSuccess }: CategoryFormProps) {
@@ -55,17 +55,20 @@ export default function CategoryForm({ isOpen, onClose, category, onSuccess }: C
         };
 
         try {
+            let saved: any;
             if (category?.id) {
                 // Update
                 const result = await adminUpdate('categories', category.id, categoryData);
                 if (!result) throw new Error('Update failed via Admin API');
+                saved = { ...category, ...categoryData, ...result };
             } else {
                 // Create
                 const result = await adminInsert('categories', categoryData);
                 if (!result) throw new Error('Insert failed via Admin API');
+                saved = result;
             }
 
-            onSuccess();
+            onSuccess(saved);
             onClose();
             router.refresh();
         } catch (error: any) {

@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { AlertCircle, RotateCcw } from 'lucide-react';
+import { useLanguage } from '@/app/context/LanguageContext';
 
 export default function ClientError({
     error,
@@ -10,6 +11,8 @@ export default function ClientError({
     error: Error & { digest?: string };
     reset: () => void;
 }) {
+    const { t } = useLanguage();
+
     useEffect(() => {
         console.error('[ClientError]', error);
     }, [error]);
@@ -33,10 +36,10 @@ export default function ClientError({
                 <AlertCircle size={32} />
             </div>
             <h2 style={{ fontSize: 20, fontWeight: 700, color: '#111827', margin: 0 }}>
-                Xatolik yuz berdi
+                {t('errorTitle')}
             </h2>
             <p style={{ fontSize: 14, color: '#6B7280', margin: 0, maxWidth: 320 }}>
-                Nimadir noto&apos;g&apos;ri ketdi. Iltimos, qaytadan urinib ko&apos;ring.
+                {t('errorMessage')}
             </p>
             <button
                 onClick={reset}
@@ -49,7 +52,7 @@ export default function ClientError({
                 }}
             >
                 <RotateCcw size={16} />
-                Qaytadan urinish
+                {t('tryAgain')}
             </button>
         </div>
     );

@@ -1,13 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { getStatusConfig, getTelegramButtons, buildOrderMessage, resolveOrderLanguage, parseLang } from '@/app/utils/orderConfig';
+import { getStatusConfig, getTelegramButtons, buildOrderMessage, resolveOrderLanguage } from '@/app/utils/orderConfig';
 import { resolveAppUrl } from '@/app/utils/appUrl';
+
+function resolveTgLang(code?: string | null): 'uz' | 'ru' {
+    if (code?.startsWith('ru')) return 'ru';
+    return 'uz';
+}
+
+function safeName(name: string): string {
+    // Strip Markdown special characters that could break Telegram message formatting
+    return name.replace(/[*_`[\]()~>#+=|{}.!\\]/g, '');
+}
+
+const BOT_STRINGS = {
+    uz: {
+        welcomeBack: (name: string) =>
+            `🍰 *Xush kelibsiz qaytib, ${name}!*\n\nSiz allaqachon ro'yxatdan o'tgansiz. Buyurtma berishni boshlang! 👇`,
+        welcomeNew: (name: string) =>
+            `🍰 *Xush kelibsiz, ${name}!*\n\nTORTEL'E — Toshkentdagi eng shirin tort va pishiriqlar do'koni. Onlayn buyurtma bering, biz yetkazib beramiz! 🎂\n\n📱 *Telefon raqamingiz nima uchun kerak?*\nBuyurtmangizni kuzatish va yetkazib berish uchun. Boshqa maqsadda ishlatilmaydi.\n\nDavom etish uchun quyidagi tugmani bosing 👇`,
+        registrationSuccess: (name: string) =>
+            `✅ *Ajoyib, ${name}!*\n\nSiz muvaffaqiyatli ro'yxatdan o'tdingiz. Endi tortlar, pishiriqlar va maxsus buyurtmalar sizni kutmoqda! 🎂\n\nQuyidagi tugmani bosib xarid qilishni boshlang 👇`,
+        catchAllRegistered: `👇 Buyurtma berish uchun quyidagi tugmani bosing:`,
+        catchAllUnregistered: `📱 Davom etish uchun telefon raqamingizni ulashing.\n\n/start buyrug'ini yuboring va tugmani bosing.`,
+        error: `❌ Xatolik yuz berdi. Iltimos keyinroq qayta urinib ko'ring.`,
+    },
+    ru: {
+        welcomeBack: (name: string) =>
+            `🍰 *С возвращением, ${name}!*\n\nВы уже зарегистрированы. Начните делать заказ! 👇`,
+        welcomeNew: (name: string) =>
+            `🍰 *Добро пожаловать, ${name}!*\n\nTORTEL'E — лучший магазин тортов и выпечки в Ташкенте. Заказывайте онлайн, мы доставим! 🎂\n\n📱 *Зачем нужен номер телефона?*\nДля отслеживания заказа и доставки. Больше ни для чего.\n\nНажмите кнопку ниже, чтобы продолжить 👇`,
+        registrationSuccess: (name: string) =>
+            `✅ *Отлично, ${name}!*\n\nВы успешно зарегистрировались. Торты, выпечка и спецзаказы уже ждут вас! 🎂\n\nНажмите кнопку ниже, чтобы начать покупки 👇`,
+        catchAllRegistered: `👇 Нажмите кнопку ниже, чтобы сделать заказ:`,
+        catchAllUnregistered: `📱 Для продолжения поделитесь номером телефона.\n\nОтправьте /start и нажмите кнопку.`,
+        error: `❌ Произошла ошибка. Пожалуйста, попробуйте позже.`,
+    },
+} as const;
 
 export async function POST(request: NextRequest) {
     const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
     const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
     const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
     const appUrl = resolveAppUrl(request.nextUrl.origin);
+    if (!appUrl) console.error('[Telegram Webhook] appUrl is null — web app buttons will not be sent. Set NEXT_PUBLIC_APP_URL in env.');
 
     // Security check: Verify Telegram Webhook Secret Token if configured
     const incomingSecret = request.headers.get('X-Telegram-Bot-Api-Secret-Token');
@@ -34,12 +70,23 @@ export async function POST(request: NextRequest) {
             const message = update.message;
             const chatId = message.chat.id;
             const userId = message.from?.id;
-            const firstName = message.from?.first_name || '';
+            const firstName = safeName(message.from?.first_name || '');
             const username = message.from?.username || '';
+
+            // Detect user language from Telegram app setting
+            const tgLang = resolveTgLang(message.from?.language_code);
+
+            const i18n = BOT_STRINGS[tgLang];
+            const orderBtnText = tgLang === 'ru' ? '🍰 Сделать заказ' : '🍰 Buyurtma berish';
+            const contactBtnText = tgLang === 'ru' ? '📱 Поделиться номером' : '📱 Telefon raqamni ulashish';
+
+            const webAppMarkup = appUrl
+                ? { inline_keyboard: [[{ text: orderBtnText, web_app: { url: appUrl } }]] }
+                : undefined;
 
             // Handle /start command
             if (message.text?.startsWith('/start')) {
-                console.log('[Telegram Webhook] /start command from:', firstName, 'userId:', userId);
+                console.log('[Telegram Webhook] /start command from:', firstName, 'userId:', userId, 'lang:', tgLang);
 
                 // Check if user already has a profile with phone number
                 const { data: profile } = await supabase
@@ -48,25 +95,20 @@ export async function POST(request: NextRequest) {
                     .eq('telegram_id', userId)
                     .maybeSingle();
 
-                if (profile?.phone_number) {
-                    const replyMarkup = appUrl
-                        ? {
-                            inline_keyboard: [[{
-                                text: '🍰 Buyurtma berish',
-                                web_app: { url: appUrl }
-                            }]]
-                        }
-                        : undefined;
+                // Update tg_lang on every /start so it stays in sync
+                if (profile?.id) {
+                    await supabase.from('profiles').update({ tg_lang: tgLang }).eq('id', profile.id);
+                }
 
-                    // Welcome back message - skip contact sharing
+                if (profile?.phone_number) {
                     await fetch(`${TELEGRAM_API}/sendMessage`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             chat_id: chatId,
-                            text: `🍰 *Xush kelibsiz qaytib, ${firstName}! *\n\nSiz allaqachon ro'yxatdan o'tgansiz. Buyurtma berishni boshlang! 👇`,
+                            text: i18n.welcomeBack(firstName),
                             parse_mode: 'Markdown',
-                            ...(replyMarkup ? { reply_markup: replyMarkup } : {})
+                            ...(webAppMarkup ? { reply_markup: webAppMarkup } : {})
                         })
                     });
                     return NextResponse.json({ ok: true });
@@ -78,13 +120,10 @@ export async function POST(request: NextRequest) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         chat_id: chatId,
-                        text: `🍰 *Xush kelibsiz, ${firstName}! *\n\nTORTEL'E botiga xush kelibsiz! Buyurtma berish uchun telefon raqamingizni ulashing.\n\nQuyidagi tugmani bosing 👇`,
+                        text: i18n.welcomeNew(firstName),
                         parse_mode: 'Markdown',
                         reply_markup: {
-                            keyboard: [[{
-                                text: '📱 Telefon raqamni ulashish',
-                                request_contact: true
-                            }]],
+                            keyboard: [[{ text: contactBtnText, request_contact: true }]],
                             resize_keyboard: true,
                             one_time_keyboard: true
                         }
@@ -109,8 +148,8 @@ export async function POST(request: NextRequest) {
                 }
 
                 try {
-                    // 1. Update/Create profile
-                    const { data: profile, error: profileError } = await supabase
+                    // 1. Update/Create profile — store tg_lang
+                    const { error: profileError } = await supabase
                         .from('profiles')
                         .upsert({
                             telegram_id: telegramId,
@@ -118,6 +157,7 @@ export async function POST(request: NextRequest) {
                             full_name: firstName,
                             username: username,
                             role: 'customer',
+                            tg_lang: tgLang,
                             updated_at: new Date().toISOString()
                         }, { onConflict: 'telegram_id' })
                         .select()
@@ -135,23 +175,14 @@ export async function POST(request: NextRequest) {
                         .eq('telegram_id', telegramId);
 
                     // 3. Send success message
-                    const replyMarkup = appUrl
-                        ? {
-                            inline_keyboard: [[{
-                                text: '🍰 Buyurtma berish',
-                                web_app: { url: appUrl }
-                            }]]
-                        }
-                        : undefined;
-
                     await fetch(`${TELEGRAM_API}/sendMessage`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             chat_id: chatId,
-                            text: `✅ *Rahmat!*\n\nTelefon raqamingiz muvaffaqiyatli ulandi: \`${normalizedPhone}\`\n\n🎂 Endi store'da avtomatik kirishingiz mumkin!`,
+                            text: i18n.registrationSuccess(firstName),
                             parse_mode: 'Markdown',
-                            ...(replyMarkup ? { reply_markup: replyMarkup } : {})
+                            ...(webAppMarkup ? { reply_markup: webAppMarkup } : {})
                         })
                     });
 
@@ -171,13 +202,60 @@ export async function POST(request: NextRequest) {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             chat_id: chatId,
-                            text: `❌ Xatolik yuz berdi. Iltimos keyinroq qayta urinib ko'ring.\n\nError: ${err.message || 'Unknown error'}`
+                            text: i18n.error
                         })
                     });
                 }
 
                 return NextResponse.json({ ok: true });
             }
+
+            // Catch-all: user sent something we don't understand
+            const { data: existingProfile } = await supabase
+                .from('profiles')
+                .select('phone_number, tg_lang')
+                .eq('telegram_id', userId)
+                .maybeSingle();
+
+            // Use stored lang if available, otherwise use detected lang
+            const catchAllLang = resolveTgLang(existingProfile?.tg_lang || tgLang);
+            const catchAllI18n = BOT_STRINGS[catchAllLang];
+            const catchAllOrderBtn = catchAllLang === 'ru' ? '🍰 Сделать заказ' : '🍰 Buyurtma berish';
+            const catchAllContactBtn = catchAllLang === 'ru' ? '📱 Поделиться номером' : '📱 Telefon raqamni ulashish';
+
+            if (existingProfile?.phone_number) {
+                const catchAllMarkup = appUrl
+                    ? { inline_keyboard: [[{ text: catchAllOrderBtn, web_app: { url: appUrl } }]] }
+                    : undefined;
+
+                await fetch(`${TELEGRAM_API}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: chatId,
+                        text: catchAllI18n.catchAllRegistered,
+                        parse_mode: 'Markdown',
+                        ...(catchAllMarkup ? { reply_markup: catchAllMarkup } : {})
+                    })
+                });
+            } else {
+                await fetch(`${TELEGRAM_API}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: chatId,
+                        text: catchAllI18n.catchAllUnregistered,
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            keyboard: [[{ text: catchAllContactBtn, request_contact: true }]],
+                            resize_keyboard: true,
+                            one_time_keyboard: true
+                        }
+                    })
+                });
+            }
+
+            return NextResponse.json({ ok: true });
         }
 
         // Handle callback queries (button clicks for orders)
@@ -223,7 +301,7 @@ export async function POST(request: NextRequest) {
                     total_price,
                     comment,
                     user_id,
-                    profiles (full_name, phone_number, telegram_id),
+                    profiles (full_name, phone_number, telegram_id, tg_lang),
                     order_items (*)
                 `)
                 .eq('id', orderId)
@@ -259,7 +337,6 @@ export async function POST(request: NextRequest) {
             });
 
             // Healing logic: If language wasn't stored yet, or it's malformed, store it now for consistency
-            const existingOrderLang = parseLang(deliveryAddr.lang);
             const needsHealing = !deliveryAddr.lang || (typeof deliveryAddr.lang === 'string' && deliveryAddr.lang.includes('"'));
             
             if (needsHealing) {
@@ -306,6 +383,9 @@ export async function POST(request: NextRequest) {
                 // 2. If not terminal (confirmed, preparing, ready, delivering), send new ping
                 const isTerminal = ['completed', 'cancelled'].includes(newStatus);
                 if (!isTerminal) {
+                    // Use the customer's own language preference, not the admin/order language
+                    const clientLang = resolveTgLang(profile.tg_lang);
+
                     const clientLabels = {
                         uz: {
                             title: "🍰 *Buyurtma holati yangilandi*",
@@ -315,9 +395,9 @@ export async function POST(request: NextRequest) {
                             title: "🍰 *Статус заказа обновлен*",
                             text: `Уважаемый клиент, статус вашего заказа #${order.id.slice(0, 8)} изменился:`
                         }
-                    }[orderLang];
+                    }[clientLang];
 
-                    const clientMessage = `${clientLabels.title}\n\n${clientLabels.text}\n\n*${statusConfig.labels[orderLang]}*\n_${statusConfig.descs[orderLang]}_`;
+                    const clientMessage = `${clientLabels.title}\n\n${clientLabels.text}\n\n*${statusConfig.labels[clientLang]}*\n_${statusConfig.descs[clientLang]}_`;
 
                     const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
                         method: 'POST',

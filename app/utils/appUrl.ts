@@ -25,8 +25,7 @@ export function normalizeAppUrl(url?: string | null): string | null {
 export function getConfiguredAppUrl(): string | null {
     return (
         normalizeAppUrl(process.env.NEXT_PUBLIC_APP_URL) ||
-        normalizeAppUrl(process.env.VERCEL_PROJECT_PRODUCTION_URL) ||
-        normalizeAppUrl(process.env.VERCEL_URL)
+        normalizeAppUrl(process.env.VERCEL_PROJECT_PRODUCTION_URL)
     );
 }
 

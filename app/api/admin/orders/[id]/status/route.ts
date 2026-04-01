@@ -123,7 +123,7 @@ export async function POST(
                     }).then(r => r.json()));
                 }
 
-                // Task B: Status Update for Client (Delete & Re-send strategy)
+                // Task B: Status Update for Client (Delete old → Send new)
                 if (profile?.telegram_id) {
                     // 1. Delete previous message if it exists
                     if (order.client_tg_message_id) {
@@ -137,23 +137,27 @@ export async function POST(
                         }).catch(err => console.error('[Admin Orders Status API] Delete client msg error:', err)));
                     }
 
-                    // 2. If not terminal (confirmed, preparing, ready, delivering), send new ping
-                    const isTerminal = ['completed', 'cancelled'].includes(newStatus);
-                    if (!isTerminal) {
-                        const safeClientLang: 'uz' | 'ru' = (lang === 'ru' || lang === 'uz') ? lang : 'uz';
-                        const clientLabels = {
-                            uz: {
-                                title: "🍰 *Buyurtma holati yangilandi*",
-                                text: `Hurmatli mijoz, sizning #${order.id.slice(0,8)} raqamli buyurtmangiz holati o'zgardi:`
-                            },
-                            ru: {
-                                title: "🍰 *Статус заказа обновлен*",
-                                text: `Уважаемый клиент, статус вашего заказа #${order.id.slice(0,8)} изменился:`
-                            }
-                        }[safeClientLang];
+                    const clientLabels = {
+                        uz: {
+                            title: "🍰 *Buyurtma holati yangilandi*",
+                            text: `Hurmatli mijoz, sizning #${order.id.slice(0,8)} raqamli buyurtmangiz holati o'zgardi:`
+                        },
+                        ru: {
+                            title: "🍰 *Статус заказа обновлен*",
+                            text: `Уважаемый клиент, статус вашего заказа #${order.id.slice(0,8)} изменился:`
+                        }
+                    }[tgLang];
 
-                        const clientMessage = `${clientLabels.title}\n\n${clientLabels.text}\n\n*${statusConfig.labels[tgLang]}*\n_${statusConfig.descs[tgLang]}_`;
-                        
+                    const clientMessage = `${clientLabels.title}\n\n${clientLabels.text}\n\n*${statusConfig.labels[tgLang]}*\n_${statusConfig.descs[tgLang]}_`;
+
+                    if (newStatus === 'cancelled') {
+                        // Cancelled: clear tracking, no new message
+                        tasks.push(serviceClient
+                            .from('orders')
+                            .update({ client_tg_message_id: null, client_tg_delete_at: null })
+                            .eq('id', orderId));
+                    } else {
+                        // All other statuses (including completed): send a status message
                         const sendNewMsg = async () => {
                             const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
                                 method: 'POST',
@@ -166,20 +170,20 @@ export async function POST(
                             });
                             const result = await res.json();
                             if (result.ok) {
-                                // Save new message ID for next cleanup
+                                const isCompleted = newStatus === 'completed';
+                                const deleteAt = isCompleted
+                                    ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+                                    : null;
                                 await serviceClient
                                     .from('orders')
-                                    .update({ client_tg_message_id: result.result.message_id })
+                                    .update({
+                                        client_tg_message_id: result.result.message_id,
+                                        client_tg_delete_at: deleteAt
+                                    })
                                     .eq('id', orderId);
                             }
                         };
                         tasks.push(sendNewMsg());
-                    } else {
-                        // If it's the final step, clear the tracking ID from DB
-                        tasks.push(serviceClient
-                            .from('orders')
-                            .update({ client_tg_message_id: null })
-                            .eq('id', orderId));
                     }
                 }
 

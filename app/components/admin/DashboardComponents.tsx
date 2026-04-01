@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import {
     Calendar as CalendarIcon, CheckCircle2,
     XCircle, Info, MapPinned, Clock, AlertCircle, ShoppingBag, Truck, PackageCheck, ZoomIn, X, MessageSquare
@@ -108,7 +108,7 @@ export function Section({ title, count, children, emptyMsg, highlight }: any) {
     );
 }
 
-export function OrderCard({ order, compact, onUpdate, onClick }: any) {
+export const OrderCard = memo(function OrderCard({ order, compact, onUpdate, onSelect }: any) {
     const { lang, t } = useAdminI18n();
     const statusMeta: any = {
         new: { label: t('status_new'), color: '#FB923C', bg: '#FFF7ED' },
@@ -124,7 +124,7 @@ export function OrderCard({ order, compact, onUpdate, onClick }: any) {
     const deliveryDate = new Date(order.delivery_time);
 
     return (
-        <div className={styles.orderCard} onClick={onClick}>
+        <div className={styles.orderCard} onClick={() => onSelect(order)}>
             <div className={styles.orderCardHeader}>
                 <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
@@ -191,7 +191,7 @@ export function OrderCard({ order, compact, onUpdate, onClick }: any) {
             </div>
         </div>
     );
-}
+});
 
 export function OrderDetailsModal({ order, onClose, onUpdate }: { order: any, onClose: () => void, onUpdate: (id: string, status: string) => void }) {
     const { lang, t } = useAdminI18n();

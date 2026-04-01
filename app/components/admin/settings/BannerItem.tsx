@@ -3,12 +3,14 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Eye, EyeOff, Edit2, Trash2 } from 'lucide-react';
+import { useAdminI18n } from '@/app/context/AdminLanguageContext';
+import { getLocalized } from '@/app/utils/i18n';
 
 export interface Banner {
     id: string;
-    badge_text: string;
-    title_text: string;
-    button_text: string;
+    badge_text: any;
+    title_text: any;
+    button_text: any;
     link_url: string;
     bg_color: string;
     is_active: boolean;
@@ -26,6 +28,7 @@ export function SortableBannerItem({
     onEdit: (b: Banner) => void;
     onDelete: (id: string) => void;
 }) {
+    const { lang } = useAdminI18n();
     const {
         attributes,
         listeners,
@@ -68,14 +71,14 @@ export function SortableBannerItem({
                 fontSize: '8px',
                 overflow: 'hidden'
             }}>
-                <div style={{ opacity: 0.8 }}>{banner.badge_text}</div>
-                <div style={{ fontWeight: 800, marginTop: '4px' }}>{banner.title_text}</div>
+                <div style={{ opacity: 0.8 }}>{getLocalized(banner.badge_text, lang)}</div>
+                <div style={{ fontWeight: 800, marginTop: '4px' }}>{getLocalized(banner.title_text, lang)}</div>
             </div>
 
             <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: '15px' }}>{banner.title_text}</div>
+                <div style={{ fontWeight: 700, fontSize: '15px' }}>{getLocalized(banner.title_text, lang)}</div>
                 <div style={{ fontSize: '12px', color: '#6B7280' }}>
-                    {banner.badge_text} • {banner.button_text}
+                    {getLocalized(banner.badge_text, lang)} • {getLocalized(banner.button_text, lang)}
                 </div>
             </div>
 

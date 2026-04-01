@@ -95,7 +95,7 @@ export default function ContactSheet({ isOpen, onClose }: ContactSheetProps) {
                         label="Instagram"
                         value="cakerr.vercel.app"
                         color="#E1306C"
-                        href="https://cakerr.vercel.app"
+                        href="https://www.instagram.com/tortele.uz/"
                     />
                 </div>
 

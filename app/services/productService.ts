@@ -44,14 +44,13 @@ export const productService = {
         try {
             const allProducts = await adminFetch({
                 table: 'products',
+                select: 'id, title, subtitle, description, base_price, image_url, images, category_id, category, is_available, is_ready, variants, details',
                 orderBy: 'created_at',
-                orderAsc: false
+                orderAsc: false,
+                filterNull: 'deleted_at'
             });
 
-            // Filter out deleted products client-side (IS NULL not supported)
-            const filtered = allProducts.filter((item: any) => !item.deleted_at);
-
-            return filtered.map((item: any) => ({
+            return allProducts.map((item: any) => ({
                 ...item,
                 image: item.image_url,
                 images: Array.isArray(item.images) ? item.images : (item.image_url ? [item.image_url] : []),

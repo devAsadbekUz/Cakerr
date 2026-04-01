@@ -8,6 +8,13 @@ export interface GlobalTimeSlot {
     sort_order: number;
 }
 
+export interface ToggleResult {
+    action: 'added' | 'removed';
+    id: string;
+    slot: string | null;
+    date: string;
+}
+
 export const availabilityService = {
     // ── Global Slots ──────────────────────────────────────────────────────────────
     async getGlobalSlots(): Promise<GlobalTimeSlot[]> {
@@ -19,19 +26,11 @@ export const availabilityService = {
         return data || [];
     },
 
-    async addGlobalSlot(label: string): Promise<GlobalTimeSlot> {
-        // Get max sort_order so new slot appends at the bottom
-        const { data: existing } = await supabase
-            .from('global_time_slots')
-            .select('sort_order')
-            .order('sort_order', { ascending: false })
-            .limit(1);
-
-        const maxOrder = existing?.[0]?.sort_order ?? 0;
-
+    async addGlobalSlot(label: string, currentMaxOrder: number): Promise<GlobalTimeSlot> {
+        // currentMaxOrder is passed from the client — no extra SELECT needed
         const { data, error } = await supabase
             .from('global_time_slots')
-            .insert({ label: label.trim(), sort_order: maxOrder + 1 })
+            .insert({ label: label.trim(), sort_order: currentMaxOrder + 1 })
             .select()
             .single();
         if (error) throw error;
@@ -46,15 +45,12 @@ export const availabilityService = {
         if (error) throw error;
     },
 
+    // Single DB call via RPC instead of N individual UPDATEs
     async reorderGlobalSlots(orderedIds: string[]): Promise<void> {
-        // Update sort_order for each slot based on new index
-        const updates = orderedIds.map((id, index) =>
-            supabase
-                .from('global_time_slots')
-                .update({ sort_order: index + 1 })
-                .eq('id', id)
-        );
-        await Promise.all(updates);
+        const { error } = await supabase.rpc('reorder_global_slots', {
+            ordered_ids: orderedIds,
+        });
+        if (error) throw error;
     },
 
     // ── Per-date Overrides ────────────────────────────────────────────────────────
@@ -69,40 +65,13 @@ export const availabilityService = {
         return data;
     },
 
-    async toggleSlot(date: string, slot: string | null) {
-        try {
-            const query = supabase
-                .from('availability_overrides')
-                .select('*')
-                .eq('date', date);
-
-            if (slot === null) {
-                query.is('slot', null);
-            } else {
-                query.eq('slot', slot);
-            }
-
-            const { data: existing, error: fetchError } = await query.maybeSingle();
-
-            if (fetchError) throw fetchError;
-
-            if (existing) {
-                const { error } = await supabase
-                    .from('availability_overrides')
-                    .delete()
-                    .eq('id', existing.id);
-                if (error) throw error;
-                return { action: 'removed' };
-            } else {
-                const { error } = await supabase
-                    .from('availability_overrides')
-                    .insert({ date, slot, is_available: false });
-                if (error) throw error;
-                return { action: 'added' };
-            }
-        } catch (error) {
-            console.error('Error in toggleSlot:', error);
-            throw error;
-        }
-    }
+    // Single atomic DB call via RPC instead of SELECT + INSERT/DELETE
+    async toggleSlot(date: string, slot: string | null): Promise<ToggleResult> {
+        const { data, error } = await supabase.rpc('toggle_availability_slot', {
+            p_date: date,
+            p_slot: slot,
+        });
+        if (error) throw error;
+        return data as ToggleResult;
+    },
 };

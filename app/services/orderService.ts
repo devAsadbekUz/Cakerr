@@ -1,9 +1,10 @@
 import { createClient } from '@/app/utils/supabase/client';
 
 export const orderService = {
-    async getAllOrdersAdmin() {
+    async getAllOrdersAdmin(filterDays?: number | null) {
         try {
-            const response = await fetch('/api/admin/orders', {
+            const url = filterDays ? `/api/admin/orders?days=${filterDays}` : '/api/admin/orders';
+            const response = await fetch(url, {
                 credentials: 'include'
             });
 

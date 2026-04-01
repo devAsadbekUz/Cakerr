@@ -1,4 +1,4 @@
-import { Headset, Languages } from 'lucide-react';
+import { Headset } from 'lucide-react';
 import SearchBar from '../home/SearchBar';
 import CategoryFilter from '../home/CategoryFilter';
 import styles from './Header.module.css';
@@ -51,8 +51,7 @@ export default function Header({
                             gap: '4px'
                         }}
                     >
-                        <Languages size={14} />
-                        {lang.toUpperCase()}
+                        {lang === 'uz' ? '🇺🇿' : '🇷🇺'}
                     </button>
                     <button
                         style={{

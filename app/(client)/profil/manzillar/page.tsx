@@ -7,10 +7,12 @@ import styles from './page.module.css';
 import { addressService } from '@/app/services/addressService';
 import { UserAddress } from '@/app/types';
 import { useSupabase } from '@/app/context/AuthContext';
+import { useLanguage } from '@/app/context/LanguageContext';
 
 export default function ManzillarPage() {
     const router = useRouter();
     const { user } = useSupabase();
+    const { t } = useLanguage();
     const [addresses, setAddresses] = useState<UserAddress[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -31,12 +33,12 @@ export default function ManzillarPage() {
 
     const handleDelete = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        if (confirm('Ushbu manzilni o\'chirmoqchimisiz?')) {
+        if (confirm(t('deleteAddressPrompt'))) {
             const { error } = await addressService.deleteAddress(id);
             if (!error) {
                 setAddresses(prev => prev.filter(a => a.id !== id));
             } else {
-                alert('Xatolik: ' + error.message);
+                alert(t('errorOccurred') + ': ' + error.message);
             }
         }
     };
@@ -49,14 +51,14 @@ export default function ManzillarPage() {
                 is_default: a.id === id
             })));
         } else {
-            alert('Xatolik: ' + error.message);
+            alert(t('errorOccurred') + ': ' + error.message);
         }
     };
 
     if (!user) {
         return (
             <div className={styles.container}>
-                <p>Ushbu sahifani ko'rish uchun tizimga kiring.</p>
+                <p>{t('loginRequired')}</p>
             </div>
         );
     }
@@ -67,7 +69,7 @@ export default function ManzillarPage() {
                 <button className={styles.backBtn} onClick={() => router.back()}>
                     <ChevronLeft size={24} />
                 </button>
-                <h1 className={styles.title}>Mening manzillarim</h1>
+                <h1 className={styles.title}>{t('myAddresses')}</h1>
                 <button className={styles.addBtn} onClick={() => router.push('/savat/checkout/map')}>
                     <Plus size={24} />
                 </button>
@@ -75,7 +77,7 @@ export default function ManzillarPage() {
 
             <div className={styles.content}>
                 {loading ? (
-                    <div className={styles.loading}>Yuklanmoqda...</div>
+                    <div className={styles.loading}>{t('loading')}</div>
                 ) : addresses.length > 0 ? (
                     <div className={styles.addressList}>
                         {addresses.map((addr) => (
@@ -100,8 +102,8 @@ export default function ManzillarPage() {
 
                                 {(addr.apartment || addr.floor) && (
                                     <p className={styles.details}>
-                                        {addr.apartment && `Xonadon: ${addr.apartment}`}
-                                        {addr.floor && ` • Qavat: ${addr.floor}`}
+                                        {addr.apartment && `${t('apartment')}: ${addr.apartment}`}
+                                        {addr.floor && ` • ${t('floor')}: ${addr.floor}`}
                                     </p>
                                 )}
 
@@ -109,12 +111,12 @@ export default function ManzillarPage() {
                                     {addr.is_default ? (
                                         <div className={styles.defaultBadge}>
                                             <CheckCircle2 size={16} />
-                                            <span>Asosiy manzil</span>
+                                            <span>{t('defaultAddress')}</span>
                                         </div>
                                     ) : (
                                         <div className={styles.setAsDefault}>
                                             <Circle size={16} />
-                                            <span>Asosiy qilib belgilash</span>
+                                            <span>{t('setAsDefault')}</span>
                                         </div>
                                     )}
                                 </div>
@@ -124,13 +126,13 @@ export default function ManzillarPage() {
                 ) : (
                     <div className={styles.emptyState}>
                         <MapPin size={64} className={styles.emptyIcon} />
-                        <h3>Saqlangan manzillar yo'q</h3>
-                        <p>Buyurtma berishni osonlashtirish uchun manzilingizni qo'shing.</p>
+                        <h3>{t('noSavedAddresses')}</h3>
+                        <p>{t('noAddressesDesc')}</p>
                         <button
                             className={styles.primaryBtn}
                             onClick={() => router.push('/savat/checkout/map')}
                         >
-                            Yangi manzil qo'shish
+                            {t('addNewAddress')}
                         </button>
                     </div>
                 )}

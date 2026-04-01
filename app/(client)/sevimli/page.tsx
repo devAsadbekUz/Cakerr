@@ -7,8 +7,10 @@ import styles from './page.module.css';
 import { Heart } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '@/app/utils/supabase/client';
+import { useLanguage } from '@/app/context/LanguageContext';
 
 export default function SevimliPage() {
+    const { t } = useLanguage();
     const { favorites, loading: favoritesLoading, initialLoadDone } = useFavorites();
     const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -52,14 +54,14 @@ export default function SevimliPage() {
 
     // Show loading until both favorites context and product fetch are done
     if (!initialLoadDone || favoritesLoading || loading) {
-        return <div className={styles.container} style={{ padding: '100px', textAlign: 'center' }}>Yuklanmoqda...</div>;
+        return <div className={styles.container} style={{ padding: '100px', textAlign: 'center' }}>{t('loading')}</div>;
     }
 
     return (
         <main style={{ paddingBottom: '100px', backgroundColor: '#F9FAFB', minHeight: '100vh' }}>
             <div className={styles.header}>
-                <h1 className={styles.title}>Sevimlilar</h1>
-                <p className={styles.subtitle}>{products.length} mahsulot</p>
+                <h1 className={styles.title}>{t('favorites')}</h1>
+                <p className={styles.subtitle}>{products.length} {t('mahsulot')}</p>
             </div>
 
             <div style={{ padding: '20px' }}>
@@ -70,12 +72,10 @@ export default function SevimliPage() {
                         <div className={styles.emptyIconWrapper}>
                             <Heart size={48} color="#E91E63" fill="#E91E63" />
                         </div>
-                        <h2 className={styles.emptyTitle}>Sevimli tortlaringiz yo'q</h2>
-                        <p className={styles.emptyDescription}>
-                            Yoqtirgan tortlaringizni savatga qo'shing va ular shu yerda ko'rinadi!
-                        </p>
+                        <h2 className={styles.emptyTitle}>{t('noFavorites')}</h2>
+                        <p className={styles.emptyDescription}>{t('noFavoritesDesc')}</p>
                         <Link href="/" className={styles.primaryBtn}>
-                            Asosiyga o'tish
+                            {t('goHome')}
                         </Link>
                     </div>
                 )}

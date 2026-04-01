@@ -4,6 +4,7 @@ import { RotateCw } from 'lucide-react';
 import { useCart } from '@/app/context/CartContext';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useLanguage } from '@/app/context/LanguageContext';
 
 interface OrderCardProps {
     id: string;
@@ -20,6 +21,7 @@ interface OrderCardProps {
 export default function OrderCard({ date, items, price, image, productId, name, portion, flavor }: OrderCardProps) {
     const { addItem } = useCart();
     const router = useRouter();
+    const { t } = useLanguage();
 
     const handleReorder = () => {
         addItem({
@@ -45,7 +47,7 @@ export default function OrderCard({ date, items, price, image, productId, name, 
             </div>
             <button className={styles.reorderBtn} onClick={handleReorder}>
                 <RotateCw size={16} />
-                <span>Qayta buyurtma</span>
+                <span>{t('reorderShort')}</span>
             </button>
         </div>
     );

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, ShoppingBag, Package, Calendar, Settings, LogOut, Tags, Menu, X, Wand2, Coins, MessageSquare, Cake, Languages } from 'lucide-react';
 import { createClient } from '@/app/utils/supabase/client';
@@ -66,7 +65,6 @@ export default function AdminSidebar() {
 
             <aside className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : ''}`}>
                 <div className={styles.logo}>
-                    <Image src="/favicon.png" alt="Logo" width={32} height={32} />
                     <span className={styles.brandName}>TORTEL'E</span>
                 </div>
 

@@ -14,7 +14,7 @@ interface ProductFormProps {
     onClose: () => void;
     product?: any; // We'll cast to partial Product
     categories: any[];
-    onSuccess: () => void;
+    onSuccess: (savedProduct: any) => void;
 }
 
 export default function ProductForm({ isOpen, onClose, product, categories, onSuccess }: ProductFormProps) {
@@ -53,11 +53,20 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
     useEffect(() => {
         setShowErrors(false);
         if (product) {
-            // Helper to handle legacy string data or existing JSONB
+            // Helper to handle legacy string data, stringified JSON, or existing JSONB
             const getInitialValue = (val: any) => {
                 if (!val) return { uz: '', ru: '' };
-                if (typeof val === 'string') return { uz: val, ru: '' };
-                return { uz: val.uz || '', ru: val.ru || '' };
+                if (typeof val === 'object') return { uz: val.uz || '', ru: val.ru || '' };
+                if (typeof val === 'string') {
+                    if (val.startsWith('{')) {
+                        try {
+                            const parsed = JSON.parse(val);
+                            return { uz: parsed.uz || '', ru: parsed.ru || '' };
+                        } catch (_) {}
+                    }
+                    return { uz: val, ru: '' };
+                }
+                return { uz: '', ru: '' };
             };
 
             setTitle(getInitialValue(product.title));
@@ -142,7 +151,7 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
         // Custom validation
         const hasBasePrice = Number(basePrice) > 0;
         const allVariantsHavePrice = variants.every(v => v.price !== '' && Number(v.price) > 0);
-        const hasTitle = title.uz.trim().length > 0;
+        const hasTitle = title.uz.trim().length > 0 || title.ru.trim().length > 0;
 
         if (!hasBasePrice || !allVariantsHavePrice || !hasTitle) {
             setShowErrors(true);
@@ -174,14 +183,15 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
         };
 
         try {
+            let result;
             if (product?.id) {
-                const result = await adminUpdate('products', product.id, productData);
+                result = await adminUpdate('products', product.id, productData);
                 if (!result) throw new Error('Update failed via Admin API');
             } else {
-                const result = await adminInsert('products', productData);
+                result = await adminInsert('products', productData);
                 if (!result) throw new Error('Insert failed via Admin API');
             }
-            onSuccess();
+            onSuccess(result);
             onClose();
             router.refresh(); // Refresh server components
         } catch (error: any) {
@@ -230,11 +240,20 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
                                 {t('titleLabel')} - {activeTab.toUpperCase()}
                             </label>
                             <input
-                                value={title[activeTab]} 
+                                value={title[activeTab]}
                                 onChange={e => handleDataChange('title', e.target.value)}
-                                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #E5E7EB' }}
-                                required
+                                style={{
+                                    width: '100%', padding: '10px', borderRadius: '8px',
+                                    border: `1px solid ${showErrors && !title.uz.trim() && !title.ru.trim() ? '#EF4444' : '#E5E7EB'}`,
+                                    background: showErrors && !title.uz.trim() && !title.ru.trim() ? '#FEF2F2' : 'white',
+                                    transition: 'all 0.2s'
+                                }}
                             />
+                            {showErrors && !title.uz.trim() && !title.ru.trim() && (
+                                <p style={{ color: '#EF4444', fontSize: '12px', marginTop: '4px', fontWeight: 500 }}>
+                                    {t('titleLabel')} UZ yoki RU da kiritilishi shart
+                                </p>
+                            )}
                         </div>
 
                         <div style={{ marginBottom: '16px' }}>

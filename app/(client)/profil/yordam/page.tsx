@@ -5,48 +5,24 @@ import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronDown, Phone, MessageCircle, Package, CreditCard, Truck, User } from 'lucide-react';
 import { TELEGRAM_CONFIG } from '@/app/utils/telegramConfig';
 import styles from './page.module.css';
-
-interface FAQItem {
-    question: string;
-    answer: string;
-}
-
-const FAQ_DATA: FAQItem[] = [
-    {
-        question: "Buyurtmani qanday bekor qilsam bo'ladi?",
-        answer: "Buyurtmani tayyorlanish boshlangunga qadar bekor qilishingiz mumkin. Profil bo'limidagi 'Buyurtmalar tarixi'ga o'ting va tegishli buyurtmani toping."
-    },
-    {
-        question: "Yetkazib berish qancha vaqt oladi?",
-        answer: "Yetkazib berish odatda 2-4 soat ichida amalga oshiriladi. Tanlangan vaqt oralig'ida tortingiz yetkazib beriladi."
-    },
-    {
-        question: "To'lovni qanday amalga oshiraman?",
-        answer: "Siz naqd pul yoki karta orqali to'lov qilishingiz mumkin. Kartadan to'lash uchun Payme yoki Click tizimlaridan foydalanishingiz mumkin."
-    },
-    {
-        question: "Maxsus tort buyurtma qilsam bo'ladimi?",
-        answer: "Albatta! 'Yaratish' bo'limida o'zingizga yoqqan dizaynda tort yaratishingiz mumkin. Shakl, o'lcham, ta'm va bezakni tanlang."
-    },
-    {
-        question: "Tortni sovg'a sifatida yuborishim mumkinmi?",
-        answer: "Ha, buyurtma berish paytida 'Sovg'a rejimi'ni tanlang. Qabul qiluvchining telefon raqamini kiriting va narx yashirin qoladi."
-    }
-];
+import { useLanguage } from '@/app/context/LanguageContext';
 
 export default function HelpCenterPage() {
     const router = useRouter();
+    const { t } = useLanguage();
     const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
     const toggleFAQ = (index: number) => {
         setExpandedIndex(expandedIndex === index ? null : index);
     };
 
+    const faqData = t('faqData') as unknown as { question: string; answer: string }[];
+
     const topics = [
-        { icon: Package, label: 'Buyurtmalar', color: '#E91E63' },
-        { icon: CreditCard, label: "To'lov", color: '#F59E0B' },
-        { icon: Truck, label: 'Yetkazib berish', color: '#10B981' },
-        { icon: User, label: 'Akkaunt', color: '#6366F1' }
+        { icon: Package, label: t('topicOrders'), color: '#E91E63' },
+        { icon: CreditCard, label: t('payment'), color: '#F59E0B' },
+        { icon: Truck, label: t('delivery'), color: '#10B981' },
+        { icon: User, label: t('topicAccount'), color: '#6366F1' }
     ];
 
     return (
@@ -55,19 +31,19 @@ export default function HelpCenterPage() {
                 <button className={styles.backBtn} onClick={() => router.back()}>
                     <ChevronLeft size={24} />
                 </button>
-                <h1 className={styles.title}>Yordam markazi</h1>
+                <h1 className={styles.title}>{t('helpCenter')}</h1>
             </header>
 
             {/* Quick Contact */}
             <div className={styles.contactSection}>
-                <h2 className={styles.sectionTitle}>Biz bilan bog'laning</h2>
+                <h2 className={styles.sectionTitle}>{t('contactTitle')}</h2>
                 <div className={styles.contactGrid}>
                     <a href="tel:+998901234567" className={styles.contactCard}>
                         <div className={`${styles.contactIcon} ${styles.phone}`}>
                             <Phone size={24} />
                         </div>
                         <div className={styles.contactInfo}>
-                            <h3>Telefon</h3>
+                            <h3>{t('phone')}</h3>
                             <p>+998 90 123 45 67</p>
                         </div>
                     </a>
@@ -85,7 +61,7 @@ export default function HelpCenterPage() {
 
             {/* Topics */}
             <div className={styles.section}>
-                <h2 className={styles.sectionTitle}>Mavzular</h2>
+                <h2 className={styles.sectionTitle}>{t('topics')}</h2>
                 <div className={styles.topicsGrid}>
                     {topics.map((topic, index) => {
                         const Icon = topic.icon;
@@ -103,9 +79,9 @@ export default function HelpCenterPage() {
 
             {/* FAQ */}
             <div className={styles.section}>
-                <h2 className={styles.sectionTitle}>Ko'p beriladigan savollar</h2>
+                <h2 className={styles.sectionTitle}>{t('faqTitle')}</h2>
                 <div className={styles.faqList}>
-                    {FAQ_DATA.map((faq, index) => (
+                    {faqData.map((faq, index) => (
                         <div key={index} className={styles.faqItem}>
                             <button
                                 className={styles.faqQuestion}

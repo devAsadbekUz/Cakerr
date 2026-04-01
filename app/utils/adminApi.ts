@@ -7,6 +7,7 @@ type AdminFetchOptions = {
     orderAsc?: boolean;
     filterColumn?: string;
     filterValue?: string;
+    filterNull?: string; // column name that must be IS NULL
 };
 
 export async function adminFetch<T = any>(options: AdminFetchOptions): Promise<T[]> {
@@ -23,6 +24,10 @@ export async function adminFetch<T = any>(options: AdminFetchOptions): Promise<T
     if (options.filterColumn && options.filterValue) {
         params.set('filterColumn', options.filterColumn);
         params.set('filterValue', options.filterValue);
+    }
+
+    if (options.filterNull) {
+        params.set('filterNull', options.filterNull);
     }
 
     const response = await fetch(`/api/admin/data?${params.toString()}`, {

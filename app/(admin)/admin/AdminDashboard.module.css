@@ -423,17 +423,26 @@
 }
 
 .bar {
-    width: 32px;
-    background: #FCE7F3;
+    width: 36px;
+    background: linear-gradient(180deg, #FBCFE8 0%, #FCE7F3 100%);
     border-radius: 12px 12px 4px 4px;
     position: relative;
-    transition: background-color, border-color, color, opacity, transform, box-shadow 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background 0.3s ease, transform 0.2s ease;
     display: flex;
     justify-content: center;
 }
 
+.bar:hover {
+    background: linear-gradient(180deg, #F9A8D4 0%, #FBCFE8 100%);
+    transform: scaleX(1.08);
+}
+
 .barToday {
-    background: #BE185D;
+    background: linear-gradient(180deg, #BE185D 0%, #EC4899 100%);
+}
+
+.barToday:hover {
+    background: linear-gradient(180deg, #9D174D 0%, #BE185D 100%);
 }
 
 .barValue {

@@ -7,6 +7,7 @@ import styles from './page.module.css';
 import { ChevronLeft, MapPin, Navigation, Loader2 } from 'lucide-react';
 import Script from 'next/script';
 import Head from 'next/head';
+import { useLanguage } from '@/app/context/LanguageContext';
 
 declare var L: any;
 
@@ -15,10 +16,11 @@ function MapContent() {
     const searchParams = useSearchParams();
     const editId = searchParams.get('edit');
     const { setDeliveryAddress, setDeliveryCoords, addSavedAddress, savedAddresses, updateSavedAddress } = useCart();
+    const { t } = useLanguage();
     const mapRef = useRef<HTMLDivElement>(null);
     const [map, setMap] = useState<any>(null);
     const [marker, setMarker] = useState<any>(null);
-    const [address, setAddress] = useState('Manzil tanlanmoqda...');
+    const [address, setAddress] = useState('');
     const [scriptLoaded, setScriptLoaded] = useState(false);
 
     useEffect(() => {
@@ -79,7 +81,7 @@ function MapContent() {
             const displayName = data.display_name || '';
             const parts = displayName.split(', ');
             const shortAddress = parts.slice(0, 3).join(', ');
-            setAddress(shortAddress || 'Noma\'lum manzil');
+            setAddress(shortAddress || t('unknownAddress'));
         } catch (error) {
             setAddress(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
         }
@@ -90,7 +92,7 @@ function MapContent() {
 
         // Guard against marker not being initialized yet
         if (!marker) {
-            alert('Xarita hali yuklanmadi. Iltimos, biroz kuting.');
+            alert(t('mapNotReady'));
             return;
         }
 
@@ -125,7 +127,7 @@ function MapContent() {
                 fetchAddress(latitude, longitude);
             }, (error) => {
                 console.error('Geolocation error', error);
-                alert('Joylashuvingizni aniqlab bo\'lmadi');
+                alert(t('locationError'));
             });
         }
     };
@@ -160,7 +162,7 @@ function MapContent() {
                     color: '#BE185D'
                 }}>
                     <Loader2 size={32} className="animate-spin" style={{ animation: 'spin 1s linear infinite' }} />
-                    <span style={{ fontSize: '14px', fontWeight: 600 }}>Xarita yuklanmoqda...</span>
+                    <span style={{ fontSize: '14px', fontWeight: 600 }}>{t('mapLoading')}</span>
                 </div>
             )}
 
@@ -168,7 +170,7 @@ function MapContent() {
                 <button className={styles.backBtn} onClick={() => router.back()}>
                     <ChevronLeft size={28} />
                 </button>
-                <h1 className={styles.title}>Manzilni tanlang</h1>
+                <h1 className={styles.title}>{t('selectAddress')}</h1>
                 <div className={styles.avatar}><span>N</span></div>
             </header>
 
@@ -185,7 +187,7 @@ function MapContent() {
                         <p className={styles.addressText}>{address}</p>
                     </div>
                     <button className={styles.saveBtn} onClick={handleSave}>
-                        Manzilni saqlash
+                        {t('saveAddress')}
                     </button>
                 </div>
             </div>
@@ -195,7 +197,7 @@ function MapContent() {
 
 export default function MapPage() {
     return (
-        <Suspense fallback={<div className={styles.container} style={{ padding: '40px', textAlign: 'center' }}>Xarita yuklanmoqda...</div>}>
+        <Suspense fallback={<div className={styles.container} style={{ padding: '40px', textAlign: 'center' }}>...</div>}>
             <MapContent />
         </Suspense>
     );

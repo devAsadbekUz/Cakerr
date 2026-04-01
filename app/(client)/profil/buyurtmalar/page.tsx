@@ -154,7 +154,7 @@ export default function OrderHistoryPage() {
             <div className={styles.orderList}>
                 {filteredOrders.length === 0 && (
                     <div className={styles.emptyState}>
-                        <p>Buyurtmalar topilmadi</p>
+                        <p>{t('ordersNotFound')}</p>
                     </div>
                 )}
                 {filteredOrders.map((order) => (
@@ -177,8 +177,8 @@ export default function OrderHistoryPage() {
                                 </div>
                                 <div className={styles.productInfo}>
                                     <h4 className={styles.productName}>{item.name}</h4>
-                                    <p className={styles.productMeta}>Soni: {item.quantity}</p>
-                                    <p className={styles.productMeta}>Porsiya: {item.portion}</p>
+                                    <p className={styles.productMeta}>{t('quantity')}: {item.quantity}</p>
+                                    <p className={styles.productMeta}>{t('portion')}: {item.portion}</p>
                                 </div>
                                 <div className={styles.productPrice}>
                                     {item.price.toLocaleString('uz-UZ')} so'm
@@ -188,15 +188,15 @@ export default function OrderHistoryPage() {
 
                         <div className={styles.orderFooter}>
                             <div className={styles.totalRow} onClick={() => router.push(`/profil/buyurtmalar/${order.id}`)}>
-                                <span className={styles.totalLabel}>Jami</span>
+                                <span className={styles.totalLabel}>{t('total')}</span>
                                 <div className={styles.totalValue}>
-                                    {order.total.toLocaleString('uz-UZ')} so'm
+                                    {order.total.toLocaleString('uz-UZ')} {t('som')}
                                     <ChevronRight size={18} color="#D1D5DB" />
                                 </div>
                             </div>
                             <button className={styles.reorderBtn} onClick={() => handleReorder(order)}>
                                 <RotateCcw size={18} />
-                                Qayta buyurtma qilish
+                                {t('reorder')}
                             </button>
                         </div>
                     </div>
