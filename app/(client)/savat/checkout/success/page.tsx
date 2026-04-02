@@ -6,9 +6,26 @@ import { ChevronLeft, Check, Calendar, MapPin, MessageSquare, Banknote, Shopping
 import styles from './page.module.css';
 import { useCart } from '@/app/context/CartContext';
 import { useLanguage } from '@/app/context/LanguageContext';
-import { getLocalized } from '@/app/utils/i18n';
 import { createClient } from '@/app/utils/supabase/client';
 import { getAuthHeader } from '@/app/utils/telegram';
+
+const LAST_ORDER_STORAGE_KEY = 'cakerr_last_order';
+const LAST_ORDER_MAX_AGE_MS = 15 * 60 * 1000;
+
+interface CachedSuccessOrder {
+    id: string;
+    total_price: number;
+    payment_method: 'cash' | 'card';
+    comment: string;
+    delivery_time: string;
+    delivery_slot: string;
+    delivery_address: {
+        street: string;
+        lat: number | null;
+        lng: number | null;
+    };
+    saved_at: number;
+}
 
 function formattedDateWithSlot(isoDate: string, months: string[], slot?: string) {
     const date = new Date(isoDate);
@@ -22,13 +39,32 @@ function formattedDateWithSlot(isoDate: string, months: string[], slot?: string)
     return formattedDate;
 }
 
+function readCachedOrder(orderId: string): CachedSuccessOrder | null {
+    try {
+        const raw = sessionStorage.getItem(LAST_ORDER_STORAGE_KEY);
+        if (!raw) return null;
+
+        const parsed = JSON.parse(raw) as CachedSuccessOrder;
+        const isFresh = Date.now() - parsed.saved_at < LAST_ORDER_MAX_AGE_MS;
+        if (parsed.id !== orderId || !isFresh) {
+            sessionStorage.removeItem(LAST_ORDER_STORAGE_KEY);
+            return null;
+        }
+
+        return parsed;
+    } catch (error) {
+        console.error('[Success] Failed to read cached order:', error);
+        return null;
+    }
+}
+
 function SuccessContent() {
     const router = useRouter();
-    const { lang, t } = useLanguage();
+    const { t } = useLanguage();
     const searchParams = useSearchParams();
     const orderId = searchParams.get('orderId');
     const { deliveryAddress } = useCart();
-    const [order, setOrder] = useState<any>(null);
+    const [order, setOrder] = useState<CachedSuccessOrder | null>(null);
     const [loading, setLoading] = useState(true);
     const supabase = createClient();
 
@@ -38,8 +74,16 @@ function SuccessContent() {
             return;
         }
 
-        async function fetchOrder() {
+        const cachedOrder = readCachedOrder(orderId);
+        if (cachedOrder) {
+            setOrder(cachedOrder);
+            setLoading(false);
+        } else {
             setLoading(true);
+        }
+
+        async function fetchOrder(showLoading: boolean) {
+            if (showLoading) setLoading(true);
             try {
                 const response = await fetch(`/api/user/orders/${orderId}`, {
                     headers: getAuthHeader(),
@@ -55,11 +99,13 @@ function SuccessContent() {
             } catch (err) {
                 console.error('[Success] Fetch fail:', err);
             } finally {
-                setLoading(false);
+                if (showLoading || !cachedOrder) {
+                    setLoading(false);
+                }
             }
         }
 
-        fetchOrder();
+        fetchOrder(!cachedOrder);
 
         // Real-time subscription for this specific order
         // This ensures the page stays updated if the admin or bot changes the order status/details
@@ -73,13 +119,12 @@ function SuccessContent() {
                     schema: 'public',
                     filter: `id=eq.${orderId}`
                 },
-                (payload: any) => {
+                () => {
                     // Re-fetch the full order including items when an update occurs
-                    fetchOrder();
+                    fetchOrder(false);
                 }
             )
-            .subscribe((status: string) => {
-            });
+            .subscribe();
 
         return () => {
             supabase.removeChannel(channel);
@@ -171,7 +216,7 @@ function SuccessContent() {
             </div>
 
             <div className={styles.summarySection}>
-                <h2 className={styles.summaryTitle}>{t('summary')} || 'Xulosa'</h2>
+                <h2 className={styles.summaryTitle}>{t('summary') || "Xulosa"}</h2>
                 <div className={styles.summaryRow}>
                     <span className={styles.summaryLabel}>{t('items')}</span>
                     <span className={styles.summaryValue}>{Math.max(0, displayData.subtotal).toLocaleString('uz-UZ')} {t('som')}</span>

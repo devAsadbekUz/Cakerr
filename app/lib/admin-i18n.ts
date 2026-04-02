@@ -10,6 +10,7 @@ export const adminTranslations = {
         messages: "Xabarlar",
         loyalty: "Sodiqlik tizimi",
         settings: "Sozlamalar",
+        roles: "Rollar",
         logout: "Chiqish",
         users: "Foydalanuvchilar",
         
@@ -153,6 +154,7 @@ export const adminTranslations = {
         openStatus: "Ochiq",
         blockedDayNote: "Butun kun yopilgan holatda alohida vaqt oraliqlarini boshqarib bo'lmaydi.",
         customCakeSettings: "Maxsus Tort Sozlamalari",
+        tabShapes: "Shakllar",
         tabSizes: "Hajmlar",
         tabSponge: "Biskvit",
         tabCream: "Krem / Qoplama",
@@ -303,6 +305,7 @@ export const adminTranslations = {
         messages: "Сообщения",
         loyalty: "Программа лояльности",
         settings: "Настройки",
+        roles: "Роли",
         logout: "Выйти",
         users: "Пользователи",
         
@@ -446,6 +449,7 @@ export const adminTranslations = {
         openStatus: "Открыто",
         blockedDayNote: "В режиме закрытого дня нельзя управлять отдельными интервалами.",
         customCakeSettings: "Настройки кастомных тортов",
+        tabShapes: "Формы",
         tabSizes: "Размеры",
         tabSponge: "Бисквит",
         tabCream: "Крем / Покрытие",

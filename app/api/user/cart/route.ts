@@ -3,6 +3,11 @@ import { createClient } from '@supabase/supabase-js';
 import { getVerifiedUserId } from '@/app/utils/telegram-auth';
 import { z } from 'zod';
 
+const supabaseService = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
 const CartItemSchema = z.object({
     product_id: z.string().uuid(),
     quantity: z.number().int().min(1).optional().default(1),
@@ -33,10 +38,7 @@ export async function GET(request: NextRequest) {
     const userId = await getVerifiedUserId(request);
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = supabaseService;
 
     try {
         const { data: items, error } = await supabase
@@ -65,13 +67,34 @@ export async function POST(request: NextRequest) {
     const userId = await getVerifiedUserId(request);
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = supabaseService;
 
     try {
         const raw = await request.json();
+
+        // Batch insert path: used during guest cart migration (array of items, no duplicate check needed)
+        if (Array.isArray(raw)) {
+            const parsed = z.array(CartItemSchema).safeParse(raw);
+            if (!parsed.success) {
+                return NextResponse.json({ error: 'Invalid batch data', details: parsed.error.flatten() }, { status: 400 });
+            }
+            const rows = parsed.data.map(item => ({
+                user_id: userId,
+                product_id: item.product_id,
+                quantity: item.quantity,
+                portion: item.portion,
+                flavor: item.flavor,
+                custom_note: item.custom_note,
+                configuration: item.configuration,
+            }));
+            const { data: inserted, error } = await supabase
+                .from('cart_items')
+                .insert(rows)
+                .select(`*, products (title, base_price, image_url)`);
+            if (error) throw error;
+            return NextResponse.json({ items: inserted });
+        }
+
         const parsed = CartItemSchema.safeParse(raw);
         if (!parsed.success) {
             return NextResponse.json({ error: 'Invalid cart item data', details: parsed.error.flatten() }, { status: 400 });
@@ -145,10 +168,7 @@ export async function PUT(request: NextRequest) {
     const userId = await getVerifiedUserId(request);
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = supabaseService;
 
     try {
         const raw = await request.json();
@@ -184,10 +204,7 @@ export async function DELETE(request: NextRequest) {
     const userId = await getVerifiedUserId(request);
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = supabaseService;
 
     try {
         const raw = await request.json();

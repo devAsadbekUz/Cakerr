@@ -3,6 +3,11 @@ import { createClient } from '@supabase/supabase-js';
 import { getVerifiedUserId } from '@/app/utils/telegram-auth';
 import { z } from 'zod';
 
+const supabaseService = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
 const UpdateProfileSchema = z.object({
     full_name: z.string().min(1).optional(),
     phone_number: z.string().min(5).optional(),
@@ -21,10 +26,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = supabaseService;
 
     try {
         const raw = await request.json();

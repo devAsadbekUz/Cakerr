@@ -3,6 +3,11 @@ import { createClient } from '@supabase/supabase-js';
 import { getVerifiedUserId } from '@/app/utils/telegram-auth';
 import { z } from 'zod';
 
+const supabaseService = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
 const AddressSchema = z.object({
     address: z.string().min(1),
     apartment: z.string().optional(),
@@ -40,10 +45,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: `Unauthorized: ${detail}` }, { status: 401 });
     }
 
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = supabaseService;
 
     try {
         const { data, error } = await supabase
@@ -79,13 +81,26 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: `Unauthorized: ${detail}` }, { status: 401 });
     }
 
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = supabaseService;
 
     try {
         const raw = await request.json();
+
+        // Batch insert path: used during guest address migration
+        if (Array.isArray(raw)) {
+            const parsed = z.array(AddressSchema).safeParse(raw);
+            if (!parsed.success) {
+                return NextResponse.json({ error: 'Invalid batch data', details: parsed.error.flatten() }, { status: 400 });
+            }
+            const rows = parsed.data.map(addr => ({ ...addr, user_id: userId }));
+            const { data, error } = await supabase
+                .from('addresses')
+                .insert(rows)
+                .select();
+            if (error) throw error;
+            return NextResponse.json({ addresses: data });
+        }
+
         const parsed = AddressSchema.safeParse(raw);
         if (!parsed.success) {
             return NextResponse.json({ error: 'Invalid address data', details: parsed.error.flatten() }, { status: 400 });
@@ -124,10 +139,7 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ error: `Unauthorized: ${detail}` }, { status: 401 });
     }
 
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = supabaseService;
 
     try {
         const raw = await request.json();
@@ -195,10 +207,7 @@ export async function DELETE(request: NextRequest) {
         return NextResponse.json({ error: `Unauthorized: ${detail}` }, { status: 401 });
     }
 
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = supabaseService;
 
     try {
         const raw = await request.json();

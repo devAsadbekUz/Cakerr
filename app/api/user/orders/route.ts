@@ -3,6 +3,11 @@ import { createClient } from '@supabase/supabase-js';
 import { getVerifiedUserId } from '@/app/utils/telegram-auth';
 import { z } from 'zod';
 
+const supabaseService = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
 const CreateOrderSchema = z.object({
     order: z.object({
         delivery_address: z.any(),
@@ -39,18 +44,16 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: `Unauthorized: ${detail}` }, { status: 401 });
     }
 
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = supabaseService;
 
     try {
         const { data, error } = await supabase
             .from('orders')
             .select(`
-                *,
+                id, status, total_price, delivery_time, delivery_slot,
+                created_at, comment, delivery_address, coins_spent,
                 order_items (
-                    *,
+                    id, name, quantity, unit_price, configuration,
                     products (image_url, title)
                 )
             `)
@@ -59,23 +62,17 @@ export async function GET(request: NextRequest) {
 
         if (error) throw error;
 
-        // Strip heavy base64 strings from historical orders to keep payload tiny
-        const safeData = data?.map(order => {
-            const safeItems = order.order_items?.map((item: any) => {
-                if (item.configuration) {
-                    const conf = { ...item.configuration };
-                    if (conf.uploaded_photo_url?.startsWith('data:image')) {
-                        conf.uploaded_photo_url = null;
-                    }
-                    if (conf.drawing?.startsWith('data:image')) {
-                        conf.drawing = null;
-                    }
-                    return { ...item, configuration: conf };
+        // Strip only the heavy base64 drawing field — all other config fields are kept
+        const safeData = data?.map(order => ({
+            ...order,
+            order_items: order.order_items?.map((item: any) => {
+                if (item.configuration?.drawing?.startsWith('data:image')) {
+                    const { drawing, ...rest } = item.configuration;
+                    return { ...item, configuration: rest };
                 }
                 return item;
-            });
-            return { ...order, order_items: safeItems };
-        });
+            })
+        }));
 
         return NextResponse.json({ orders: safeData });
     } catch (error: any) {
@@ -131,10 +128,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: `Unauthorized: ${detail}` }, { status: 401 });
     }
 
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = supabaseService;
 
     try {
         const raw = await request.json();
@@ -145,19 +139,25 @@ export async function POST(request: NextRequest) {
         const { order, items, coins_spent } = parsed.data;
 
         // 1. Intercept Base64 strings and upload them to Storage before saving to DB
+        // All uploads run in parallel across all items
         if (items && items.length > 0) {
+            const uploadTasks: Promise<void>[] = [];
             for (const item of items) {
-                if (item.configuration) {
-                    if (item.configuration.uploaded_photo_url?.startsWith('data:image')) {
-                        const url = await uploadBase64Image(supabase, item.configuration.uploaded_photo_url, userId, 'photo');
-                        if (url) item.configuration.uploaded_photo_url = url;
-                    }
-                    if (item.configuration.drawing?.startsWith('data:image')) {
-                        const url = await uploadBase64Image(supabase, item.configuration.drawing, userId, 'drawing');
-                        if (url) item.configuration.drawing = url;
-                    }
+                if (!item.configuration) continue;
+                if (item.configuration.uploaded_photo_url?.startsWith('data:image')) {
+                    uploadTasks.push(
+                        uploadBase64Image(supabase, item.configuration.uploaded_photo_url, userId, 'photo')
+                            .then(url => { if (url) item.configuration.uploaded_photo_url = url; })
+                    );
+                }
+                if (item.configuration.drawing?.startsWith('data:image')) {
+                    uploadTasks.push(
+                        uploadBase64Image(supabase, item.configuration.drawing, userId, 'drawing')
+                            .then(url => { if (url) item.configuration.drawing = url; })
+                    );
                 }
             }
+            if (uploadTasks.length > 0) await Promise.all(uploadTasks);
         }
 
         /* --- OPTIMIZED ATOMIC CHECKOUT (V2) --- */

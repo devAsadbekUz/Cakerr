@@ -29,6 +29,24 @@ export const addressService = {
         }
     },
 
+    async addAddressBatch(addresses: Omit<UserAddress, 'id' | 'user_id'>[]): Promise<UserAddress[]> {
+        if (addresses.length === 0) return [];
+        try {
+            const response = await fetch(API_BASE, {
+                method: 'POST',
+                headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(addresses),
+            });
+            if (!response.ok) return [];
+            const result = await response.json();
+            return result.addresses || [];
+        } catch (err) {
+            console.error('[AddressService] addAddressBatch error:', err);
+            return [];
+        }
+    },
+
     async addAddress(address: Omit<UserAddress, 'id' | 'user_id'>): Promise<{ data: any; error: any }> {
         try {
             const response = await fetch(API_BASE, {

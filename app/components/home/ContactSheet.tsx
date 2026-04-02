@@ -93,7 +93,7 @@ export default function ContactSheet({ isOpen, onClose }: ContactSheetProps) {
                     <ContactItem
                         icon={<Instagram size={24} />}
                         label="Instagram"
-                        value="cakerr.vercel.app"
+                        value="tortele.uz"
                         color="#E1306C"
                         href="https://www.instagram.com/tortele.uz/"
                     />

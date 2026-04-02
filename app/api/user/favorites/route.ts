@@ -3,6 +3,11 @@ import { createClient } from '@supabase/supabase-js';
 import { getVerifiedUserId } from '@/app/utils/telegram-auth';
 import { z } from 'zod';
 
+const supabaseService = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
 const FavoriteSchema = z.object({
     productId: z.string().uuid(),
 });
@@ -25,10 +30,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: `Unauthorized: ${detail}` }, { status: 401 });
     }
 
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = supabaseService;
 
     try {
         const { data, error } = await supabase
@@ -64,10 +66,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: `Unauthorized: ${detail}` }, { status: 401 });
     }
 
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = supabaseService;
 
     try {
         const raw = await request.json();
@@ -110,10 +109,7 @@ export async function DELETE(request: NextRequest) {
         return NextResponse.json({ error: `Unauthorized: ${detail}` }, { status: 401 });
     }
 
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = supabaseService;
 
     try {
         const raw = await request.json();

@@ -52,7 +52,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
       setLoading(true);
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select('id, title, subtitle, description, category, category_id, base_price, image_url, images, is_available, is_ready, variants, details')
         .eq('id', id)
         .is('deleted_at', null)
         .single();

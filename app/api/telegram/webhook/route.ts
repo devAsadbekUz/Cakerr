@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getStatusConfig, getTelegramButtons, buildOrderMessage, resolveOrderLanguage } from '@/app/utils/orderConfig';
+import { notifyCustomerStatusChange } from '@/app/services/telegramNotificationService';
 import { resolveAppUrl } from '@/app/utils/appUrl';
 
 function resolveTgLang(code?: string | null): 'uz' | 'ru' {
@@ -366,64 +367,8 @@ export async function POST(request: NextRequest) {
             });
 
             // Notify the client directly if they have a telegram_id linked
-            const profile = Array.isArray(order.profiles) ? order.profiles[0] : order.profiles;
-            if (profile?.telegram_id) {
-                // 1. Delete previous message if it exists
-                if (order.client_tg_message_id) {
-                    await fetch(`${TELEGRAM_API}/deleteMessage`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            chat_id: profile.telegram_id,
-                            message_id: order.client_tg_message_id
-                        })
-                    }).catch(err => console.error('[Telegram Webhook] Delete client msg error:', err));
-                }
-
-                // 2. If not terminal (confirmed, preparing, ready, delivering), send new ping
-                const isTerminal = ['completed', 'cancelled'].includes(newStatus);
-                if (!isTerminal) {
-                    // Use the customer's own language preference, not the admin/order language
-                    const clientLang = resolveTgLang(profile.tg_lang);
-
-                    const clientLabels = {
-                        uz: {
-                            title: "🍰 *Buyurtma holati yangilandi*",
-                            text: `Hurmatli mijoz, sizning #${order.id.slice(0, 8)} raqamli buyurtmangiz holati o'zgardi:`
-                        },
-                        ru: {
-                            title: "🍰 *Статус заказа обновлен*",
-                            text: `Уважаемый клиент, статус вашего заказа #${order.id.slice(0, 8)} изменился:`
-                        }
-                    }[clientLang];
-
-                    const clientMessage = `${clientLabels.title}\n\n${clientLabels.text}\n\n*${statusConfig.labels[clientLang]}*\n_${statusConfig.descs[clientLang]}_`;
-
-                    const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            chat_id: profile.telegram_id,
-                            text: clientMessage,
-                            parse_mode: 'Markdown'
-                        })
-                    });
-                    const result = await res.json();
-                    if (result.ok) {
-                        // Save new message ID for next cleanup
-                        await supabase
-                            .from('orders')
-                            .update({ client_tg_message_id: result.result.message_id })
-                            .eq('id', orderId);
-                    }
-                } else {
-                    // Clear tracking on terminal
-                    await supabase
-                        .from('orders')
-                        .update({ client_tg_message_id: null })
-                        .eq('id', orderId);
-                }
-            }
+            // Refactored to centralized service to fix language bugs and completion handling
+            await notifyCustomerStatusChange(orderId, newStatus, order);
 
             const toastText = {
                 uz: `Yangilandi: ${statusConfig.tgLabels.uz}`,

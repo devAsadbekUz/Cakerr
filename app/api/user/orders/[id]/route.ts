@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getVerifiedUserId } from '@/app/utils/telegram-auth';
 
+const supabaseService = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
 /**
  * GET /api/user/orders/[id]
  * Fetch a specific order securely
@@ -19,10 +24,7 @@ export async function GET(
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = supabaseService;
 
     try {
         // Query by ID first to see if it even exists

@@ -3,10 +3,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/app/utils/supabase/client';
-import { Lock, Mail, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Lock, User, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 export default function AdminLoginPage() {
-    const [email, setEmail] = useState('');
+    const [identifier, setIdentifier] = useState(''); // email or username
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -14,75 +14,87 @@ export default function AdminLoginPage() {
     const router = useRouter();
     const supabase = createClient();
 
+    const isEmail = identifier.includes('@');
+
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError('');
 
         try {
-            const { error: loginError } = await supabase.auth.signInWithPassword({
-                email: email.trim().toLowerCase(),
-                password
-            });
+            if (isEmail) {
+                // Owner path: Supabase email auth
+                const { error: loginError } = await supabase.auth.signInWithPassword({
+                    email: identifier.trim().toLowerCase(),
+                    password,
+                });
+                if (loginError) throw loginError;
+            } else {
+                // Staff path: custom username auth
+                const res = await fetch('/api/admin/auth/staff', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: identifier.trim(), password }),
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Noto\'g\'ri ma\'lumotlar');
 
-            if (loginError) throw loginError;
+                // Redirect staff to their first allowed page
+                const perms: string[] = data.permissions ?? [];
+                const pageMap: Record<string, string> = {
+                    dashboard: '/admin', orders: '/admin/orders', products: '/admin/products',
+                    categories: '/admin/categories', schedule: '/admin/schedule',
+                    custom: '/admin/custom', loyalty: '/admin/loyalty',
+                    messages: '/admin/messages', settings: '/admin/settings',
+                };
+                const order = ['dashboard','orders','products','categories','schedule','custom','loyalty','messages','settings'];
+                const first = order.find(p => perms.includes(p));
+                router.replace(first ? pageMap[first] : '/admin/login');
+                return;
+            }
 
             router.replace('/admin');
         } catch (err: any) {
-            setError(err.message === 'Invalid login credentials'
-                ? 'Email yoki parol noto\'g\'ri'
-                : err.message || 'Xatolik yuz berdi');
+            setError(
+                err.message === 'Invalid login credentials'
+                    ? 'Login yoki parol noto\'g\'ri'
+                    : err.message || 'Xatolik yuz berdi'
+            );
             setLoading(false);
         }
     };
 
     return (
         <div style={{
-            minHeight: '100vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: '#F3F4F6',
-            padding: '20px'
+            minHeight: '100vh', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', background: '#F3F4F6', padding: '20px',
         }}>
             <div style={{
-                background: 'white',
-                padding: '40px',
-                borderRadius: '24px',
-                width: '100%',
-                maxWidth: '400px',
-                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-                textAlign: 'center'
+                background: 'white', padding: '40px', borderRadius: '24px',
+                width: '100%', maxWidth: '400px', textAlign: 'center',
+                boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)',
             }}>
                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
                     <div style={{
-                        width: '64px', height: '64px',
-                        background: 'hsla(var(--color-primary), 0.1)', borderRadius: '18px',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: 'hsl(var(--color-primary-dark))'
+                        width: '64px', height: '64px', background: 'hsla(var(--color-primary), 0.1)',
+                        borderRadius: '18px', display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', color: 'hsl(var(--color-primary-dark))',
                     }}>
                         <Lock size={32} />
                     </div>
                 </div>
 
-                <h1 style={{
-                    fontSize: '26px', fontWeight: 800,
-                    color: '#111827', marginBottom: '8px'
-                }}>
+                <h1 style={{ fontSize: '26px', fontWeight: 800, color: '#111827', marginBottom: '8px' }}>
                     Admin Panel
                 </h1>
-                <p style={{
-                    color: '#6B7280', fontSize: '15px',
-                    marginBottom: '32px'
-                }}>
+                <p style={{ color: '#6B7280', fontSize: '15px', marginBottom: '32px' }}>
                     Tizimga kirish uchun ma'lumotlaringizni kiriting
                 </p>
 
                 {error && (
                     <div style={{
-                        background: '#FEF2F2', color: '#991B1B',
-                        padding: '12px', borderRadius: '12px', fontSize: '14px',
-                        marginBottom: '20px', textAlign: 'left'
+                        background: '#FEF2F2', color: '#991B1B', padding: '12px',
+                        borderRadius: '12px', fontSize: '14px', marginBottom: '20px', textAlign: 'left',
                     }}>
                         {error}
                     </div>
@@ -92,28 +104,27 @@ export default function AdminLoginPage() {
                     <div style={{ marginBottom: '16px' }}>
                         <label style={{
                             display: 'block', fontSize: '13px', fontWeight: 600,
-                            color: '#374151', marginBottom: '6px'
+                            color: '#374151', marginBottom: '6px',
                         }}>
-                            Email
+                            {isEmail ? 'Email' : 'Username / Email'}
                         </label>
                         <div style={{ position: 'relative' }}>
-                            <Mail size={16} style={{
+                            <User size={16} style={{
                                 position: 'absolute', left: '14px', top: '50%',
-                                transform: 'translateY(-50%)', color: '#9CA3AF'
+                                transform: 'translateY(-50%)', color: '#9CA3AF',
                             }} />
                             <input
-                                type="email"
-                                value={email}
-                                onChange={e => setEmail(e.target.value)}
+                                type="text"
+                                value={identifier}
+                                onChange={e => setIdentifier(e.target.value)}
                                 required
-                                autoComplete="email"
-                                placeholder="admin@example.com"
+                                autoComplete="username"
+                                placeholder="email yoki username"
                                 style={{
                                     width: '100%', padding: '12px 14px 12px 40px',
                                     borderRadius: '12px', border: '1px solid #E5E7EB',
-                                    fontSize: '15px', color: '#111827',
-                                    outline: 'none', boxSizing: 'border-box',
-                                    transition: 'border-color 0.15s'
+                                    fontSize: '15px', color: '#111827', outline: 'none',
+                                    boxSizing: 'border-box', transition: 'border-color 0.15s',
                                 }}
                                 onFocus={e => e.target.style.borderColor = 'hsl(var(--color-primary-dark))'}
                                 onBlur={e => e.target.style.borderColor = '#E5E7EB'}
@@ -124,7 +135,7 @@ export default function AdminLoginPage() {
                     <div style={{ marginBottom: '24px' }}>
                         <label style={{
                             display: 'block', fontSize: '13px', fontWeight: 600,
-                            color: '#374151', marginBottom: '6px'
+                            color: '#374151', marginBottom: '6px',
                         }}>
                             Parol
                         </label>
@@ -139,9 +150,8 @@ export default function AdminLoginPage() {
                                 style={{
                                     width: '100%', padding: '12px 44px 12px 14px',
                                     borderRadius: '12px', border: '1px solid #E5E7EB',
-                                    fontSize: '15px', color: '#111827',
-                                    outline: 'none', boxSizing: 'border-box',
-                                    transition: 'border-color 0.15s'
+                                    fontSize: '15px', color: '#111827', outline: 'none',
+                                    boxSizing: 'border-box', transition: 'border-color 0.15s',
                                 }}
                                 onFocus={e => e.target.style.borderColor = 'hsl(var(--color-primary-dark))'}
                                 onBlur={e => e.target.style.borderColor = '#E5E7EB'}
@@ -153,7 +163,7 @@ export default function AdminLoginPage() {
                                     position: 'absolute', right: '14px', top: '50%',
                                     transform: 'translateY(-50%)', background: 'none',
                                     border: 'none', cursor: 'pointer', color: '#9CA3AF',
-                                    padding: 0, display: 'flex'
+                                    padding: 0, display: 'flex',
                                 }}
                             >
                                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -167,19 +177,11 @@ export default function AdminLoginPage() {
                         style={{
                             width: '100%',
                             background: loading ? '#9CA3AF' : 'hsl(var(--color-primary-dark))',
-                            color: 'white',
-                            padding: '14px',
-                            borderRadius: '14px',
-                            fontWeight: 700,
-                            fontSize: '15px',
-                            border: 'none',
+                            color: 'white', padding: '14px', borderRadius: '14px',
+                            fontWeight: 700, fontSize: '15px', border: 'none',
                             cursor: loading ? 'not-allowed' : 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '8px',
-                            transition: 'background 0.2s',
-                            marginBottom: '20px'
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            gap: '8px', transition: 'background 0.2s', marginBottom: '20px',
                         }}
                     >
                         {loading && <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />}
@@ -192,28 +194,18 @@ export default function AdminLoginPage() {
                 <button
                     onClick={() => router.push('/')}
                     style={{
-                        background: 'none',
-                        border: 'none',
-                        color: 'hsl(var(--color-primary-dark))',
-                        fontSize: '14px',
-                        fontWeight: 500,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '4px',
-                        margin: '0 auto'
+                        background: 'none', border: 'none',
+                        color: 'hsl(var(--color-primary-dark))', fontSize: '14px',
+                        fontWeight: 500, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        gap: '4px', margin: '0 auto',
                     }}
                 >
                     Asosiy sahifaga qaytish
                 </button>
             </div>
 
-            <style>{`
-                @keyframes spin {
-                    to { transform: rotate(360deg); }
-                }
-            `}</style>
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
     );
 }

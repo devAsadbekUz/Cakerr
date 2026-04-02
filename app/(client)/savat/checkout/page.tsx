@@ -6,7 +6,7 @@ import { useCart } from '@/app/context/CartContext';
 import { useLanguage } from '@/app/context/LanguageContext';
 import { getLocalized } from '@/app/utils/i18n';
 import styles from './page.module.css';
-import { ChevronLeft, ChevronRight, Calendar, Banknote, CreditCard, XCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Banknote, CreditCard } from 'lucide-react';
 import CalendarModal from '@/app/components/checkout/CalendarModal';
 import AddressesModal from '@/app/components/checkout/AddressesModal';
 import SuccessModal from '@/app/components/checkout/SuccessModal';
@@ -17,25 +17,41 @@ import { createClient } from '@/app/utils/supabase/client';
 import { availabilityService } from '@/app/services/availabilityService';
 import { format } from 'date-fns';
 
+const LAST_ORDER_STORAGE_KEY = 'cakerr_last_order';
+
+interface SuccessOrderSnapshot {
+    id: string;
+    total_price: number;
+    payment_method: 'cash' | 'card';
+    comment: string;
+    delivery_time: string;
+    delivery_slot: string;
+    delivery_address: {
+        street: string;
+        lat: number | null;
+        lng: number | null;
+    };
+    saved_at: number;
+}
 
 
 export default function CheckoutPage() {
     const router = useRouter();
     const { lang, t } = useLanguage();
-    const { cart, subtotal, totalItems, deliveryAddress, deliveryCoords, clearCart, savedAddresses } = useCart();
+    const { cart, subtotal, totalItems, deliveryAddress, deliveryCoords, clearCart } = useCart();
     const { user } = useSupabase();
     const supabase = createClient();
 
     const [isAddressesOpen, setIsAddressesOpen] = useState(false);
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-    const [isSuccessOpen, setIsSuccessOpen] = useState(false);
     const [selectedDateObj, setSelectedDateObj] = useState<Date | undefined>(undefined);
     const [selectedDate, setSelectedDate] = useState('');
     const [selectedSlot, setSelectedSlot] = useState('');
     const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card'>('cash');
     const [comment, setComment] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [newOrderId, setNewOrderId] = useState<string | null>(null);
+    const [isSuccessOpen, setIsSuccessOpen] = useState(false);
+    const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
 
     // Shirin Tangalar State
     const [useCoins, setUseCoins] = useState(false);
@@ -66,7 +82,7 @@ export default function CheckoutPage() {
 
             const { data, error } = await supabase
                 .from('availability_overrides')
-                .select('*')
+                .select('date, slot')
                 .gte('date', startDate)
                 .lte('date', endDate);
 
@@ -80,14 +96,15 @@ export default function CheckoutPage() {
     };
 
     useEffect(() => {
-        fetchAvailability();
-        // Load global slots from DB, keep fallback if table doesn't exist
-        availabilityService.getGlobalSlots()
-            .then(slots => {
-                if (slots.length > 0) setTimeSlots(slots.map(s => s.label));
-                // if empty or error, fallback array stays
-            })
-            .catch(() => { /* keep fallback slots */ });
+        // Both fetches are independent — run in parallel
+        Promise.all([
+            fetchAvailability(),
+            availabilityService.getGlobalSlots().catch(() => [])
+        ]).then(([, slots]) => {
+            if (Array.isArray(slots) && slots.length > 0) {
+                setTimeSlots(slots.map((s: any) => s.label));
+            }
+        });
     }, []);
 
     const isSlotBlocked = (slot: string) => {
@@ -132,7 +149,8 @@ export default function CheckoutPage() {
                 delivery_time: selectedDateObj ? selectedDateObj.toISOString() : new Date().toISOString(),
                 delivery_slot: selectedSlot,
                 comment: comment,
-                coins_spent: useCoins ? coinsToSpend : 0
+                coins_spent: useCoins ? coinsToSpend : 0,
+                payment_method: paymentMethod
             };
 
             const orderItems = cart.map(item => {
@@ -152,8 +170,6 @@ export default function CheckoutPage() {
                     }
                 };
             });
-
-            let createdOrder: { id: string };
 
             // Use API for ALL users (bypasses RLS, handles both Telegram and browser auth)
             const authHeaders = getAuthHeader();
@@ -179,47 +195,57 @@ export default function CheckoutPage() {
             }
 
             const result = await response.json();
-            createdOrder = result.order;
+            const createdOrder = result.order as { id: string };
 
-            // 3. Send Telegram notification
+            // 3. Send Telegram notification — fire-and-forget, never block the success screen
+            const monthNames = t('months') as unknown as string[];
+            const deliveryDateFormatted = selectedDateObj
+                ? `${selectedDateObj.getDate()}-${monthNames[selectedDateObj.getMonth()]}`
+                : 'Noma\'lum';
+            const locationUrl = deliveryCoords?.lat && deliveryCoords?.lng
+                ? `https://www.google.com/maps?q=${deliveryCoords.lat},${deliveryCoords.lng}`
+                : undefined;
+
+            fetch('/api/telegram/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    orderId: createdOrder.id,
+                    customerName: user.user_metadata?.full_name || 'Mijoz',
+                    customerPhone: user.phone_number || user.phone || 'Noma\'lum',
+                    address: deliveryAddress,
+                    locationUrl,
+                    deliveryDate: deliveryDateFormatted,
+                    deliverySlot: selectedSlot,
+                    items: cart.map(item => ({
+                        name: getLocalized(item.name, lang),
+                        quantity: item.quantity,
+                        price: item.price * item.quantity,
+                        portion: item.portion || item.configuration?.portion
+                    })),
+                    comment: comment || undefined,
+                    total: total,
+                    lang: lang
+                })
+            }).catch(err => console.error('Telegram notification failed:', err));
+
             try {
-                const monthNames = t('months') as unknown as string[];
-                const deliveryDateFormatted = selectedDateObj
-                    ? `${selectedDateObj.getDate()}-${monthNames[selectedDateObj.getMonth()]}`
-                    : 'Noma\'lum';
-
-                const locationUrl = deliveryCoords?.lat && deliveryCoords?.lng
-                    ? `https://www.google.com/maps?q=${deliveryCoords.lat},${deliveryCoords.lng}`
-                    : undefined;
-
-                await fetch('/api/telegram/send', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        orderId: createdOrder.id,
-                        customerName: user.user_metadata?.full_name || 'Mijoz',
-                        customerPhone: user.phone_number || user.phone || 'Noma\'lum',
-                        address: deliveryAddress,
-                        locationUrl,
-                        deliveryDate: deliveryDateFormatted,
-                        deliverySlot: selectedSlot,
-                        items: cart.map(item => ({
-                            name: getLocalized(item.name, lang),
-                            quantity: item.quantity,
-                            price: item.price * item.quantity,
-                            portion: item.portion || item.configuration?.portion
-                        })),
-                        comment: comment || undefined,
-                        total: total,
-                        lang: lang
-                    })
-                });
-            } catch (telegramError) {
-                console.error('Telegram notification failed:', telegramError);
-                // Don't block order success if Telegram fails
+                const successSnapshot: SuccessOrderSnapshot = {
+                    id: createdOrder.id,
+                    total_price: total,
+                    payment_method: paymentMethod,
+                    comment,
+                    delivery_time: orderData.delivery_time,
+                    delivery_slot: selectedSlot,
+                    delivery_address: orderData.delivery_address,
+                    saved_at: Date.now()
+                };
+                sessionStorage.setItem(LAST_ORDER_STORAGE_KEY, JSON.stringify(successSnapshot));
+            } catch (storageError) {
+                console.error('[Checkout] Failed to cache success snapshot:', storageError);
             }
 
-            setNewOrderId(createdOrder.id);
+            setCreatedOrderId(createdOrder.id);
             setIsSuccessOpen(true);
         } catch (error) {
             console.error('Error creating order:', error);
@@ -317,23 +343,40 @@ export default function CheckoutPage() {
                     }}
                 />
                 <div className={styles.timeGrid}>
-                    {timeSlots.map((slot) => {
-                        const blocked = isSlotBlocked(slot);
-                        return (
-                            <div
-                                key={slot}
-                                className={`
-                                    ${styles.timeSlot} 
-                                    ${selectedSlot === slot ? styles.timeSlotActive : ''} 
-                                    ${blocked ? styles.timeSlotBlocked : ''}
-                                `}
-                                onClick={() => !blocked && setSelectedSlot(slot)}
-                            >
-                                {slot}
-                            </div>
-                        );
-                    })}
+                    {loadingAvailability
+                        ? Array.from({ length: 6 }).map((_, i) => (
+                            <div key={i} className={styles.timeSlot} style={{
+                                background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+                                backgroundSize: '200% 100%',
+                                animation: 'shimmer 1.2s infinite',
+                                color: 'transparent',
+                                pointerEvents: 'none',
+                            }}>—</div>
+                        ))
+                        : timeSlots.map((slot) => {
+                            const blocked = isSlotBlocked(slot);
+                            return (
+                                <div
+                                    key={slot}
+                                    className={`
+                                        ${styles.timeSlot}
+                                        ${selectedSlot === slot ? styles.timeSlotActive : ''}
+                                        ${blocked ? styles.timeSlotBlocked : ''}
+                                    `}
+                                    onClick={() => !blocked && setSelectedSlot(slot)}
+                                >
+                                    {slot}
+                                </div>
+                            );
+                        })
+                    }
                 </div>
+                <style>{`
+                    @keyframes shimmer {
+                        0% { background-position: 200% 0; }
+                        100% { background-position: -200% 0; }
+                    }
+                `}</style>
             </div>
 
             {/* Comment Section */}
@@ -458,14 +501,16 @@ export default function CheckoutPage() {
                 </button>
             </div>
 
-            <SuccessModal
-                isOpen={isSuccessOpen}
-                onClose={() => {
-                    setIsSuccessOpen(false);
-                    clearCart();
-                    router.push(`/savat/checkout/success?orderId=${newOrderId}`);
-                }}
-            />
+            {isSuccessOpen && createdOrderId && (
+                <SuccessModal
+                    isOpen={isSuccessOpen}
+                    onClose={() => {
+                        setIsSuccessOpen(false);
+                        void clearCart({ rollbackOnError: false, syncServer: false });
+                        router.replace(`/savat/checkout/success?orderId=${createdOrderId}`);
+                    }}
+                />
+            )}
         </div >
     );
 }

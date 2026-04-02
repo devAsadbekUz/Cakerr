@@ -108,6 +108,20 @@ export const cartService = {
         }
     },
 
+    async addItemsBatch(items: Omit<DBCartItem, 'id'>[]): Promise<void> {
+        if (items.length === 0) return;
+        try {
+            await fetch(API_BASE, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+                credentials: 'include',
+                body: JSON.stringify(items),
+            });
+        } catch (err) {
+            console.error('[CartService] addItemsBatch error:', err);
+        }
+    },
+
     async clearCart(): Promise<{ success: boolean; error: any }> {
         try {
             const response = await fetch(API_BASE, {

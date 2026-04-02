@@ -40,12 +40,17 @@ export interface SavedAddress {
     lng?: number;
 }
 
+interface ClearCartOptions {
+    rollbackOnError?: boolean;
+    syncServer?: boolean;
+}
+
 interface CartContextType {
     cart: CartItem[];
     addItem: (item: Omit<CartItem, 'cartId'>) => Promise<void>;
     removeItem: (cartId: string) => Promise<void>;
     updateQuantity: (cartId: string, quantity: number) => Promise<void>;
-    clearCart: () => Promise<void>;
+    clearCart: (options?: ClearCartOptions) => Promise<void>;
     totalItems: number;
     subtotal: number;
     deliveryAddress: string;
@@ -67,34 +72,36 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
     const [isInitialized, setIsInitialized] = useState(false);
     const { user } = useSupabase();
+    const prevUser = useRef<any>(null);
 
     // Load and Sync Addresses
     useEffect(() => {
         if (!isInitialized) {
-            // Initial load from localStorage
-            const savedCart = localStorage.getItem('cakerr_cart');
-            if (savedCart) {
-                try { setCart(JSON.parse(savedCart)); } catch (e) { console.error(e); }
-            }
-            const savedAddress = localStorage.getItem('cakerr_address');
-            if (savedAddress) setDeliveryAddress(savedAddress);
+            // Defer localStorage reads so they don't block first paint
+            setTimeout(() => {
+                const savedCart = localStorage.getItem('cakerr_cart');
+                if (savedCart) {
+                    try { setCart(JSON.parse(savedCart)); } catch (e) { console.error(e); }
+                }
+                const savedAddress = localStorage.getItem('cakerr_address');
+                if (savedAddress) setDeliveryAddress(savedAddress);
 
-            const savedCoords = localStorage.getItem('cakerr_coords');
-            if (savedCoords) {
-                try { setDeliveryCoords(JSON.parse(savedCoords)); } catch (e) { console.error(e); }
-            }
+                const savedCoords = localStorage.getItem('cakerr_coords');
+                if (savedCoords) {
+                    try { setDeliveryCoords(JSON.parse(savedCoords)); } catch (e) { console.error(e); }
+                }
 
-            const savedList = localStorage.getItem('cakerr_saved_addresses');
-            if (savedList) {
-                try { setSavedAddresses(JSON.parse(savedList)); } catch (e) { console.error(e); }
-            } else {
-                // Default seeds for new guests
-                setSavedAddresses([
-                    { id: 'm1', label: 'Uy', address: 'Mustaqillik shoh ko\'chasi', type: 'home', lat: 41.3110, lng: 69.2405 },
-                    { id: 'm2', label: 'Ish', address: 'Amir Temur ko\'chasi', type: 'work', lat: 41.3323, lng: 69.2123 }
-                ]);
-            }
-            setIsInitialized(true);
+                const savedList = localStorage.getItem('cakerr_saved_addresses');
+                if (savedList) {
+                    try { setSavedAddresses(JSON.parse(savedList)); } catch (e) { console.error(e); }
+                } else {
+                    setSavedAddresses([
+                        { id: 'm1', label: 'Uy', address: 'Mustaqillik shoh ko\'chasi', type: 'home', lat: 41.3110, lng: 69.2405 },
+                        { id: 'm2', label: 'Ish', address: 'Amir Temur ko\'chasi', type: 'work', lat: 41.3323, lng: 69.2123 }
+                    ]);
+                }
+                setIsInitialized(true);
+            }, 0);
         }
     }, []);
 
@@ -102,50 +109,56 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (isInitialized) {
             if (user) {
-                fetchDBAddresses();
-                fetchDBCart();
+                Promise.all([fetchDBAddresses(), fetchDBCart()]);
             } else {
                 // Logout case: Clear state or revert to what's in localstorage?
-                // Re-loading from localStorage is safer to avoid showing previous user's cart
-                const savedCart = localStorage.getItem('cakerr_cart');
-                if (savedCart) {
-                    try { setCart(JSON.parse(savedCart)); } catch (e) { setCart([]); }
-                } else {
+                if (prevUser.current && prevUser.current.id) {
                     setCart([]);
+                    localStorage.removeItem('cakerr_cart');
+                    localStorage.removeItem('cakerr_cart_owner');
+                } else {
+                    const savedCart = localStorage.getItem('cakerr_cart');
+                    if (savedCart) {
+                        try { setCart(JSON.parse(savedCart)); } catch (e) { setCart([]); }
+                    } else {
+                        setCart([]);
+                    }
                 }
             }
+            prevUser.current = user;
         }
     }, [user, isInitialized]);
 
     const fetchDBCart = async () => {
         const dbItems = await cartService.getCartItems();
+        const cartOwner = localStorage.getItem('cakerr_cart_owner');
 
         // If user logged in and has local guest cart, migrate it!
-        if (dbItems.length === 0 && cart.length > 0) {
+        if (dbItems.length === 0 && cart.length > 0 && cartOwner === 'guest') {
             await migrateGuestCart(cart);
             return;
         }
 
-        if (dbItems.length > 0) {
+        if (dbItems.length === 0) {
+            setCart([]);
+        } else if (dbItems.length > 0) {
             setCart(dbItems.map(mapDBCartItemToCartItem));
         }
     };
 
     const migrateGuestCart = async (guestCart: CartItem[]) => {
-        for (const item of guestCart) {
-            await cartService.addItem({
-                product_id: item.id,
-                quantity: item.quantity,
-                portion: item.portion,
-                flavor: item.flavor,
-                custom_note: item.customNote,
-                configuration: item.configuration
-            });
-        }
-        // Clear local storage cart
+        // Single batch request instead of N sequential requests
+        await cartService.addItemsBatch(guestCart.map(item => ({
+            product_id: item.id,
+            quantity: item.quantity,
+            portion: item.portion,
+            flavor: item.flavor,
+            custom_note: item.customNote,
+            configuration: item.configuration
+        })));
+
         localStorage.removeItem('cakerr_cart');
-        
-        // Fetch fresh state from DB
+
         const finalItems = await cartService.getCartItems();
         setCart(finalItems.map(mapDBCartItemToCartItem));
     };
@@ -184,37 +197,38 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     };
 
     const migrateGuestAddresses = async (actualGuestAddresses: SavedAddress[]) => {
-        for (const addr of actualGuestAddresses) {
-            await addressService.addAddress({
+        // Single batch request — use returned data directly, no extra re-fetch needed
+        const inserted = await addressService.addAddressBatch(
+            actualGuestAddresses.map(addr => ({
                 label: addr.label,
                 address_text: addr.address,
                 lat: addr.lat,
                 lng: addr.lng,
                 is_default: false
-            });
-        }
+            }))
+        );
 
-        // Clear local storage list to prevent double migration
         localStorage.removeItem('cakerr_saved_addresses');
 
-        // Final fetch to get fresh DB state with new IDs
-        const finalAddresses = await addressService.getUserAddresses();
-        const mapped: SavedAddress[] = finalAddresses.map(addr => ({
-            id: addr.id,
-            label: addr.label,
-            address: addr.address_text,
-            type: addr.label.toLowerCase() === 'uy' ? 'home' :
-                addr.label.toLowerCase() === 'ish' ? 'work' : 'other',
-            lat: Number(addr.lat),
-            lng: Number(addr.lng)
-        }));
-        setSavedAddresses(mapped);
+        if (inserted.length > 0) {
+            const mapped: SavedAddress[] = inserted.map((addr: any) => ({
+                id: addr.id,
+                label: addr.label,
+                address: addr.address_text,
+                type: addr.label.toLowerCase() === 'uy' ? 'home' :
+                    addr.label.toLowerCase() === 'ish' ? 'work' : 'other',
+                lat: Number(addr.lat),
+                lng: Number(addr.lng)
+            }));
+            setSavedAddresses(mapped);
+        }
     };
 
     // Save to localStorage on change with QuotaExceededError protection
     useEffect(() => {
         try {
             localStorage.setItem('cakerr_cart', JSON.stringify(cart));
+            localStorage.setItem('cakerr_cart_owner', user ? user.id : 'guest');
         } catch (e: any) {
             if (e.name === 'QuotaExceededError') {
                 console.error('[CartContext] localStorage quota exceeded');
@@ -223,7 +237,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                 console.error('[CartContext] localStorage error:', e);
             }
         }
-    }, [cart]);
+    }, [cart, user]);
 
     useEffect(() => {
         try {
@@ -343,16 +357,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         }
     }, [user]);
 
-    const clearCart = useCallback(async () => {
+    const clearCart = useCallback(async (options?: ClearCartOptions) => {
         const previousCart = [...cart];
         setCart([]);
-        if (user) {
+        if (user && (options?.syncServer ?? true)) {
             try {
                 const { success, error } = await cartService.clearCart();
                 if (!success || error) throw error;
             } catch (err) {
                 console.error('[Cart Optimization] ClearCart Error:', err);
-                setCart(previousCart);
+                if (options?.rollbackOnError ?? true) {
+                    setCart(previousCart);
+                }
             }
         }
     }, [cart, user]);

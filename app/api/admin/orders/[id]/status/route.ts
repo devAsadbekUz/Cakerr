@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { headers } from 'next/headers';
 import { getStatusConfig, getTelegramButtons, buildOrderMessage, resolveOrderLanguage, parseLang } from '@/app/utils/orderConfig';
+import { notifyCustomerStatusChange } from '@/app/services/telegramNotificationService';
 
 // Service Role client
 const serviceClient = createClient(
@@ -123,69 +124,8 @@ export async function POST(
                     }).then(r => r.json()));
                 }
 
-                // Task B: Status Update for Client (Delete old → Send new)
-                if (profile?.telegram_id) {
-                    // 1. Delete previous message if it exists
-                    if (order.client_tg_message_id) {
-                        tasks.push(fetch(`${TELEGRAM_API}/deleteMessage`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                chat_id: profile.telegram_id,
-                                message_id: order.client_tg_message_id
-                            })
-                        }).catch(err => console.error('[Admin Orders Status API] Delete client msg error:', err)));
-                    }
-
-                    const clientLabels = {
-                        uz: {
-                            title: "🍰 *Buyurtma holati yangilandi*",
-                            text: `Hurmatli mijoz, sizning #${order.id.slice(0,8)} raqamli buyurtmangiz holati o'zgardi:`
-                        },
-                        ru: {
-                            title: "🍰 *Статус заказа обновлен*",
-                            text: `Уважаемый клиент, статус вашего заказа #${order.id.slice(0,8)} изменился:`
-                        }
-                    }[tgLang];
-
-                    const clientMessage = `${clientLabels.title}\n\n${clientLabels.text}\n\n*${statusConfig.labels[tgLang]}*\n_${statusConfig.descs[tgLang]}_`;
-
-                    if (newStatus === 'cancelled') {
-                        // Cancelled: clear tracking, no new message
-                        tasks.push(serviceClient
-                            .from('orders')
-                            .update({ client_tg_message_id: null, client_tg_delete_at: null })
-                            .eq('id', orderId));
-                    } else {
-                        // All other statuses (including completed): send a status message
-                        const sendNewMsg = async () => {
-                            const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    chat_id: profile.telegram_id,
-                                    text: clientMessage,
-                                    parse_mode: 'Markdown'
-                                })
-                            });
-                            const result = await res.json();
-                            if (result.ok) {
-                                const isCompleted = newStatus === 'completed';
-                                const deleteAt = isCompleted
-                                    ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-                                    : null;
-                                await serviceClient
-                                    .from('orders')
-                                    .update({
-                                        client_tg_message_id: result.result.message_id,
-                                        client_tg_delete_at: deleteAt
-                                    })
-                                    .eq('id', orderId);
-                            }
-                        };
-                        tasks.push(sendNewMsg());
-                    }
-                }
+                // Task B: Status Update for Client (Refactored to centralized service)
+                tasks.push(notifyCustomerStatusChange(orderId, newStatus, order));
 
                 await Promise.all(tasks).catch(err => console.error('[Admin Orders Status API] Parallel Sync error:', err));
             })();

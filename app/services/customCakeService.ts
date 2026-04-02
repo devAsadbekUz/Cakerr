@@ -2,7 +2,7 @@ import { createClient } from '@/app/utils/supabase/client';
 
 export interface CustomOption {
     id: string;
-    type: 'size' | 'sponge' | 'cream' | 'decoration';
+    type: 'size' | 'sponge' | 'cream' | 'decoration' | 'shape';
     label: string;
     sub_label?: string;
     image_url?: string;
@@ -12,7 +12,10 @@ export interface CustomOption {
 }
 
 export const customCakeService = {
-    async getOptions() {
+    /**
+     * Client-side fetch: RLS enforces is_available = TRUE (for client wizard).
+     */
+    async getOptions(): Promise<CustomOption[]> {
         const supabase = createClient();
         const { data, error } = await supabase
             .from('custom_cake_options')
@@ -31,32 +34,66 @@ export const customCakeService = {
         return data as CustomOption[];
     },
 
-    async saveOption(option: Partial<CustomOption>) {
-        const supabase = createClient();
+    /**
+     * Admin-side fetch via service-role API route.
+     * Returns ALL rows including those with is_available = FALSE.
+     */
+    async getAllOptions(): Promise<CustomOption[]> {
+        const res = await fetch('/api/admin/custom-options');
+        if (!res.ok) {
+            console.error('[customCakeService] getAllOptions failed:', await res.text());
+            return [];
+        }
+        return res.json();
+    },
+
+    /**
+     * Admin-side save (create or update) via service-role API route.
+     */
+    async saveOption(option: Partial<CustomOption>): Promise<{ data: CustomOption | null; error: string | null }> {
         if (option.id) {
-            const { data, error } = await supabase
-                .from('custom_cake_options')
-                .update(option)
-                .eq('id', option.id)
-                .select()
-                .single();
-            return { data, error };
+            // Update existing
+            const res = await fetch('/api/admin/custom-options', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(option),
+            });
+            if (!res.ok) {
+                const err = await res.text();
+                console.error('[customCakeService] saveOption PATCH failed:', err);
+                return { data: null, error: err };
+            }
+            const data = await res.json();
+            return { data, error: null };
         } else {
-            const { data, error } = await supabase
-                .from('custom_cake_options')
-                .insert([option])
-                .select()
-                .single();
-            return { data, error };
+            // Insert new
+            const res = await fetch('/api/admin/custom-options', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(option),
+            });
+            if (!res.ok) {
+                const err = await res.text();
+                console.error('[customCakeService] saveOption POST failed:', err);
+                return { data: null, error: err };
+            }
+            const data = await res.json();
+            return { data, error: null };
         }
     },
 
-    async deleteOption(id: string) {
-        const supabase = createClient();
-        const { error } = await supabase
-            .from('custom_cake_options')
-            .delete()
-            .eq('id', id);
-        return { error };
+    /**
+     * Admin-side delete via service-role API route.
+     */
+    async deleteOption(id: string): Promise<{ error: string | null }> {
+        const res = await fetch(`/api/admin/custom-options?id=${id}`, {
+            method: 'DELETE',
+        });
+        if (!res.ok) {
+            const err = await res.text();
+            console.error('[customCakeService] deleteOption failed:', err);
+            return { error: err };
+        }
+        return { error: null };
     }
 };

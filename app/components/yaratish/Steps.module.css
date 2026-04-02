@@ -184,6 +184,12 @@
     color: hsl(var(--color-text));
 }
 
+.subLabel {
+    font-size: 12px;
+    color: hsl(var(--color-text-light));
+    font-weight: 500;
+}
+
 .price {
     font-size: 14px;
     color: hsl(var(--color-text-light));

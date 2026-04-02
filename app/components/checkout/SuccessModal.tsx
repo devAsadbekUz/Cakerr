@@ -16,34 +16,38 @@ export default function SuccessModal({ isOpen, onClose }: SuccessModalProps) {
 
     useEffect(() => {
         if (isOpen) {
-            // Trigger confetti
             const duration = 3 * 1000;
             const animationEnd = Date.now() + duration;
             const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 3001 };
-
             const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
 
-            const interval: any = setInterval(function () {
-                const timeLeft = animationEnd - Date.now();
+            let lastFire = 0;
+            let rafId: number;
 
-                if (timeLeft <= 0) {
-                    return clearInterval(interval);
+            const frame = () => {
+                const now = Date.now();
+                const timeLeft = animationEnd - now;
+                if (timeLeft <= 0) return;
+
+                // Fire every ~250ms but driven by rAF so it syncs with screen refresh
+                if (now - lastFire >= 250) {
+                    lastFire = now;
+                    const particleCount = 50 * (timeLeft / duration);
+                    confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+                    confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
                 }
 
-                const particleCount = 50 * (timeLeft / duration);
+                rafId = requestAnimationFrame(frame);
+            };
 
-                // since particles fall down, start a bit higher than random
-                confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
-                confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
-            }, 250);
+            rafId = requestAnimationFrame(frame);
 
-            // Auto-redirect after 3 seconds
             const redirectTimer = setTimeout(() => {
                 onClose();
             }, 3000);
 
             return () => {
-                clearInterval(interval);
+                cancelAnimationFrame(rafId);
                 clearTimeout(redirectTimer);
             };
         }

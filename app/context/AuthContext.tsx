@@ -52,6 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [isTelegram, setIsTelegram] = useState(false);
     const initializedRef = useRef(false);
     const subscriptionRef = useRef<any>(null);
+    const lastFetchedUserIdRef = useRef<string | null>(null);
 
     const setupCoinSubscription = useCallback((userId: string) => {
         if (subscriptionRef.current) {
@@ -172,6 +173,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // 2. Fallback to Supabase
             const { data: { user: sbUser } } = await supabase.auth.getUser();
             if (sbUser && isMounted) {
+                lastFetchedUserIdRef.current = sbUser.id;
                 const profile = await fetchProfile(sbUser);
                 setUser(profile);
                 setupCoinSubscription(profile.id);
@@ -186,6 +188,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: string, session: any) => {
             if (!isMounted) return;
             if (session?.user) {
+                // Skip re-fetching profile if it's the same user already loaded
+                if (session.user.id === lastFetchedUserIdRef.current) return;
+                lastFetchedUserIdRef.current = session.user.id;
                 const profile = await fetchProfile(session.user);
                 setUser(profile);
                 setupCoinSubscription(profile.id);

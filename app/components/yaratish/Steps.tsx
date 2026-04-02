@@ -7,16 +7,26 @@ import styles from './Steps.module.css';
 import {
     Circle, Square, Heart, Maximize2, Move, Minimize2,
     Cookie, Droplets, Utensils, Wheat, IceCream, Coffee,
-    Check, MessageCircle, Pencil, Trash2, Palette, Type, Info
+    Check, MessageCircle, Pencil, Trash2, Palette, Type, Info,
+    Star, Triangle, Hexagon
 } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
-import { CAKE_OPTIONS } from '@/app/config/cakeBuilderConfig';
+// CAKE_OPTIONS no longer used for shapes — shapes are DB-driven via custom_cake_options
 
-// Icon mappings (since we can't store components in JSON config easily)
-const SHAPE_ICONS: Record<string, any> = {
-    round: Circle,
-    square: Square,
-    heart: Heart
+// Icon mappings by shape label (DB-driven)
+const SHAPE_ICONS: Record<string, React.ElementType> = {
+    'Yumaloq':      Circle,
+    'To\'rtburchak': Square,
+    'Yurak':        Heart,
+    'Oval':         Circle,
+    'Aylana':       Circle,
+    'Guldasta':     Star,
+    'Uchburchak':   Triangle,
+    'Yulduz':       Star,
+    'Olti burchak': Hexagon,
+    'Minora':       Maximize2,
+    'Raqam':        Square,
+    'Harf':         Square,
 };
 
 const SIZE_ICONS: Record<string, any> = {
@@ -38,28 +48,39 @@ const CREAM_ICONS: Record<string, any> = {
 };
 
 export function ShapeStep() {
-    const { shape, setShape } = useCustomCake();
+    const { shape, setShape, options } = useCustomCake();
+    // Only show shapes that are available (RLS also enforces this, but filter client-side too)
+    const shapes = options.filter(o => o.type === 'shape' && o.is_available);
 
     return (
         <div className={styles.stepContainer}>
             <h2 className={styles.stepTitle}>Tort shaklini tanlang</h2>
-            <div className={styles.grid}>
-                {CAKE_OPTIONS.shapes.map((s) => {
-                    const Icon = SHAPE_ICONS[s.id] || Circle;
-                    return (
-                        <div
-                            key={s.id}
-                            className={`${styles.card} ${shape === s.id ? styles.cardActive : ''}`}
-                            onClick={() => setShape(s.id)}
-                        >
-                            <div className={styles.iconWrapper}>
-                                <Icon size={32} />
+            {shapes.length === 0 ? (
+                <p style={{ color: '#9CA3AF', textAlign: 'center', padding: '32px 0' }}>
+                    Shakllar mavjud emas
+                </p>
+            ) : (
+                <div className={styles.grid}>
+                    {shapes.map((s) => {
+                        const Icon = SHAPE_ICONS[s.label] || Circle;
+                        return (
+                            <div
+                                key={s.id}
+                                className={`${styles.card} ${shape === s.id ? styles.cardActive : ''}`}
+                                onClick={() => setShape(s.id)}
+                            >
+                                <div className={styles.iconWrapper}>
+                                    <Icon size={32} />
+                                </div>
+                                <span className={styles.label}>{s.label}</span>
+                                {s.sub_label && (
+                                    <span className={styles.subLabel}>{s.sub_label}</span>
+                                )}
                             </div>
-                            <span className={styles.label}>{s.label}</span>
-                        </div>
-                    );
-                })}
-            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 }
@@ -348,12 +369,11 @@ export function DecorationStep() {
 export function ReviewStep() {
     const { shape, size, sponge, cream, decorations, text, drawingData, options, calculateTotal } = useCustomCake();
 
-    // Helper to find label by ID from DB or fallback
+    // Helper to find label by ID from DB (works for all types including shapes)
     const getOptionLabel = (id: string | null) => options.find(o => o.id === id)?.label || 'Tanlanmagan';
-    const getShapeLabel = (id: string | null) => CAKE_OPTIONS.shapes.find(s => s.id === id)?.label || id;
 
     const summaryItems = [
-        { label: 'Shakl', value: getShapeLabel(shape) },
+        { label: 'Shakl', value: getOptionLabel(shape) },
         { label: 'Hajm', value: getOptionLabel(size) },
         { label: 'Biskvit', value: getOptionLabel(sponge) },
         { label: 'Krem', value: getOptionLabel(cream) },
