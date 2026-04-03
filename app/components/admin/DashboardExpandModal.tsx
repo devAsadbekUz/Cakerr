@@ -1,53 +1,71 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { X, ShoppingBag, TrendingUp, Clock, DollarSign, PieChart, BarChart3, Package } from 'lucide-react';
-import { format, subDays, isSameDay } from 'date-fns';
+import { X, ShoppingBag, TrendingUp, Clock, DollarSign, PieChart } from 'lucide-react';
+import { format } from 'date-fns';
 import { useAdminI18n } from '@/app/context/AdminLanguageContext';
+import type { AdminTranslationKey } from '@/app/lib/admin-i18n';
+import type {
+    AdminDashboardDayCount,
+    AdminDashboardPeakHour,
+    AdminDashboardRecentOrder,
+    AdminDashboardRevenuePoint,
+} from '@/app/types';
 import styles from './DashboardExpandModal.module.css';
 
-// Status display config
+interface ExpandModalStatus {
+    status: string;
+    count: number;
+    bg: string;
+    text: string;
+    label: string;
+}
+
+interface ExpandModalAnalytics {
+    totalOrders: number;
+    peakHours: AdminDashboardPeakHour[];
+    statusBreakdown: ExpandModalStatus[];
+}
+
 interface ExpandModalProps {
     isOpen: boolean;
     onClose: () => void;
     type: 'recentActivity' | 'revenueTrend' | 'weeklyOrders' | 'orderStatuses' | 'peakHours';
-    orders: any[];
-    analytics: any;
+    recentOrders: AdminDashboardRecentOrder[];
+    revenueTrend: AdminDashboardRevenuePoint[];
+    dailyOrders30: AdminDashboardDayCount[];
+    analytics: ExpandModalAnalytics;
 }
 
-export default function DashboardExpandModal({ isOpen, onClose, type, orders, analytics }: ExpandModalProps) {
+type TranslateFn = (key: AdminTranslationKey) => string;
+
+export default function DashboardExpandModal({
+    isOpen,
+    onClose,
+    type,
+    recentOrders,
+    revenueTrend,
+    dailyOrders30,
+    analytics,
+}: ExpandModalProps) {
     const { lang, t } = useAdminI18n();
-    const STATUS_COLORS: Record<string, { bg: string; text: string; label: string }> = {
-        new: { bg: '#FEF3C7', text: '#92400E', label: t('status_new') },
-        confirmed: { bg: '#DBEAFE', text: '#1E40AF', label: t('status_confirmed') },
-        preparing: { bg: '#FDE68A', text: '#78350F', label: t('status_preparing') },
-        delivering: { bg: '#E0E7FF', text: '#3730A3', label: t('status_delivering') },
-        completed: { bg: '#D1FAE5', text: '#065F46', label: t('status_completed') },
-        cancelled: { bg: '#FEE2E2', text: '#991B1B', label: t('status_cancelled') },
-    };
 
-    const [revenuePeriod, setRevenuePeriod] = useState<7 | 30 | 90>(30);
+    if (!isOpen) {
+        return null;
+    }
 
-    if (!isOpen) return null;
-
-    const commonProps = { onClose, STATUS_COLORS, lang, t };
+    const commonProps = { onClose, lang, t };
 
     return (
         <div className={styles.overlay} onClick={onClose}>
-            <div className={styles.modal} onClick={e => e.stopPropagation()}>
+            <div className={styles.modal} onClick={(event) => event.stopPropagation()}>
                 {type === 'recentActivity' && (
-                    <RecentActivityFull orders={orders} {...commonProps} />
+                    <RecentActivityFull recentOrders={recentOrders} analytics={analytics} {...commonProps} />
                 )}
                 {type === 'revenueTrend' && (
-                    <RevenueTrendFull
-                        orders={orders}
-                        period={revenuePeriod}
-                        setPeriod={setRevenuePeriod}
-                        {...commonProps}
-                    />
+                    <RevenueTrendFull revenueTrend={revenueTrend} {...commonProps} />
                 )}
                 {type === 'weeklyOrders' && (
-                    <WeeklyOrdersFull orders={orders} {...commonProps} />
+                    <WeeklyOrdersFull dailyOrders30={dailyOrders30} {...commonProps} />
                 )}
                 {type === 'orderStatuses' && (
                     <OrderStatusesFull analytics={analytics} {...commonProps} />
@@ -60,13 +78,19 @@ export default function DashboardExpandModal({ isOpen, onClose, type, orders, an
     );
 }
 
-// ===================== RECENT ACTIVITY FULL =====================
-function RecentActivityFull({ orders, onClose, STATUS_COLORS, t, lang }: any) {
-    const sorted = useMemo(() =>
-        [...orders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
-        [orders]
-    );
-
+function RecentActivityFull({
+    recentOrders,
+    analytics,
+    onClose,
+    t,
+    lang,
+}: {
+    recentOrders: AdminDashboardRecentOrder[];
+    analytics: ExpandModalAnalytics;
+    onClose: () => void;
+    t: TranslateFn;
+    lang: string;
+}) {
     return (
         <>
             <div className={styles.header}>
@@ -74,38 +98,31 @@ function RecentActivityFull({ orders, onClose, STATUS_COLORS, t, lang }: any) {
                     <ShoppingBag size={22} color="#BE185D" />
                     <div>
                         <h2 className={styles.title}>{t('allActions')}</h2>
-                        <p className={styles.subtitle}>{sorted.length} {t('ordersLabel')}</p>
+                        <p className={styles.subtitle}>
+                            {recentOrders.length} / {analytics.totalOrders} {t('ordersLabel')}
+                        </p>
                     </div>
                 </div>
                 <button className={styles.closeBtn} onClick={onClose}><X size={20} /></button>
             </div>
             <div className={styles.content}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {sorted.map(o => (
-                        <div key={o.id} className={styles.orderRow}>
+                    {recentOrders.map((order) => (
+                        <div key={order.id} className={styles.orderRow}>
                             <div className={styles.orderIcon}>
                                 <ShoppingBag size={16} />
                             </div>
                             <div className={styles.orderInfo}>
                                 <div className={styles.orderTitle}>
-                                    #{o.id.slice(0, 6)} - {o.profiles?.full_name || t('client')}
+                                    #{order.id.slice(0, 6)} - {order.profiles?.full_name || t('client')}
                                 </div>
                                 <div className={styles.orderMeta}>
-                                    {format(new Date(o.created_at), 'dd/MM/yyyy HH:mm')} • {o.total_price?.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}
+                                    {format(new Date(order.created_at), 'dd/MM/yyyy HH:mm')} • {order.total_price?.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}
                                 </div>
-                            </div>
-                            <div
-                                className={styles.statusBadge}
-                                style={{
-                                    background: STATUS_COLORS[o.status]?.bg || '#F3F4F6',
-                                    color: STATUS_COLORS[o.status]?.text || '#6B7280'
-                                }}
-                            >
-                                {STATUS_COLORS[o.status]?.label || o.status}
                             </div>
                         </div>
                     ))}
-                    {sorted.length === 0 && (
+                    {recentOrders.length === 0 && (
                         <div className={styles.emptyState}>{t('noOrders')}</div>
                     )}
                 </div>
@@ -114,41 +131,20 @@ function RecentActivityFull({ orders, onClose, STATUS_COLORS, t, lang }: any) {
     );
 }
 
-// ===================== REVENUE TREND FULL =====================
 function RevenueTrendFull({
-    orders, period, setPeriod, onClose, t, lang
-}: any) {
-    const data = useMemo(() => {
-        const today = new Date();
-        const days = Array.from({ length: period }, (_, i) => {
-            const d = subDays(today, period - 1 - i);
-            return {
-                date: d,
-                label: format(d, period <= 7 ? 'EEE' : 'dd/MM'),
-                revenue: 0,
-                count: 0
-            };
-        });
-
-        for (const o of orders) {
-            if (o.status !== 'completed') continue;
-            const created = new Date(o.created_at);
-            const price = Number(o.total_price) || 0;
-            for (const day of days) {
-                if (isSameDay(created, day.date)) {
-                    day.revenue += price;
-                    day.count++;
-                    break;
-                }
-            }
-        }
-
-        return days;
-    }, [orders, period]);
-
-    const totalRevenue = data.reduce((sum, d) => sum + d.revenue, 0);
-    const totalOrders = data.reduce((sum, d) => sum + d.count, 0);
-    const maxRev = Math.max(...data.map(d => d.revenue), 1);
+    revenueTrend,
+    onClose,
+    t,
+    lang,
+}: {
+    revenueTrend: AdminDashboardRevenuePoint[];
+    onClose: () => void;
+    t: TranslateFn;
+    lang: string;
+}) {
+    const totalRevenue = revenueTrend.reduce((sum, point) => sum + point.revenue, 0);
+    const totalOrders = revenueTrend.reduce((sum, point) => sum + point.sales, 0);
+    const maxRevenue = Math.max(...revenueTrend.map((point) => point.revenue), 1);
 
     return (
         <>
@@ -161,18 +157,6 @@ function RevenueTrendFull({
                     </div>
                 </div>
                 <button className={styles.closeBtn} onClick={onClose}><X size={20} /></button>
-            </div>
-
-            <div className={styles.tabs}>
-                {([7, 30, 90] as const).map(p => (
-                    <button
-                        key={p}
-                        className={`${styles.tab} ${period === p ? styles.tabActive : ''}`}
-                        onClick={() => setPeriod(p)}
-                    >
-                        {p} {t('daysCount')}
-                    </button>
-                ))}
             </div>
 
             <div className={styles.content}>
@@ -195,36 +179,38 @@ function RevenueTrendFull({
                     <div className={styles.summaryCard}>
                         <h4>{t('averagePerDay')}</h4>
                         <div className="value" style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>
-                            {period > 0 ? (totalRevenue / period / 1000).toFixed(0) : 0}K
+                            {revenueTrend.length > 0 ? (totalRevenue / revenueTrend.length / 1000).toFixed(0) : 0}K
                         </div>
                     </div>
                 </div>
 
                 <div className={styles.chartArea}>
-                    {data.map((day, idx) => {
-                        const widthPct = maxRev > 0 ? (day.revenue / maxRev) * 100 : 0;
+                    {revenueTrend.map((point, index) => {
+                        const widthPct = maxRevenue > 0 ? (point.revenue / maxRevenue) * 100 : 0;
                         return (
-                            <div key={idx} className={styles.barRow}>
-                                <span className={styles.barLabel}>{day.label}</span>
+                            <div key={index} className={styles.barRow}>
+                                <span className={styles.barLabel}>{point.label}</span>
                                 <div className={styles.barTrack}>
                                     <div
                                         className={styles.barFill}
                                         style={{
-                                            width: `${Math.max(widthPct, day.revenue > 0 ? 3 : 0)}%`,
-                                            background: day.revenue > 0
-                                                ? 'linear-gradient(90deg, #BE185D, #EC4899)'
-                                                : 'transparent'
+                                            width: `${Math.max(widthPct, point.revenue > 0 ? 3 : 0)}%`,
+                                            background: point.revenue > 0
+                                                ? point.isFuture
+                                                    ? 'linear-gradient(90deg, #F59E0B, #FCD34D)'
+                                                    : 'linear-gradient(90deg, #BE185D, #EC4899)'
+                                                : 'transparent',
                                         }}
                                     >
                                         {widthPct > 15 && (
                                             <span className={styles.barFillValue}>
-                                                {(day.revenue / 1000).toFixed(0)}K
+                                                {(point.revenue / 1000).toFixed(0)}K
                                             </span>
                                         )}
                                     </div>
                                 </div>
                                 <span className={styles.barAmount}>
-                                    {day.revenue > 0 ? `${(day.revenue / 1000).toFixed(0)}K` : '—'}
+                                    {point.revenue > 0 ? `${(point.revenue / 1000).toFixed(0)}K` : '—'}
                                 </span>
                             </div>
                         );
@@ -235,35 +221,17 @@ function RevenueTrendFull({
     );
 }
 
-// ===================== WEEKLY ORDERS FULL =====================
-function WeeklyOrdersFull({ orders, onClose, t }: any) {
-    const last30 = useMemo(() => {
-        const today = new Date();
-        const days = Array.from({ length: 30 }, (_, i) => {
-            const d = subDays(today, 29 - i);
-            return {
-                date: d,
-                label: format(d, 'dd/MM'),
-                dayName: format(d, 'EEE'),
-                count: 0
-            };
-        });
-
-        for (const o of orders) {
-            const delivery = new Date(o.delivery_time);
-            for (const day of days) {
-                if (isSameDay(delivery, day.date)) {
-                    day.count++;
-                    break;
-                }
-            }
-        }
-
-        return days;
-    }, [orders]);
-
-    const maxCount = Math.max(...last30.map(d => d.count), 1);
-    const totalOrders = last30.reduce((sum, d) => sum + d.count, 0);
+function WeeklyOrdersFull({
+    dailyOrders30,
+    onClose,
+    t,
+}: {
+    dailyOrders30: AdminDashboardDayCount[];
+    onClose: () => void;
+    t: TranslateFn;
+}) {
+    const maxCount = Math.max(...dailyOrders30.map((day) => day.count), 1);
+    const totalOrders = dailyOrders30.reduce((sum, day) => sum + day.count, 0);
 
     return (
         <>
@@ -279,10 +247,10 @@ function WeeklyOrdersFull({ orders, onClose, t }: any) {
             </div>
             <div className={styles.content}>
                 <div className={styles.chartArea}>
-                    {last30.map((day, idx) => {
+                    {dailyOrders30.map((day, index) => {
                         const widthPct = maxCount > 0 ? (day.count / maxCount) * 100 : 0;
                         return (
-                            <div key={idx} className={styles.barRow}>
+                            <div key={index} className={styles.barRow}>
                                 <span className={styles.barLabel}>{day.label}</span>
                                 <div className={styles.barTrack}>
                                     <div
@@ -291,7 +259,7 @@ function WeeklyOrdersFull({ orders, onClose, t }: any) {
                                             width: `${Math.max(widthPct, day.count > 0 ? 5 : 0)}%`,
                                             background: day.count > 0
                                                 ? 'linear-gradient(90deg, #BE185D, #EC4899)'
-                                                : 'transparent'
+                                                : 'transparent',
                                         }}
                                     >
                                         {widthPct > 20 && (
@@ -311,8 +279,15 @@ function WeeklyOrdersFull({ orders, onClose, t }: any) {
     );
 }
 
-// ===================== ORDER STATUSES FULL =====================
-function OrderStatusesFull({ analytics, onClose, t }: any) {
+function OrderStatusesFull({
+    analytics,
+    onClose,
+    t,
+}: {
+    analytics: ExpandModalAnalytics;
+    onClose: () => void;
+    t: TranslateFn;
+}) {
     return (
         <>
             <div className={styles.header}>
@@ -327,16 +302,16 @@ function OrderStatusesFull({ analytics, onClose, t }: any) {
             </div>
             <div className={styles.content}>
                 <div className={styles.statusGrid}>
-                    {analytics.statusBreakdown.map((s: any) => (
+                    {analytics.statusBreakdown.map((status) => (
                         <div
-                            key={s.status}
+                            key={status.status}
                             className={styles.statusCard}
-                            style={{ borderLeft: `4px solid ${s.text}` }}
+                            style={{ borderLeft: `4px solid ${status.text}` }}
                         >
-                            <div className={styles.statusCount} style={{ color: s.text }}>{s.count}</div>
-                            <div className={styles.statusLabel}>{s.label}</div>
+                            <div className={styles.statusCount} style={{ color: status.text }}>{status.count}</div>
+                            <div className={styles.statusLabel}>{status.label}</div>
                             <div className={styles.statusPercent}>
-                                {analytics.totalOrders > 0 ? Math.round((s.count / analytics.totalOrders) * 100) : 0}%
+                                {analytics.totalOrders > 0 ? Math.round((status.count / analytics.totalOrders) * 100) : 0}%
                             </div>
                         </div>
                     ))}
@@ -346,12 +321,24 @@ function OrderStatusesFull({ analytics, onClose, t }: any) {
     );
 }
 
-// ===================== PEAK HOURS FULL =====================
-function PeakHoursFull({ analytics, onClose, t }: any) {
-    const maxCount = Math.max(...analytics.peakHours.map((h: any) => h.count), 1);
-    const totalOrders = analytics.peakHours.reduce((sum: number, h: any) => sum + h.count, 0);
-    const peakHour = analytics.peakHours.reduce((max: any, h: any) => h.count > max.count ? h : max, analytics.peakHours[0]);
- 
+function PeakHoursFull({
+    analytics,
+    onClose,
+    t,
+}: {
+    analytics: ExpandModalAnalytics;
+    onClose: () => void;
+    t: TranslateFn;
+}) {
+    const maxCount = Math.max(...analytics.peakHours.map((hour) => hour.count), 1);
+    const totalOrders = analytics.peakHours.reduce((sum, hour) => sum + hour.count, 0);
+    const peakHour = analytics.peakHours.reduce<AdminDashboardPeakHour | null>((max, hour) => {
+        if (!max || hour.count > max.count) {
+            return hour;
+        }
+        return max;
+    }, analytics.peakHours[0] || null);
+
     return (
         <>
             <div className={styles.header}>
@@ -377,34 +364,34 @@ function PeakHoursFull({ analytics, onClose, t }: any) {
                 </div>
 
                 <div className={styles.chartArea}>
-                    {analytics.peakHours.map((h: any, idx: number) => {
-                        const widthPct = maxCount > 0 ? (h.count / maxCount) * 100 : 0;
+                    {analytics.peakHours.map((hour, index) => {
+                        const widthPct = maxCount > 0 ? (hour.count / maxCount) * 100 : 0;
                         return (
-                            <div key={idx} className={styles.barRow}>
-                                <span className={styles.barLabel}>{h.label}</span>
+                            <div key={index} className={styles.barRow}>
+                                <span className={styles.barLabel}>{hour.label}</span>
                                 <div className={styles.barTrack}>
                                     <div
                                         className={styles.barFill}
                                         style={{
-                                            width: `${Math.max(widthPct, h.count > 0 ? 3 : 0)}%`,
-                                            background: h.count > 0
-                                                ? h.count === peakHour?.count
+                                            width: `${Math.max(widthPct, hour.count > 0 ? 3 : 0)}%`,
+                                            background: hour.count > 0
+                                                ? hour.count === peakHour?.count
                                                     ? 'linear-gradient(90deg, #BE185D, #EC4899)'
                                                     : '#FBCFE8'
-                                                : 'transparent'
+                                                : 'transparent',
                                         }}
                                     >
                                         {widthPct > 20 && (
                                             <span className={styles.barFillValue} style={{
-                                                color: h.count === peakHour?.count ? 'white' : '#BE185D'
+                                                color: hour.count === peakHour?.count ? 'white' : '#BE185D',
                                             }}>
-                                                {h.count}
+                                                {hour.count}
                                             </span>
                                         )}
                                     </div>
                                 </div>
                                 <span className={styles.barAmount}>
-                                    {h.count > 0 ? `${h.count} ${t('ordersLabel')}` : '—'}
+                                    {hour.count > 0 ? `${hour.count} ${t('ordersLabel')}` : '—'}
                                 </span>
                             </div>
                         );

@@ -7,6 +7,8 @@ import { ArrowLeft, Coins, TrendingUp, ShoppingBag, ArrowUpCircle, ArrowDownCirc
 import { format } from 'date-fns';
 import React from 'react';
 
+import { useAdminI18n } from '@/app/context/AdminLanguageContext';
+
 interface UserProfile {
     id: string;
     full_name: string | null;
@@ -35,6 +37,7 @@ interface Transaction {
 export default function UserLoyaltyDetailPage({ params }: { params: Promise<{ userId: string }> }) {
     const { userId } = React.use(params);
     const router = useRouter();
+    const { t, lang } = useAdminI18n();
 
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<UserProfile | null>(null);
@@ -48,64 +51,103 @@ export default function UserLoyaltyDetailPage({ params }: { params: Promise<{ us
     });
     const [activeTab, setActiveTab] = useState<'orders' | 'transactions'>('orders');
 
-    useEffect(() => {
-        async function fetchUserData() {
-            setLoading(true);
-            try {
-                // 1. Fetch user profile via admin API
-                const profileRes = await fetch(`/api/admin/data?table=profiles&filterColumn=id&filterValue=${userId}`);
-                const profileJson = await profileRes.json();
+    // Adjustment state
+    const [isAdjusting, setIsAdjusting] = useState(false);
+    const [adjAmount, setAdjAmount] = useState('');
+    const [adjReason, setAdjReason] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-                if (profileJson.data && profileJson.data.length > 0) {
-                    setUser(profileJson.data[0]);
-                }
+    const fetchUserData = async () => {
+        setLoading(true);
+        try {
+            // 1. Fetch user profile via admin API
+            const profileRes = await fetch(`/api/admin/data?table=profiles&filterColumn=id&filterValue=${userId}`);
+            const profileJson = await profileRes.json();
 
-                // 2. Fetch user's orders via admin API
-                const ordersRes = await fetch(`/api/admin/data?table=orders&filterColumn=user_id&filterValue=${userId}&orderBy=created_at&orderAsc=false`);
-                const ordersJson = await ordersRes.json();
-
-                if (ordersJson.data) {
-                    setOrders(ordersJson.data);
-
-                    // Calculate order stats
-                    const totalSpent = ordersJson.data.reduce((acc: number, o: Order) => acc + (o.total_price || 0), 0);
-                    setStats(prev => ({
-                        ...prev,
-                        totalOrders: ordersJson.data.length,
-                        totalSpent
-                    }));
-                }
-
-                // 3. Fetch user's coin transactions via admin API
-                const txRes = await fetch(`/api/admin/data?table=coin_transactions&filterColumn=user_id&filterValue=${userId}&orderBy=created_at&orderAsc=false`);
-                const txJson = await txRes.json();
-
-                if (txJson.data) {
-                    setTransactions(txJson.data);
-
-                    // Calculate coin stats
-                    const earned = txJson.data
-                        .filter((t: Transaction) => t.amount > 0)
-                        .reduce((acc: number, t: Transaction) => acc + t.amount, 0);
-                    const used = txJson.data
-                        .filter((t: Transaction) => t.amount < 0)
-                        .reduce((acc: number, t: Transaction) => acc + Math.abs(t.amount), 0);
-
-                    setStats(prev => ({
-                        ...prev,
-                        totalEarned: earned,
-                        totalUsed: used
-                    }));
-                }
-            } catch (error) {
-                console.error('Error fetching user data:', error);
-            } finally {
-                setLoading(false);
+            if (profileJson.data && profileJson.data.length > 0) {
+                setUser(profileJson.data[0]);
             }
-        }
 
+            // 2. Fetch user's orders via admin API
+            const ordersRes = await fetch(`/api/admin/data?table=orders&filterColumn=user_id&filterValue=${userId}&orderBy=created_at&orderAsc=false`);
+            const ordersJson = await ordersRes.json();
+
+            if (ordersJson.data) {
+                setOrders(ordersJson.data);
+
+                // Calculate order stats
+                const totalSpent = ordersJson.data.reduce((acc: number, o: Order) => acc + (o.total_price || 0), 0);
+                setStats(prev => ({
+                    ...prev,
+                    totalOrders: ordersJson.data.length,
+                    totalSpent
+                }));
+            }
+
+            // 3. Fetch user's coin transactions via admin API
+            const txRes = await fetch(`/api/admin/data?table=coin_transactions&filterColumn=user_id&filterValue=${userId}&orderBy=created_at&orderAsc=false`);
+            const txJson = await txRes.json();
+
+            if (txJson.data) {
+                setTransactions(txJson.data);
+
+                // Calculate coin stats
+                const earned = txJson.data
+                    .filter((t: Transaction) => t.amount > 0)
+                    .reduce((acc: number, t: Transaction) => acc + t.amount, 0);
+                const used = txJson.data
+                    .filter((t: Transaction) => t.amount < 0)
+                    .reduce((acc: number, t: Transaction) => acc + Math.abs(t.amount), 0);
+
+                setStats(prev => ({
+                    ...prev,
+                    totalEarned: earned,
+                    totalUsed: used
+                }));
+            }
+        } catch (error) {
+            console.error('Error fetching user data:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
         fetchUserData();
     }, [userId]);
+
+    const handleAdjust = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!adjAmount || !adjReason) return;
+
+        setIsSubmitting(true);
+        try {
+            const res = await fetch('/api/admin/loyalty/adjust', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId,
+                    amount: parseInt(adjAmount),
+                    description: adjReason
+                })
+            });
+
+            if (res.ok) {
+                setIsAdjusting(false);
+                setAdjAmount('');
+                setAdjReason('');
+                fetchUserData(); // Refresh data
+            } else {
+                const error = await res.json();
+                alert(error.error || t('error'));
+            }
+        } catch (err) {
+            console.error('Adjustment failed:', err);
+            alert(t('error'));
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     const getInitials = (name: string | null) => {
         if (!name) return '?';
@@ -113,22 +155,13 @@ export default function UserLoyaltyDetailPage({ params }: { params: Promise<{ us
     };
 
     const getStatusLabel = (status: string) => {
-        const statusMap: { [key: string]: string } = {
-            'new': 'Yangi',
-            'confirmed': 'Tasdiqlangan',
-            'preparing': 'Tayyorlanmoqda',
-            'ready': 'Tayyor',
-            'delivering': 'Yetkazilmoqda',
-            'completed': 'Yakunlangan',
-            'cancelled': 'Bekor qilingan'
-        };
-        return statusMap[status] || status;
+        return t(`status_${status}` as any) || status;
     };
 
     if (loading) {
         return (
             <div className={styles.container}>
-                <p>Yuklanmoqda...</p>
+                <p>{t('loading')}</p>
             </div>
         );
     }
@@ -138,9 +171,9 @@ export default function UserLoyaltyDetailPage({ params }: { params: Promise<{ us
             <div className={styles.container}>
                 <button className={styles.backBtn} onClick={() => router.back()}>
                     <ArrowLeft size={18} />
-                    Orqaga
+                    {t('back')}
                 </button>
-                <p>Foydalanuvchi topilmadi</p>
+                <p>{t('userNotFound')}</p>
             </div>
         );
     }
@@ -150,7 +183,7 @@ export default function UserLoyaltyDetailPage({ params }: { params: Promise<{ us
             {/* Back Button */}
             <button className={styles.backBtn} onClick={() => router.back()}>
                 <ArrowLeft size={18} />
-                Orqaga
+                {t('back')}
             </button>
 
             {/* User Header */}
@@ -159,44 +192,51 @@ export default function UserLoyaltyDetailPage({ params }: { params: Promise<{ us
                     {getInitials(user.full_name)}
                 </div>
                 <div className={styles.userInfo}>
-                    <h2>{user.full_name || 'Noma\'lum'}</h2>
-                    <p>{user.phone_number || 'Telefon yo\'q'}</p>
+                    <h2>{user.full_name || t('unknown')}</h2>
+                    <p>{user.phone_number || t('noPhone')}</p>
                 </div>
-                <div style={{ marginLeft: 'auto' }}>
+                <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
                     <span className={styles.coinBalance}>
                         <Coins size={18} style={{ marginRight: 6 }} />
-                        {user.coins.toLocaleString('uz-UZ')} tanga
+                        {user.coins.toLocaleString()} {t('tanga')}
                     </span>
+                    <button 
+                        className={styles.adjustBtn} 
+                        style={{ marginTop: 8 }}
+                        onClick={() => setIsAdjusting(true)}
+                    >
+                        {t('adjustBalance')}
+                    </button>
                 </div>
             </div>
 
             {/* Stats Grid */}
             <div className={styles.statsGrid}>
                 <div className={styles.statCard}>
-                    <div className={styles.statLabel}>Jami buyurtmalar</div>
+                    <div className={styles.statLabel}>{t('totalOrders')}</div>
                     <div className={styles.statValue}>
                         <ShoppingBag size={20} style={{ marginRight: 8, color: '#6366F1' }} />
                         {stats.totalOrders}
                     </div>
                 </div>
                 <div className={styles.statCard}>
-                    <div className={styles.statLabel}>Jami xarajat</div>
+                    <div className={styles.statLabel}>{t('totalSpentLabel')}</div>
                     <div className={styles.statValue}>
-                        {stats.totalSpent.toLocaleString('uz-UZ')} so'm
+                        {stats.totalSpent.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}
                     </div>
                 </div>
                 <div className={styles.statCard}>
-                    <div className={styles.statLabel}>Jami olgan tangalar</div>
+                    <div className={styles.statLabel}>{t('totalEarnedCoinsLabel')}</div>
                     <div className={styles.statValue}>
                         <ArrowUpCircle size={20} className={styles.positive} style={{ marginRight: 8 }} />
-                        +{stats.totalEarned.toLocaleString('uz-UZ')}
+                        +{stats.totalEarned.toLocaleString()}
                     </div>
                 </div>
                 <div className={styles.statCard}>
-                    <div className={styles.statLabel}>Ishlatgan tangalar</div>
+                    <div className={styles.statLabel}>{t('usedCoinsLabel')}</div>
                     <div className={styles.statValue}>
                         <ArrowDownCircle size={20} className={styles.negative} style={{ marginRight: 8 }} />
-                        -{stats.totalUsed.toLocaleString('uz-UZ')}
+                        -{stats.totalUsed.toLocaleString()}
                     </div>
                 </div>
             </div>
@@ -208,14 +248,14 @@ export default function UserLoyaltyDetailPage({ params }: { params: Promise<{ us
                     onClick={() => setActiveTab('orders')}
                 >
                     <ShoppingBag size={18} />
-                    Buyurtmalar ({orders.length})
+                    {t('orderHistoryTab')} ({orders.length})
                 </button>
                 <button
                     className={`${styles.tab} ${activeTab === 'transactions' ? styles.tabActive : ''}`}
                     onClick={() => setActiveTab('transactions')}
                 >
                     <TrendingUp size={18} />
-                    Tanga tarixi ({transactions.length})
+                    {t('coinHistoryTab')} ({transactions.length})
                 </button>
             </div>
 
@@ -225,14 +265,14 @@ export default function UserLoyaltyDetailPage({ params }: { params: Promise<{ us
                     {orders.length === 0 ? (
                         <div className={styles.settingsCard} style={{ textAlign: 'center', padding: 48 }}>
                             <ShoppingBag size={48} color="#D1D5DB" />
-                            <p style={{ marginTop: 16, color: '#6B7280' }}>Buyurtmalar mavjud emas</p>
+                            <p style={{ marginTop: 16, color: '#6B7280' }}>{t('noOrdersFound')}</p>
                         </div>
                     ) : (
                         orders.map(order => (
                             <div key={order.id} className={styles.orderCard}>
                                 <div className={styles.orderInfo}>
                                     <span className={styles.orderId}>
-                                        Buyurtma #{order.id.slice(0, 8).toUpperCase()}
+                                        {t('orderLabel')} #{order.id.slice(0, 8).toUpperCase()}
                                     </span>
                                     <span className={styles.orderDate}>
                                         {format(new Date(order.created_at), 'dd.MM.yyyy HH:mm')} • {getStatusLabel(order.status)}
@@ -240,16 +280,16 @@ export default function UserLoyaltyDetailPage({ params }: { params: Promise<{ us
                                 </div>
                                 <div className={styles.orderAmount}>
                                     <div className={styles.orderTotal}>
-                                        {order.total_price?.toLocaleString('uz-UZ')} so'm
+                                        {order.total_price?.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}
                                     </div>
                                     {order.coins_earned > 0 && (
                                         <div className={styles.orderCoins}>
-                                            +{order.coins_earned} tanga oldi
+                                            +{order.coins_earned} {t('earnedLabel')}
                                         </div>
                                     )}
                                     {order.coins_spent > 0 && (
                                         <div style={{ fontSize: 12, color: '#EF4444', fontWeight: 600 }}>
-                                            -{order.coins_spent} tanga ishlatdi
+                                            -{order.coins_spent} {t('spentLabel')}
                                         </div>
                                     )}
                                 </div>
@@ -266,34 +306,34 @@ export default function UserLoyaltyDetailPage({ params }: { params: Promise<{ us
                         <table className={styles.table}>
                             <thead>
                                 <tr>
-                                    <th>Sana</th>
-                                    <th>Turi</th>
-                                    <th>Miqdori</th>
-                                    <th>Izoh</th>
+                                    <th>{t('dateCol')}</th>
+                                    <th>{t('typeCol')}</th>
+                                    <th>{t('amountCol')}</th>
+                                    <th>{t('commentCol')}</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {transactions.length === 0 ? (
                                     <tr>
                                         <td colSpan={4} className={styles.emptyState}>
-                                            Tanga tarixi mavjud emas
+                                            {t('noHistoryFound')}
                                         </td>
                                     </tr>
                                 ) : (
-                                    transactions.map(t => (
-                                        <tr key={t.id}>
-                                            <td>{format(new Date(t.created_at), 'dd.MM.yyyy HH:mm')}</td>
+                                    transactions.map(t_item => (
+                                        <tr key={t_item.id}>
+                                            <td>{format(new Date(t_item.created_at), 'dd.MM.yyyy HH:mm')}</td>
                                             <td>
-                                                <span className={`${styles.badge} ${t.amount > 0 ? styles.earnBadge : styles.spendBadge}`}>
-                                                    {t.type === 'earn' ? 'Oldi' : t.type === 'spend' ? 'Ishlatdi' : t.type}
+                                                <span className={`${styles.badge} ${t_item.amount > 0 ? styles.earnBadge : styles.spendBadge}`}>
+                                                    {t_item.type === 'earn' ? t('earn') : t_item.type === 'spend' ? t('spend') : t_item.type === 'admin_adjustment' ? t('adjustmentLabel') : t_item.type}
                                                 </span>
                                             </td>
                                             <td>
-                                                <span className={`${styles.amount} ${t.amount > 0 ? styles.amountEarn : styles.amountSpend}`}>
-                                                    {t.amount > 0 ? '+' : ''}{t.amount.toLocaleString('uz-UZ')}
+                                                <span className={`${styles.amount} ${t_item.amount > 0 ? styles.amountEarn : styles.amountSpend}`}>
+                                                    {t_item.amount > 0 ? '+' : ''}{t_item.amount.toLocaleString()}
                                                 </span>
                                             </td>
-                                            <td>{t.description || (t.order_id ? `Buyurtma #${t.order_id.slice(0, 8)}` : '-')}</td>
+                                            <td>{t_item.description || (t_item.order_id ? `${t('orderLabel')} #${t_item.order_id.slice(0, 8)}` : '-')}</td>
                                         </tr>
                                     ))
                                 )}
@@ -302,6 +342,63 @@ export default function UserLoyaltyDetailPage({ params }: { params: Promise<{ us
                     </div>
                 </div>
             )}
+
+            {/* Adjustment Modal */}
+            {isAdjusting && (
+                <div className={styles.modalOverlay}>
+                    <div className={styles.modalContent}>
+                        <h3 className={styles.modalTitle}>
+                            <Coins size={24} color="#E91E63" />
+                            {t('adjustModalTitle')}
+                        </h3>
+                        <form onSubmit={handleAdjust}>
+                            <div className={styles.formGroup}>
+                                <label className={styles.formLabel}>{t('amountFieldLabel')}</label>
+                                <input 
+                                    type="number" 
+                                    className={styles.formInput}
+                                    placeholder={t('amountFieldPlaceholder')}
+                                    required
+                                    value={adjAmount}
+                                    onChange={e => setAdjAmount(e.target.value)}
+                                />
+                                <p style={{ fontSize: 11, color: '#6B7280', marginTop: 4 }}>
+                                    {t('amountFieldHint')}
+                                </p>
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label className={styles.formLabel}>{t('reasonFieldLabel')}</label>
+                                <textarea 
+                                    className={styles.formTextarea}
+                                    placeholder={t('reasonFieldPlaceholder')}
+                                    required
+                                    value={adjReason}
+                                    onChange={e => setAdjReason(e.target.value)}
+                                />
+                            </div>
+                            <div className={styles.modalActions}>
+                                <button 
+                                    type="button" 
+                                    className={styles.cancelBtn}
+                                    onClick={() => setIsAdjusting(false)}
+                                    disabled={isSubmitting}
+                                >
+                                    {t('cancel')}
+                                </button>
+                                <button 
+                                    type="submit" 
+                                    className={styles.confirmBtn}
+                                    disabled={isSubmitting}
+                                >
+                                    {isSubmitting ? t('confirming') : t('save')}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+
+

@@ -93,11 +93,20 @@
 }
 
 .statLabel {
-    font-size: 12px;
+    font-size: 10px;
     color: #6B7280;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+}
+
+.coinExpiryInfo {
+    font-size: 8px;
+    color: #9CA3AF;
+    margin-top: 2px;
+    text-align: center;
+    line-height: 1.1;
+    max-width: 120px;
 }
 
 .content {

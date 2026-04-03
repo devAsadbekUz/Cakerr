@@ -3,11 +3,13 @@
 import { useState, memo } from 'react';
 import {
     Calendar as CalendarIcon, CheckCircle2,
-    XCircle, Info, MapPinned, Clock, AlertCircle, ShoppingBag, Truck, PackageCheck, ZoomIn, X, MessageSquare
+    XCircle, Info, MapPinned, Clock, Truck, PackageCheck, ZoomIn, X
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import Image from 'next/image';
 import { format, isToday } from 'date-fns';
 import { useAdminI18n } from '@/app/context/AdminLanguageContext';
+import type { AdminOrderCardData, AdminOrderItem } from '@/app/types/admin-order';
 import styles from '@/app/(admin)/admin/AdminDashboard.module.css';
 
 // Image Preview Modal Component
@@ -66,8 +68,16 @@ export function SectionTitle({ children }: { children: React.ReactNode }) {
     return <h2 className={styles.sectionTitle}>{children}</h2>;
 }
 
-export function StatCard({ title, value, icon: Icon, color, subtitle }: any) {
-    const colors: any = {
+type StatCardProps = {
+    title: React.ReactNode;
+    value: React.ReactNode;
+    icon: LucideIcon;
+    color: 'orange' | 'blue' | 'purple' | 'green';
+    subtitle?: React.ReactNode;
+};
+
+export function StatCard({ title, value, icon: Icon, color, subtitle }: StatCardProps) {
+    const colors: Record<StatCardProps['color'], { bg: string; text: string; icon: string }> = {
         orange: { bg: '#FFF7ED', text: '#9A3412', icon: '#FB923C' },
         blue: { bg: '#EFF6FF', text: '#1E40AF', icon: '#3B82F6' },
         purple: { bg: '#F5F3FF', text: '#5B21B6', icon: '#8B5CF6' },
@@ -88,8 +98,16 @@ export function StatCard({ title, value, icon: Icon, color, subtitle }: any) {
     );
 }
 
-export function Section({ title, count, children, emptyMsg, highlight }: any) {
-    const { lang, t } = useAdminI18n();
+type SectionProps = {
+    title: React.ReactNode;
+    count: number;
+    children: React.ReactNode;
+    emptyMsg?: React.ReactNode;
+    highlight?: boolean;
+};
+
+export function Section({ title, count, children, emptyMsg, highlight }: SectionProps) {
+    const { t } = useAdminI18n();
     if (count === 0 && emptyMsg === t('noNewOrders')) return null;
     return (
         <div className={`${styles.section} ${highlight ? styles.sectionHighlight : ''}`}>
@@ -108,9 +126,16 @@ export function Section({ title, count, children, emptyMsg, highlight }: any) {
     );
 }
 
-export const OrderCard = memo(function OrderCard({ order, compact, onUpdate, onSelect }: any) {
+type OrderCardProps = {
+    order: AdminOrderCardData;
+    compact?: boolean;
+    onUpdate: (id: string, status: string) => void;
+    onSelect: (order: AdminOrderCardData) => void;
+};
+
+export const OrderCard = memo(function OrderCard({ order, compact, onUpdate, onSelect }: OrderCardProps) {
     const { lang, t } = useAdminI18n();
-    const statusMeta: any = {
+    const statusMeta: Record<string, { label: string; color: string; bg: string }> = {
         new: { label: t('status_new'), color: '#FB923C', bg: '#FFF7ED' },
         confirmed: { label: t('status_confirmed'), color: '#3B82F6', bg: '#EFF6FF' },
         preparing: { label: t('status_preparing'), color: '#8B5CF6', bg: '#F5F3FF' },
@@ -158,12 +183,17 @@ export const OrderCard = memo(function OrderCard({ order, compact, onUpdate, onS
                     <div style={{ marginTop: '4px' }}>
                         <p style={{ fontSize: '11px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', marginBottom: '8px' }}>{t('items')}</p>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                            {order.order_items?.map((item: any, idx: number) => (
+                            {order.order_items?.map((item: AdminOrderItem, idx: number) => (
                                 <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
                                     <span style={{ color: '#374151', fontWeight: 500 }}>{item.quantity}x {item.name || t('cake')}</span>
                                     <span style={{ color: '#6B7280', fontSize: '12px' }}>{item.configuration?.portion || ''}</span>
                                 </div>
                             ))}
+                            {(('items_count' in order ? order.items_count : 0) || 0) > (order.order_items?.length || 0) && (
+                                <div style={{ fontSize: '12px', color: '#9CA3AF', fontWeight: 600 }}>
+                                    +{((('items_count' in order ? order.items_count : 0) || 0) - (order.order_items?.length || 0))} {t('items').toLowerCase()}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </>
@@ -193,11 +223,18 @@ export const OrderCard = memo(function OrderCard({ order, compact, onUpdate, onS
     );
 });
 
-export function OrderDetailsModal({ order, onClose, onUpdate }: { order: any, onClose: () => void, onUpdate: (id: string, status: string) => void }) {
+type OrderDetailsModalProps = {
+    order: AdminOrderCardData;
+    onClose: () => void;
+    onUpdate: (id: string, status: string) => void;
+    loading?: boolean;
+};
+
+export function OrderDetailsModal({ order, onClose, onUpdate, loading = false }: OrderDetailsModalProps) {
     const { lang, t } = useAdminI18n();
     const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-    const statusMeta: any = {
+    const statusMeta: Record<string, { label: string; color: string; bg: string }> = {
         new: { label: t('status_new'), color: '#FB923C', bg: '#FFF7ED' },
         confirmed: { label: t('status_confirmed'), color: '#3B82F6', bg: '#EFF6FF' },
         preparing: { label: t('status_preparing'), color: '#8B5CF6', bg: '#F5F3FF' },
@@ -220,6 +257,11 @@ export function OrderDetailsModal({ order, onClose, onUpdate }: { order: any, on
                         <div>
                             <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 800 }}>{t('orderNumber')} #{order.id.slice(0, 8)}</h2>
                             <span style={{ background: s.bg, color: s.color, padding: '4px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', marginTop: '8px', display: 'inline-block' }}>{s.label}</span>
+                            {loading && (
+                                <div style={{ marginTop: '8px', fontSize: '12px', color: '#6B7280', fontWeight: 600 }}>
+                                    {t('loading')}
+                                </div>
+                            )}
                         </div>
                         <button className={styles.modalClose} onClick={onClose}>
                             <XCircle size={20} />
@@ -269,7 +311,7 @@ export function OrderDetailsModal({ order, onClose, onUpdate }: { order: any, on
                             <div className={styles.infoSection} style={{ background: '#F0F9FF', padding: '12px', borderRadius: '12px', border: '1px solid #BAE6FD' }}>
                                 <div className={styles.infoLabel} style={{ color: '#0369A1' }}>{t('orderComment')}</div>
                                 <div style={{ fontSize: '14px', color: '#0C4A6E', fontStyle: 'italic' }}>
-                                    "{order.comment}"
+                                    &ldquo;{order.comment}&rdquo;
                                 </div>
                             </div>
                         )}
@@ -277,7 +319,7 @@ export function OrderDetailsModal({ order, onClose, onUpdate }: { order: any, on
                         <div className={styles.infoSection}>
                             <div className={styles.infoLabel}>{t('items')}</div>
                             <div style={{ marginTop: '12px' }}>
-                                {order.order_items?.map((item: any, idx: number) => (
+                                {order.order_items?.map((item: AdminOrderItem, idx: number) => (
                                     <div key={idx} className={styles.orderItemCard}>
                                         <div
                                             style={{ position: 'relative', cursor: 'pointer' }}
@@ -344,7 +386,7 @@ export function OrderDetailsModal({ order, onClose, onUpdate }: { order: any, on
                                                 )}
                                             </div>
                                             <div className={styles.itemPriceQty}>
-                                                <div className={styles.itemPrice}>{(item.unit_price * item.quantity).toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}</div>
+                                                <div className={styles.itemPrice}>{((item.unit_price || 0) * item.quantity).toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}</div>
                                                 <div className={styles.itemQtyBadge}>{item.quantity} {t('pcs')}</div>
                                             </div>
                                         </div>

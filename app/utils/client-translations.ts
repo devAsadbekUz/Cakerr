@@ -199,6 +199,21 @@ const uz: Record<string, string | string[]> = {
     prefFeature1: "Sevimli ta'mlaringizni saqlang",
     prefFeature2: "Maxsus tavsiyalar oling",
     prefFeature3: "Shaxsiy chegirmalar",
+    // Promo
+    havePromo: "Promokodingiz bormi?",
+    promoPlaceholder: "KODNI KIRITING",
+    apply: "Qo'llash",
+    remove: "O'chirish",
+    promoDiscount: "Promokod chegirmasi",
+    // Promo Errors
+    promoErrNotFound: "Bunday promokod mavjud emas",
+    promoErrInactive: "Ushbu promokod faol emas",
+    promoErrGlobalLimit: "Ushbu promokod ishlatilib bo'lingan",
+    promoErrMinAmount: "Minimal buyurtma miqdori yetarli emas",
+    promoErrFirstOrder: "Faqat birinchi buyurtma uchun amal qiladi",
+    promoErrUserLimit: "Siz bu kodni ishlatib bo'lgansiz",
+    promoErrGeneric: "Promokod xatosi",
+    coinExpiryNotice: "Tangalar olingan kundan boshlab 6 oy davomida amal qiladi",
 };
 
 const ru: Record<string, string | string[]> = {
@@ -396,6 +411,21 @@ const ru: Record<string, string | string[]> = {
     prefFeature1: "Сохраните любимые вкусы",
     prefFeature2: "Получайте особые рекомендации",
     prefFeature3: "Персональные скидки",
+    // Promo
+    havePromo: "У вас есть промокод?",
+    promoPlaceholder: "ВВЕДИТЕ КОД",
+    apply: "Применить",
+    remove: "Удалить",
+    promoDiscount: "Скидка по промокоду",
+    // Promo Errors
+    promoErrNotFound: "Промокод не найден",
+    promoErrInactive: "Этот промокод не активен",
+    promoErrGlobalLimit: "Лимит использования промокода исчерпан",
+    promoErrMinAmount: "Недостаточная сумма заказа для промокода",
+    promoErrFirstOrder: "Только для первого заказа",
+    promoErrUserLimit: "Вы уже использовали этот промокод",
+    promoErrGeneric: "Ошибка промокода",
+    coinExpiryNotice: "Монеты действительны в течение 6 месяцев с даты получения",
 };
 
 export const clientTranslations: Record<Language, Record<string, string | string[]>> = { uz, ru };

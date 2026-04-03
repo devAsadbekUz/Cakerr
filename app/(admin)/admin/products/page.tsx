@@ -27,7 +27,12 @@ export default function ProductsPage() {
             supabase.from('categories').select('*')
         ]);
 
-        setProducts(productsData || []);
+        // Filter out the system placeholder product (Custom Cake)
+        const visibleProducts = (productsData || []).filter(
+            p => p.id !== '00000000-0000-0000-0000-000000000000'
+        );
+
+        setProducts(visibleProducts);
         setCategories(categoriesRes.data || []);
         setLoading(false);
     }, [supabase]);

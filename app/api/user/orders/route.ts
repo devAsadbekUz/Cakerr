@@ -24,6 +24,7 @@ const CreateOrderSchema = z.object({
         configuration: z.any().optional(),
     }).passthrough()).min(1),
     coins_spent: z.number().int().min(0).default(0),
+    promo_code_id: z.string().uuid().optional().nullable(),
 });
 
 /**
@@ -136,7 +137,7 @@ export async function POST(request: NextRequest) {
         if (!parsed.success) {
             return NextResponse.json({ error: 'Invalid order data', details: parsed.error.flatten() }, { status: 400 });
         }
-        const { order, items, coins_spent } = parsed.data;
+        const { order, items, coins_spent, promo_code_id } = parsed.data;
 
         // 1. Intercept Base64 strings and upload them to Storage before saving to DB
         // All uploads run in parallel across all items
@@ -165,7 +166,8 @@ export async function POST(request: NextRequest) {
             p_user_id: userId,
             p_order_data: order,
             p_items: items,
-            p_coins_spent: coins_spent
+            p_coins_spent: coins_spent,
+            p_promo_code_id: promo_code_id || null
         });
 
         if (rpcError) {

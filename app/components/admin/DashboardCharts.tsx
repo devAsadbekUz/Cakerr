@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { BarChart3 } from 'lucide-react';
-import { format, subDays, isSameDay, addDays, addMonths, differenceInMonths } from 'date-fns';
 import styles from './DashboardCharts.module.css';
 import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 
@@ -23,9 +22,6 @@ export function CategoryDonutChart({ title, data }: DonutChartProps) {
     const [hoveredIndex, setHoveredIndex] = React.useState<number | null>(null);
     const total = data.reduce((sum, item) => sum + item.value, 0);
 
-    // SVG path calculation for donut slices
-    let cumulativePercent = 0;
-
     const getCoordinatesForPercent = (percent: number) => {
         const x = Math.cos(2 * Math.PI * percent);
         const y = Math.sin(2 * Math.PI * percent);
@@ -33,41 +29,52 @@ export function CategoryDonutChart({ title, data }: DonutChartProps) {
     };
 
     const hoveredItem = hoveredIndex !== null ? data[hoveredIndex] : null;
+    const sliceState = data.reduce<{
+        cumulativePercent: number;
+        slices: Array<{ pathData: string; color: string; index: number }>;
+    }>((acc, item, index) => {
+        const startPercent = acc.cumulativePercent;
+        const endPercent = startPercent + item.percent / 100;
+        const [startX, startY] = getCoordinatesForPercent(startPercent);
+        const [endX, endY] = getCoordinatesForPercent(endPercent);
+        const largeArcFlag = item.percent > 50 ? 1 : 0;
+
+        acc.slices.push({
+            index,
+            color: item.color,
+            pathData: [
+                `M ${startX} ${startY}`,
+                `A 1 1 0 ${largeArcFlag} 1 ${endX} ${endY}`,
+                'L 0 0',
+            ].join(' '),
+        });
+        acc.cumulativePercent = endPercent;
+        return acc;
+    }, { cumulativePercent: 0, slices: [] });
+    const slices = sliceState.slices;
 
     return (
         <div className={styles.chartCard}>
             <h3 className={styles.chartTitle}>{title}</h3>
             <div className={styles.donutContainer}>
                 <svg viewBox="-1 -1 2 2" className={styles.donutSvg}>
-                    {data.map((item, index) => {
-                        const [startX, startY] = getCoordinatesForPercent(cumulativePercent);
-                        cumulativePercent += item.percent / 100;
-                        const [endX, endY] = getCoordinatesForPercent(cumulativePercent);
-                        const largeArcFlag = item.percent > 50 ? 1 : 0;
-                        const pathData = [
-                            `M ${startX} ${startY}`,
-                            `A 1 1 0 ${largeArcFlag} 1 ${endX} ${endY}`,
-                            `L 0 0`,
-                        ].join(' ');
-
-                        return (
-                            <path
-                                key={index}
-                                d={pathData}
-                                fill={item.color}
-                                className={styles.donutSlice}
-                                onMouseEnter={() => setHoveredIndex(index)}
-                                onMouseLeave={() => setHoveredIndex(null)}
-                                style={{
-                                    transform: hoveredIndex === index ? 'scale(1.05)' : 'scale(1)',
-                                    transformOrigin: '0 0',
-                                    transition: 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                                    cursor: 'pointer',
-                                    opacity: hoveredIndex !== null && hoveredIndex !== index ? 0.6 : 1
-                                }}
-                            />
-                        );
-                    })}
+                    {slices.map((slice) => (
+                        <path
+                            key={slice.index}
+                            d={slice.pathData}
+                            fill={slice.color}
+                            className={styles.donutSlice}
+                            onMouseEnter={() => setHoveredIndex(slice.index)}
+                            onMouseLeave={() => setHoveredIndex(null)}
+                            style={{
+                                transform: hoveredIndex === slice.index ? 'scale(1.05)' : 'scale(1)',
+                                transformOrigin: '0 0',
+                                transition: 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                                cursor: 'pointer',
+                                opacity: hoveredIndex !== null && hoveredIndex !== slice.index ? 0.6 : 1
+                            }}
+                        />
+                    ))}
                     <circle cx="0" cy="0" r="0.65" fill="white" />
                 </svg>
                 <div className={styles.donutCenter}>
@@ -162,74 +169,11 @@ interface LineChartData {
     isFuture?: boolean;
 }
 
-type ChartRange = '30d' | '90d' | '180d' | 'all';
-
-export function RevenueLineChart({ title, data, orders }: {
-    title: string;
-    data: LineChartData[];
-    orders?: any[];
-}) {
+export function RevenueLineChart({ title, data }: { title: string; data: LineChartData[] }) {
     const { lang, t } = useAdminI18n();
-    const [range, setRange] = React.useState<ChartRange>('30d');
-
-    // ── Build chart data from raw orders based on selected range ──
-    const { points: chartPoints, todayIdx } = React.useMemo(() => {
-        if (!orders?.length) return { points: data, todayIdx: 6 };
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        type Bucket = { date: Date; aggEnd: Date | null; label: string };
-        let buckets: Bucket[];
-
-        if (range === '30d') {
-            buckets = Array.from({ length: 30 }, (_, i) => {
-                const d = subDays(today, 29 - i);
-                return { date: d, aggEnd: null, label: format(d, 'dd/MM') };
-            });
-        } else if (range === '90d') {
-            // 13 weekly buckets
-            buckets = Array.from({ length: 13 }, (_, i) => {
-                const wStart = subDays(today, (12 - i) * 7 + 6);
-                return { date: wStart, aggEnd: addDays(wStart, 7), label: format(wStart, 'dd/MM') };
-            });
-        } else if (range === '180d') {
-            // 13 biweekly buckets
-            buckets = Array.from({ length: 13 }, (_, i) => {
-                const bStart = subDays(today, (12 - i) * 14 + 13);
-                return { date: bStart, aggEnd: addDays(bStart, 14), label: format(bStart, 'dd/MM') };
-            });
-        } else {
-            // All time — monthly buckets
-            const firstDate = orders.reduce((min: Date, o: any) => {
-                const d = new Date(o.created_at);
-                return d < min ? d : min;
-            }, new Date());
-            const monthCount = Math.max(differenceInMonths(today, firstDate) + 2, 2);
-            const monthStart = new Date(firstDate.getFullYear(), firstDate.getMonth(), 1);
-            buckets = Array.from({ length: monthCount }, (_, i) => {
-                const mStart = addMonths(monthStart, i);
-                return { date: mStart, aggEnd: addMonths(mStart, 1), label: format(mStart, 'MMM yy') };
-            }).filter(b => b.date <= today);
-        }
-
-        const points: LineChartData[] = buckets.map(({ date, aggEnd, label }) => {
-            let revenue = 0, sales = 0;
-            for (const order of orders) {
-                if (order.status !== 'completed') continue;
-                const d = new Date(order.created_at);
-                const hit = aggEnd ? (d >= date && d < aggEnd) : isSameDay(d, date);
-                if (hit) { revenue += Number(order.total_price) || 0; sales++; }
-            }
-            return { label, revenue, sales, isFuture: false };
-        });
-
-        const tIdx = range === '30d'
-            ? buckets.findIndex(b => isSameDay(b.date, today))
-            : -1;
-
-        return { points, todayIdx: tIdx };
-    }, [range, data, orders]);
+    const chartPoints = data;
+    const firstFutureIndex = chartPoints.findIndex((point) => point.isFuture);
+    const todayIdx = firstFutureIndex > 0 ? firstFutureIndex - 1 : -1;
 
     if (!chartPoints || chartPoints.length === 0) return null;
 
@@ -294,13 +238,6 @@ export function RevenueLineChart({ title, data, orders }: {
     const labelEvery = n > 20 ? Math.ceil(n / 12) : 1;
     const Y_STEPS = 4;
 
-    const RANGE_TABS: { key: ChartRange; label: string }[] = [
-        { key: '30d',  label: t('filter_30') },
-        { key: '90d',  label: t('filter_90') },
-        { key: '180d', label: t('filter_180') },
-        { key: 'all',  label: t('filter_all') },
-    ];
-
     return (
         <div className={styles.chartCard} style={{ gridColumn: '1 / -1' }}>
             {/* ── Header row ── */}
@@ -324,19 +261,6 @@ export function RevenueLineChart({ title, data, orders }: {
                         <span className={styles.legendLabel}>{t('salesLabel')}</span>
                     </div>
                 </div>
-            </div>
-
-            {/* ── Range tabs ── */}
-            <div className={styles.rangeTabs}>
-                {RANGE_TABS.map(({ key, label }) => (
-                    <button
-                        key={key}
-                        className={`${styles.rangeTab} ${range === key ? styles.rangeTabActive : ''}`}
-                        onClick={() => setRange(key)}
-                    >
-                        {label}
-                    </button>
-                ))}
             </div>
 
             {/* ── SVG Chart ── */}

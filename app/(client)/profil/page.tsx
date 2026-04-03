@@ -238,6 +238,7 @@ export default function ProfilPage() {
                     <div className={styles.statItem}>
                         <span className={styles.statValue}>{(stats.coins || 0).toLocaleString('en-US')}</span>
                         <span className={styles.statLabel}>{t('shirinTangalar')}</span>
+                        <p className={styles.coinExpiryInfo}>{t('coinExpiryNotice')}</p>
                     </div>
                 </div>
             </div>

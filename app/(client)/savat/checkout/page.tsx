@@ -6,7 +6,7 @@ import { useCart } from '@/app/context/CartContext';
 import { useLanguage } from '@/app/context/LanguageContext';
 import { getLocalized } from '@/app/utils/i18n';
 import styles from './page.module.css';
-import { ChevronLeft, ChevronRight, Calendar, Banknote, CreditCard } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Banknote, CreditCard, Tag, CheckCircle2 } from 'lucide-react';
 import CalendarModal from '@/app/components/checkout/CalendarModal';
 import AddressesModal from '@/app/components/checkout/AddressesModal';
 import SuccessModal from '@/app/components/checkout/SuccessModal';
@@ -66,9 +66,49 @@ export default function CheckoutPage() {
     const [overrides, setOverrides] = useState<any[]>([]);
     const [loadingAvailability, setLoadingAvailability] = useState(false);
 
+    // Promo Code Logic
+    const [promoInput, setPromoInput] = useState('');
+    const [activePromoId, setActivePromoId] = useState<string | null>(null);
+    const [activePromoCode, setActivePromoCode] = useState<string | null>(null);
+    const [promoDiscount, setPromoDiscount] = useState<number>(0);
+    const [promoError, setPromoError] = useState<string | null>(null);
+    const [isVerifyingPromo, setIsVerifyingPromo] = useState(false);
+
+    const handleApplyPromo = async () => {
+        if (!promoInput.trim()) return;
+        setIsVerifyingPromo(true);
+        setPromoError(null);
+        try {
+            const authHeaders = getAuthHeader();
+            const res = await fetch('/api/promo/validate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...authHeaders },
+                body: JSON.stringify({ code: promoInput, subtotal })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                setPromoError(t(data.error) || data.error || 'Xatolik yuz berdi');
+                setActivePromoId(null);
+                setActivePromoCode(null);
+                setPromoDiscount(0);
+            } else {
+                setActivePromoId(data.id);
+                setActivePromoCode(data.code);
+                setPromoDiscount(data.discount_amount);
+                setPromoError(null);
+                setPromoInput(''); // Clear input on success
+            }
+        } catch (err: any) {
+            setPromoError(err.message || 'Tarmoq xatosi');
+        } finally {
+            setIsVerifyingPromo(false);
+        }
+    };
+
     const deliveryFee = totalItems > 0 ? 25000 : 0;
-    const initialTotal = subtotal + deliveryFee;
-    const total = initialTotal - (useCoins ? coinsToSpend : 0);
+    const discountedSubtotal = Math.max(0, subtotal - promoDiscount);
+    const initialTotal = discountedSubtotal + deliveryFee;
+    const total = Math.max(0, initialTotal - (useCoins ? coinsToSpend : 0));
 
     const fetchAvailability = async () => {
         setLoadingAvailability(true);
@@ -141,6 +181,7 @@ export default function CheckoutPage() {
         try {
             const orderData = {
                 total_price: total,
+                promo_discount: promoDiscount,
                 delivery_address: {
                     street: deliveryAddress,
                     lat: deliveryCoords?.lat || null,
@@ -184,7 +225,8 @@ export default function CheckoutPage() {
                 body: JSON.stringify({
                     order: orderData,
                     items: orderItems,
-                    coins_spent: orderData.coins_spent
+                    coins_spent: orderData.coins_spent,
+                    promo_code_id: activePromoId
                 })
             });
 
@@ -399,6 +441,9 @@ export default function CheckoutPage() {
                             <p className={styles.loyaltyBalance}>
                                 {t('balance')}: <strong>{(user.coins || 0).toLocaleString('en-US')}</strong>
                             </p>
+                            <p style={{ fontSize: '10px', color: '#9CA3AF', marginTop: '2px' }}>
+                                {t('coinExpiryNotice')}
+                            </p>
                         </div>
                         <label className={styles.toggle}>
                             <input
@@ -445,6 +490,54 @@ export default function CheckoutPage() {
                 </div>
             )}
 
+            {/* Promo Code Section */}
+            <div className={styles.card}>
+                <h2 className={styles.cardTitle}>{t('havePromo') || 'Promokod'}</h2>
+                {activePromoId ? (
+                    <div className={styles.promoSuccessBox}>
+                        <div className={styles.promoSuccessIcon}>
+                            <CheckCircle2 size={16} />
+                        </div>
+                        <div className={styles.promoSuccessDetails}>
+                            <span className={styles.promoSuccessCode}>{activePromoCode}</span>
+                            <span className={styles.promoSuccessAmount}>-{promoDiscount.toLocaleString('en-US')} {t('som')}</span>
+                        </div>
+                        <button 
+                            className={styles.promoRemoveBtn}
+                            onClick={() => {
+                                setActivePromoId(null);
+                                setActivePromoCode(null);
+                                setPromoDiscount(0);
+                            }}
+                        >
+                            {t('remove') || 'Bekor qilish'}
+                        </button>
+                    </div>
+                ) : (
+                    <div className={styles.promoInputWrapper}>
+                        <div className={styles.promoIcon}>
+                            <Tag size={18} />
+                        </div>
+                        <input
+                            type="text"
+                            className={styles.promoInput}
+                            placeholder={t('promoPlaceholder') || 'Promokod kiriting'}
+                            value={promoInput}
+                            onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                            disabled={isVerifyingPromo}
+                        />
+                        <button 
+                            className={styles.promoApplyBtn}
+                            onClick={handleApplyPromo}
+                            disabled={isVerifyingPromo || !promoInput.trim()}
+                        >
+                            {isVerifyingPromo ? '...' : (t('apply') || 'Qo\'llash')}
+                        </button>
+                    </div>
+                )}
+                {promoError && <p className={styles.promoErrorText}>{promoError}</p>}
+            </div>
+
             {/* Payment Method Section */}
             <div className={styles.card}>
                 <h2 className={styles.cardTitle}>{t('paymentMethod')}</h2>
@@ -480,6 +573,12 @@ export default function CheckoutPage() {
                         <span>{t('delivery')}:</span>
                         <span>{deliveryFee.toLocaleString('en-US')} {t('som')}</span>
                     </div>
+                    {promoDiscount > 0 && (
+                        <div className={`${styles.summaryRow} ${styles.discountRow}`}>
+                            <span>{t('promoDiscount') || 'Promokod chegirmasi'}:</span>
+                            <span>-{promoDiscount.toLocaleString('en-US')} {t('som')}</span>
+                        </div>
+                    )}
                     {useCoins && coinsToSpend > 0 && (
                         <div className={`${styles.summaryRow} ${styles.discountRow}`}>
                             <span>{t('shirinTangalar')} {t('discount')}:</span>

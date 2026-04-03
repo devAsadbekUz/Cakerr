@@ -11,39 +11,52 @@ interface AdminLanguageContextType {
 
 const AdminLanguageContext = createContext<AdminLanguageContextType | undefined>(undefined);
 
-export function AdminLanguageProvider({ children }: { children: React.ReactNode }) {
-    const [lang, setLangState] = useState<AdminLang>('uz');
+function isValidLang(value: string | null | undefined): value is AdminLang {
+    return !!value && value in adminTranslations;
+}
+
+function persistLang(lang: AdminLang) {
+    localStorage.setItem('admin_lang', lang);
+    document.cookie = `admin_lang=${lang}; Path=/; Max-Age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+}
+
+function getInitialLang(initialLang: AdminLang): AdminLang {
+    if (typeof window === 'undefined') {
+        return initialLang;
+    }
+
+    try {
+        const savedLang = window.localStorage.getItem('admin_lang');
+        if (isValidLang(savedLang)) {
+            return savedLang;
+        }
+    } catch (err) {
+        console.error('[AdminLanguageContext] Failed to restore saved lang:', err);
+    }
+
+    return initialLang;
+}
+
+export function AdminLanguageProvider({
+    children,
+    initialLang = 'uz',
+}: {
+    children: React.ReactNode;
+    initialLang?: AdminLang;
+}) {
+    const [lang, setLangState] = useState<AdminLang>(() => getInitialLang(initialLang));
 
     useEffect(() => {
-        const initLang = async () => {
-            // 1. Check localStorage first for immediate UI response
-            const savedLang = localStorage.getItem('admin_lang') as AdminLang;
-            if (savedLang && adminTranslations[savedLang]) {
-                setLangState(savedLang);
-            }
-
-            // 2. Fetch from DB to ensure cross-device consistency
-            try {
-                const res = await fetch('/api/admin/settings/language');
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.lang && adminTranslations[data.lang as AdminLang]) {
-                        const dbLang = data.lang as AdminLang;
-                        setLangState(dbLang);
-                        localStorage.setItem('admin_lang', dbLang);
-                    }
-                }
-            } catch (err) {
-                console.error('[AdminLanguageContext] Failed to fetch server lang:', err);
-            }
-        };
-
-        initLang();
-    }, []);
+        try {
+            persistLang(lang);
+        } catch (err) {
+            console.error('[AdminLanguageContext] Failed to persist lang:', err);
+        }
+    }, [lang]);
 
     const setLang = async (newLang: AdminLang) => {
         setLangState(newLang);
-        localStorage.setItem('admin_lang', newLang);
+        persistLang(newLang);
         
         // Sync to database for Telegram bot persistence
         try {

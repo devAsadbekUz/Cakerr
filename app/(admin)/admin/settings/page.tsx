@@ -35,6 +35,7 @@ import { CSS } from '@dnd-kit/utilities';
 
 import { SortableBannerItem, Banner } from '@/app/components/admin/settings/BannerItem';
 import { BannerForm } from '@/app/components/admin/settings/BannerForm';
+import PromoCodesManager from '@/app/components/admin/settings/PromoCodesManager';
 
 export default function AdminSettingsPage() {
     const { lang, t } = useAdminI18n();
@@ -268,6 +269,9 @@ export default function AdminSettingsPage() {
                     )}
                 </div>
             </section>
+
+            {/* ==================== PROMO CODES ==================== */}
+            <PromoCodesManager />
 
             {/* ==================== DATA EXPORT ==================== */}
             <section className={styles.section} style={{ background: 'white', border: '1px solid #E5E7EB', marginTop: '32px' }}>

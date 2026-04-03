@@ -1,6 +1,30 @@
 import { createClient } from '@/app/utils/supabase/client';
 
 export const orderService = {
+    async getOrderSummariesAdmin(filterDays?: number | null, limit?: number) {
+        try {
+            const params = new URLSearchParams();
+            if (filterDays) params.set('days', String(filterDays));
+            params.set('summary', '1');
+            if (limit) params.set('limit', String(limit));
+            const url = `/api/admin/orders?${params.toString()}`;
+            const response = await fetch(url, {
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                console.error('[OrderService] Admin summary API error:', response.status);
+                return [];
+            }
+
+            const { orders } = await response.json();
+            return orders || [];
+        } catch (err) {
+            console.error('[OrderService] Summary fetch error:', err);
+            return [];
+        }
+    },
+
     async getAllOrdersAdmin(filterDays?: number | null) {
         try {
             const url = filterDays ? `/api/admin/orders?days=${filterDays}` : '/api/admin/orders';
