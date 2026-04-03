@@ -40,7 +40,6 @@ export default function AdminBottomNav({ role, permissions }: AdminBottomNavProp
                     <Link
                         key={item.path}
                         href={item.path}
-                        prefetch={false}
                         className={`${styles.item} ${isActive ? styles.active : ''}`}
                     >
                         <Icon size={22} />
