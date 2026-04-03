@@ -76,8 +76,9 @@ export async function verifyStaffToken(token: string): Promise<StaffPayload | nu
         const valid = await crypto.subtle.verify('HMAC', key, sigBytes, toVerify);
         if (!valid) return null;
 
-        const padded = payloadB64.replace(/-/g, '+').replace(/_/g, '/');
-        const payload: StaffPayload = JSON.parse(atob(padded + '=='));
+        const encoded = payloadB64.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = encoded + '='.repeat((4 - (encoded.length % 4)) % 4);
+        const payload: StaffPayload = JSON.parse(atob(padded));
 
         if (Date.now() / 1000 > payload.exp) return null;
         return payload;
