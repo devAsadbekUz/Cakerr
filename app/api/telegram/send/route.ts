@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { buildOrderMessage, getTelegramButtons, resolveOrderLanguage } from '@/app/utils/orderConfig';
+import { buildOrderMessage, getTelegramButtons, resolveOrderLanguage, tgEscape } from '@/app/utils/orderConfig';
 import fs from 'fs';
 
 function debugLog(data: any) {
@@ -108,12 +108,15 @@ export async function POST(request: NextRequest) {
             delivery_address: finalAddress,
             delivery_time: deliveryDate,
             delivery_slot: deliverySlot,
-            profiles: { full_name: customerName, phone_number: customerPhone },
+            profiles: { 
+                full_name: tgEscape(customerName), 
+                phone_number: tgEscape(customerPhone) 
+            },
             order_items: Array.isArray(items) ? items.map((item: any) => ({
-                name: item.name || 'Mahsulot',
+                name: tgEscape(item.name || 'Mahsulot'),
                 quantity: item.quantity || 1,
                 unit_price: item.price || 0,
-                configuration: { portion: item.portion || '' }
+                configuration: { portion: tgEscape(item.portion || '') }
             })) : []
         };
 

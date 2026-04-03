@@ -35,34 +35,42 @@ export default function ActiveOrderSection() {
     };
 
     useEffect(() => {
-        fetchActiveOrder();
+        if (!user) {
+            setActiveOrder(null);
+            return;
+        }
 
-        if (!user) return;
+        // Delay initial fetch and subscription by 500ms to allow Auth/Hydration to settle
+        const timer = setTimeout(() => {
+            fetchActiveOrder();
 
-        const channel = supabase
-            .channel(`user-sync-${user.id}`)
-            .on(
-                'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'orders',
-                    filter: `user_id=eq.${user.id}`
-                },
-                (payload: any) => {
-                    if (payload.eventType === 'UPDATE') {
-                        setActiveOrder((prev: any) => prev && prev.id === payload.new.id ? { ...prev, ...payload.new } : prev);
-                    } else {
-                        fetchActiveOrder();
+            const channel = supabase
+                .channel(`user-sync-${user.id}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'orders',
+                        filter: `user_id=eq.${user.id}`
+                    },
+                    (payload: any) => {
+                        if (payload.eventType === 'UPDATE') {
+                            setActiveOrder((prev: any) => prev && prev.id === payload.new.id ? { ...prev, ...payload.new } : prev);
+                        } else {
+                            fetchActiveOrder();
+                        }
                     }
-                }
-            )
-            .subscribe();
+                )
+                .subscribe();
 
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [user?.id]);
+            return () => {
+                supabase.removeChannel(channel);
+            };
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [user?.id, supabase]);
 
     if (!activeOrder) return null;
 

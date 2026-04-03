@@ -24,6 +24,7 @@ export default function ChatWidget() {
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const readerRef = useRef<ReadableStreamDefaultReader | null>(null);
 
     // Keep welcome message in sync with language
     useEffect(() => {
@@ -36,15 +37,18 @@ export default function ChatWidget() {
     }, [t]);
 
     // Scroll to bottom when new messages arrive
-    const scrollToBottom = useCallback(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
+        messagesEndRef.current?.scrollIntoView({ behavior });
     }, []);
 
     useEffect(() => {
-        scrollToBottom();
-    }, [messages, isLoading, scrollToBottom]);
+        // Only scroll if the chat is actually open OR if we are currently loading (streaming response)
+        // This prevents background CPU usage when the app first loads.
+        if (isOpen || isLoading) {
+            scrollToBottom(isLoading ? 'auto' : 'smooth');
+        }
+    }, [messages, isLoading, isOpen, scrollToBottom]);
 
-    // Focus input when chat opens
     useEffect(() => {
         if (isOpen) {
             setTimeout(() => inputRef.current?.focus(), 300);
@@ -52,8 +56,27 @@ export default function ChatWidget() {
         }
     }, [isOpen]);
 
+    // Cleanup reader on unmount
+    useEffect(() => {
+        return () => {
+            if (readerRef.current) {
+                readerRef.current.cancel();
+            }
+        };
+    }, []);
+
     const sendMessage = async (content: string) => {
         if (!content.trim() || isLoading) return;
+
+        // Cancel any existing stream reader
+        if (readerRef.current) {
+            try {
+                readerRef.current.cancel();
+                readerRef.current = null;
+            } catch (e) {
+                console.error('[ChatWidget] Error cancelling reader:', e);
+            }
+        }
 
         const userMessage: Message = {
             id: `user-${Date.now()}`,
@@ -99,6 +122,7 @@ export default function ChatWidget() {
             let fullContent = '';
 
             if (reader) {
+                readerRef.current = reader;
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
@@ -139,6 +163,7 @@ export default function ChatWidget() {
             setError(err.message || t('chatError'));
         } finally {
             setIsLoading(false);
+            readerRef.current = null;
         }
     };
 

@@ -75,6 +75,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .subscribe();
     }, []);
 
+    const updateUserIfChanged = useCallback((newData: UnifiedUser | null) => {
+        setUser(prev => {
+            if (!prev && !newData) return null;
+            if (!prev || !newData) return newData;
+            
+            // Shallow compare key fields that skip re-renders if identical
+            const hasChanged = 
+                prev.id !== newData.id || 
+                prev.coins !== newData.coins || 
+                prev.role !== newData.role ||
+                prev.user_metadata?.full_name !== newData.user_metadata?.full_name ||
+                prev.user_metadata?.avatar_url !== newData.user_metadata?.avatar_url;
+            
+            return hasChanged ? newData : prev;
+        });
+    }, []);
+
     const fetchProfile = useCallback(async (supabaseUser: any) => {
         const userEmail = (supabaseUser.email || '').toLowerCase().trim();
         const metadataEmail = (supabaseUser.user_metadata?.email || '').toLowerCase().trim();
@@ -126,10 +143,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const storedTgSession = getStoredSession();
 
             if (inTelegram) {
+                if (!isMounted) return;
                 setIsTelegram(true);
+                
                 const WebApp = getTelegramWebApp();
-                WebApp?.ready();
-                WebApp?.expand();
+                if (WebApp) {
+                    try {
+                        // Mark the app as ready to prevent initial splash screen hangs
+                        WebApp.ready();
+                        // Expand to full view
+                        WebApp.expand();
+                        
+                        // Disable vertical swipes to prevent accidental app closes while scrolling products
+                        if (WebApp.disableVerticalSwipes) {
+                            WebApp.disableVerticalSwipes();
+                        }
+                    } catch (e) {
+                        console.error('[Auth] WebApp bridge error', e);
+                    }
+                }
 
                 const initData = getTelegramInitData();
                 if (initData) {
@@ -146,7 +178,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                                     avatar_url: data.user.avatar_url
                                 }
                             };
-                            setUser(u);
+                            updateUserIfChanged(u);
                             setupCoinSubscription(u.id);
                             setLoading(false);
                             return;
@@ -158,13 +190,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             } else if (storedTgSession) {
                 // If not in TG but have session (browser testing)
                 setIsTelegram(true);
-                setUser({
+                const u = {
                     ...storedTgSession.user,
                     user_metadata: {
                         full_name: storedTgSession.user.full_name,
                         avatar_url: storedTgSession.user.avatar_url
                     }
-                });
+                };
+                updateUserIfChanged(u);
                 setupCoinSubscription(storedTgSession.user.id);
                 setLoading(false);
                 return;
@@ -175,7 +208,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (sbUser && isMounted) {
                 lastFetchedUserIdRef.current = sbUser.id;
                 const profile = await fetchProfile(sbUser);
-                setUser(profile);
+                updateUserIfChanged(profile);
                 setupCoinSubscription(profile.id);
             }
 
@@ -192,7 +225,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 if (session.user.id === lastFetchedUserIdRef.current) return;
                 lastFetchedUserIdRef.current = session.user.id;
                 const profile = await fetchProfile(session.user);
-                setUser(profile);
+                updateUserIfChanged(profile);
                 setupCoinSubscription(profile.id);
             } else {
                 // Only clear if not in Telegram mode
@@ -247,7 +280,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
                     });
 
-                    setUser(data.user);
+                    updateUserIfChanged(data.user);
                     setupCoinSubscription(data.user.id);
                     resolve();
                 } catch (err: any) {
@@ -255,7 +288,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }
             });
         });
-    }, [setupCoinSubscription]);
+    }, [setupCoinSubscription, updateUserIfChanged]);
 
     const logout = useCallback(() => {
         setUser(null);

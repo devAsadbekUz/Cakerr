@@ -343,10 +343,19 @@ const AdminCalendar = memo(function AdminCalendar({ currentMonth, selectedDate, 
                         }}
                     >
                         <span style={{ fontSize: '14px', fontWeight: isSelected ? 800 : 500 }}>{format(day, 'd')}</span>
-                        {dayOrders.length > 0 && !isSelected && (
+                        {dayOrders.length > 0 && (
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px', marginTop: '4px', justifyContent: 'center', maxWidth: '36px' }}>
                                 {dayOrders.slice(0, 10).map((o) => (
-                                    <div key={o.id} style={{ width: '4px', height: '4px', borderRadius: '50%', background: o.status === 'completed' ? '#BE185D' : '#F59E0B', flexShrink: 0 }} />
+                                    <div 
+                                        key={o.id} 
+                                        style={{ 
+                                            width: '4px', 
+                                            height: '4px', 
+                                            borderRadius: '50%', 
+                                            background: o.status === 'completed' ? '#10B981' : o.status === 'cancelled' ? '#EF4444' : '#F59E0B', 
+                                            flexShrink: 0 
+                                        }} 
+                                    />
                                 ))}
                             </div>
                         )}

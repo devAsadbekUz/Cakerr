@@ -1,4 +1,4 @@
-import { getStatusConfig } from '@/app/utils/orderConfig';
+import { getStatusConfig, tgEscape } from '@/app/utils/orderConfig';
 import { serviceClient } from '@/app/utils/supabase/service';
 
 function resolveTgLang(code?: string | null): 'uz' | 'ru' {
@@ -63,18 +63,22 @@ export async function notifyCustomerStatusChange(orderId: string, newStatus: str
 
     // For all other statuses, construct and send the newly localized status bubble
     const statusConfig = getStatusConfig(newStatus);
+    const shortId = orderId.slice(0, 8);
     const clientLabels = {
         uz: {
             title: "🍰 *Buyurtma holati yangilandi*",
-            text: `Hurmatli mijoz, sizning #${orderId.slice(0, 8)} raqamli buyurtmangiz holati o'zgardi:`
+            text: `Hurmatli mijoz, sizning #${shortId} raqamli buyurtmangiz holati o'zgardi:`
         },
         ru: {
             title: "🍰 *Статус заказа обновлен*",
-            text: `Уважаемый клиент, статус вашего заказа #${orderId.slice(0, 8)} изменился:`
+            text: `Уважаемый клиент, статус вашего заказа #${shortId} изменился:`
         }
     }[clientLang];
 
-    const clientMessage = `${clientLabels.title}\n\n${clientLabels.text}\n\n*${statusConfig.labels[clientLang]}*\n_${statusConfig.descs[clientLang]}_`;
+    const statusLabel = statusConfig.labels[clientLang];
+    const statusDesc = statusConfig.descs[clientLang];
+
+    const clientMessage = `${clientLabels.title}\n\n${clientLabels.text}\n\n*${tgEscape(statusLabel)}*\n_${tgEscape(statusDesc)}_`;
 
     try {
         const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
@@ -89,6 +93,7 @@ export async function notifyCustomerStatusChange(orderId: string, newStatus: str
         const result = await res.json();
 
         if (result.ok) {
+            console.log(`[notifyCustomerStatusChange] Successfully notified customer ${profile.telegram_id}`);
             // Track the message ID we just sent so we can delete it next time
             // If the status is completed, schedule an automatic self-destruct via the cron job in 24 hours.
             const isCompleted = newStatus === 'completed';
@@ -104,7 +109,7 @@ export async function notifyCustomerStatusChange(orderId: string, newStatus: str
                 })
                 .eq('id', orderId);
         } else {
-            console.error('[notifyCustomerStatusChange] Failed to send message:', result);
+            console.error('[notifyCustomerStatusChange] Failed to send message to customer:', result);
         }
     } catch (err) {
         console.error('[notifyCustomerStatusChange] Send message error:', err);

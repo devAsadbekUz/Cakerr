@@ -88,6 +88,23 @@ export const getTelegramButtons = (status: string, orderId: string, lang: 'uz' |
 };
 
 /**
+ * Escapes special characters for Telegram Markdown (V1)
+ */
+export const tgEscape = (text: any): string => {
+    if (!text) return '';
+    const str = String(text);
+    // Markdown V1 special characters: * _ [ `
+    // We escape them with a backslash or just strip them if they are likely to cause issues.
+    // Given the context of names and comments, stripping/replacing is often safer than escaping.
+    return str
+        .replace(/\*/g, '') // Strip bold
+        .replace(/_/g, ' ') // Replace underscore with space
+        .replace(/\[/g, '(') // Replace [ with (
+        .replace(/\]/g, ')') // Replace ] with )
+        .replace(/`/g, "'"); // Replace backtick with quote
+};
+
+/**
  * Builds the Telegram message text for an order
  */
 export const buildOrderMessage = (order: any, lang: 'uz' | 'ru' = 'uz') => {
@@ -130,8 +147,10 @@ export const buildOrderMessage = (order: any, lang: 'uz' | 'ru' = 'uz') => {
     if (order.profiles) {
         const profile = Array.isArray(order.profiles) ? order.profiles[0] : order.profiles;
         if (profile) {
-            messageText += `👤 *${t.client}:* ${profile.full_name || t.unknown}\n`;
-            messageText += `📞 *${t.phone}:* ${profile.phone_number || t.unknown}\n\n`;
+            const name = tgEscape(profile.full_name || t.unknown);
+            const phone = tgEscape(profile.phone_number || t.unknown);
+            messageText += `👤 *${t.client}:* ${name}\n`;
+            messageText += `📞 *${t.phone}:* ${phone}\n\n`;
         }
     }
 
@@ -140,7 +159,7 @@ export const buildOrderMessage = (order: any, lang: 'uz' | 'ru' = 'uz') => {
             ? { street: order.delivery_address }
             : order.delivery_address;
 
-        let street = addrObj.street || t.noAddress;
+        let street = tgEscape(addrObj.street || t.noAddress);
         if (addrObj.lat && addrObj.lng) {
             street = `[${street}](https://www.google.com/maps?q=${addrObj.lat},${addrObj.lng})`;
         }
@@ -158,22 +177,24 @@ export const buildOrderMessage = (order: any, lang: 'uz' | 'ru' = 'uz') => {
             });
         } else {
             // Fallback for raw strings if needed
-            dateFormatted = String(order.delivery_time);
+            dateFormatted = tgEscape(String(order.delivery_time));
         }
     }
     
-    messageText += `📅 *${t.time}:* ${dateFormatted}, ${order.delivery_slot || t.unknown}\n\n`;
+    const slot = tgEscape(order.delivery_slot || t.unknown);
+    messageText += `📅 *${t.time}:* ${dateFormatted}, ${slot}\n\n`;
 
     if (order.order_items?.length) {
         messageText += `🛒 *${t.products}:*\n`;
         order.order_items.forEach((item: any) => {
-            const portionText = item.configuration?.portion ? ` (${item.configuration.portion})` : '';
-            messageText += `  • ${item.quantity}x ${item.name}${portionText} - ${(item.unit_price * item.quantity).toLocaleString()} ${t.som}\n`;
+            const name = tgEscape(item.name || 'Mahsulot');
+            const portionText = item.configuration?.portion ? ` (${tgEscape(item.configuration.portion)})` : '';
+            messageText += `  • ${item.quantity}x ${name}${portionText} - ${(item.unit_price * item.quantity).toLocaleString()} ${t.som}\n`;
         });
     }
 
     if (order.comment) {
-        messageText += `\n💬 *${t.comment}:* "${order.comment}"\n`;
+        messageText += `\n💬 *${t.comment}:* "${tgEscape(order.comment)}"\n`;
     }
 
     if (order.total_price) {

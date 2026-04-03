@@ -79,9 +79,9 @@ export default function ContactSheet({ isOpen, onClose }: ContactSheetProps) {
                     <ContactItem
                         icon={<Phone size={24} />}
                         label={t('phone')}
-                        value="+998 88 956 57 00"
+                        value="+998 90 187 78 79"
                         color="#4ADE80"
-                        href="tel:+998889565700"
+                        href="tel:+998901877879"
                     />
                     <ContactItem
                         icon={<Send size={24} />}

@@ -66,37 +66,28 @@ export async function POST(
             return NextResponse.json({ error: updateError.message }, { status: 500 });
         }
 
-        // 2. Trigger Telegram Sync (Backgrounded / Parallelized)
+        // 2. Sync to Telegram (Awaited to prevent Vercel termination)
         const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
         if (TELEGRAM_BOT_TOKEN) {
-            const syncPromise = (async () => {
+            try {
                 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
                 const profile = Array.isArray(order.profiles) ? order.profiles[0] : order.profiles;
 
-                // Prioritize language stored in order.delivery_address if available
                 const deliveryAddr = (order.delivery_address || {}) as any;
-
                 const tgLang = resolveOrderLanguage({
                     orderSavedLang: deliveryAddr.lang,
                     adminPreferredLang: await getAdminTgLang(),
                     fallbackLang: lang
                 });
 
-                const tasks = [];
-
-                // Heal delivery_address.lang if missing or malformed — runs in parallel with Telegram tasks
-                const needsHealing = !deliveryAddr.lang || (typeof deliveryAddr.lang === 'string' && deliveryAddr.lang.includes('"'));
-                if (needsHealing) {
-                    const healedAddress = typeof deliveryAddr === 'string' ? { street: deliveryAddr, lang: tgLang } : { ...deliveryAddr, lang: tgLang };
-                    tasks.push(serviceClient.from('orders').update({ delivery_address: healedAddress }).eq('id', orderId));
-                }
-
-                // Task A: Update Admin Group Message (Edit existing)
+                // Task A: Update Admin Group Message
                 if (order.telegram_message_id && order.telegram_chat_id) {
                     const messageText = buildOrderMessage(order, tgLang);
                     const inline_keyboard = getTelegramButtons(newStatus, orderId, tgLang);
                     
-                    tasks.push(fetch(`${TELEGRAM_API}/editMessageText`, {
+                    console.log(`[AdminStatusSync] Updating Admin Group Msg: ${order.telegram_message_id} in chat ${order.telegram_chat_id}`);
+                    
+                    const tgRes = await fetch(`${TELEGRAM_API}/editMessageText`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -106,16 +97,31 @@ export async function POST(
                             parse_mode: 'Markdown',
                             reply_markup: { inline_keyboard }
                         })
-                    }).then(r => r.json()));
+                    });
+                    
+                    const tgResult = await tgRes.json();
+                    if (!tgResult.ok) {
+                        console.error('[AdminStatusSync] Telegram Edit Error:', tgResult);
+                    } else {
+                        console.log('[AdminStatusSync] Telegram Edit Success');
+                    }
+                } else {
+                    console.log('[AdminStatusSync] No Telegram IDs found in order, skipping group update.');
                 }
 
-                // Task B: Status Update for Client (Refactored to centralized service)
-                tasks.push(notifyCustomerStatusChange(orderId, newStatus, order));
+                // Task B: Status Update for Client
+                await notifyCustomerStatusChange(orderId, newStatus, order);
+                
+                // Task C: Heal delivery_address.lang if missing
+                const needsHealing = !deliveryAddr.lang || (typeof deliveryAddr.lang === 'string' && deliveryAddr.lang.includes('"'));
+                if (needsHealing) {
+                    const healedAddress = typeof deliveryAddr === 'string' ? { street: deliveryAddr, lang: tgLang } : { ...deliveryAddr, lang: tgLang };
+                    await serviceClient.from('orders').update({ delivery_address: healedAddress }).eq('id', orderId);
+                }
 
-                await Promise.all(tasks).catch(err => console.error('[Admin Orders Status API] Parallel Sync error:', err));
-            })();
-
-            syncPromise.catch(err => console.error('[Admin Orders Status API] Background sync error:', err));
+            } catch (syncErr) {
+                console.error('[AdminStatusSync] Sync Error:', syncErr);
+            }
         }
 
         return NextResponse.json({ success: true, order });

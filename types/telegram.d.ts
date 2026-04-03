@@ -117,6 +117,10 @@ interface TelegramWebApp {
     // Link opening
     openLink: (url: string, options?: { try_instant_view?: boolean }) => void;
     openTelegramLink: (url: string) => void;
+
+    // Vertical Swipes control (Mini App 7.7+)
+    disableVerticalSwipes?: () => void;
+    enableVerticalSwipes?: () => void;
 }
 
 declare global {

@@ -21,9 +21,6 @@ export default function SavatPage() {
                     <h1 className={styles.title}>{t('cart')}</h1>
                     <p className={styles.subtitle}>{totalItems} {t('mahsulot') || 'mahsulot'}</p>
                 </div>
-                <div className={styles.avatar}>
-                    <span>N</span>
-                </div>
             </div>
 
             {cart.length === 0 ? (

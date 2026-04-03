@@ -47,9 +47,25 @@ export default function HomepageShell({ categories, productsByCategory, children
         }
     };
 
+    const [isBooted, setIsBooted] = useState(false);
+    const activeCategoryRef = useRef(activeCategory);
+
+    // --- Staged Booting: Delay non-critical background math ---
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setIsBooted(true);
+        }, 1500);
+        return () => clearTimeout(timer);
+    }, []);
+
+    useEffect(() => {
+        activeCategoryRef.current = activeCategory;
+    }, [activeCategory]);
+
     // --- IntersectionObserver for Scroll-Spy (Performance optimized) ---
     useEffect(() => {
-        if (categories.length === 0) return;
+        // Disable Scroll-Spy during the first 1.5s of boot to prevent 100% CPU lock
+        if (!isBooted || categories.length === 0) return;
 
         const observerOptions = {
             root: null,
@@ -57,13 +73,22 @@ export default function HomepageShell({ categories, productsByCategory, children
             threshold: 0
         };
 
+        const lastUpdateTime = { current: 0 };
+        const THROTTLE_MS = 150;
+
         const observerCallback = (entries: IntersectionObserverEntry[]) => {
             if (isScrollingRef.current) return;
+
+            const now = Date.now();
+            if (now - lastUpdateTime.current < THROTTLE_MS) return;
 
             entries.forEach((entry) => {
                 if (entry.isIntersecting) {
                     const id = entry.target.id.replace('category-', '');
-                    setActiveCategory(id);
+                    if (id !== activeCategoryRef.current) {
+                        setActiveCategory(id);
+                        lastUpdateTime.current = now;
+                    }
                 }
             });
         };
@@ -76,7 +101,7 @@ export default function HomepageShell({ categories, productsByCategory, children
         });
 
         return () => observer.disconnect();
-    }, [categories]);
+    }, [categories, isBooted]);
 
     // --- Header Collapse logic ---
     useEffect(() => {

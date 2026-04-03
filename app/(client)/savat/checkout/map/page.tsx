@@ -171,7 +171,6 @@ function MapContent() {
                     <ChevronLeft size={28} />
                 </button>
                 <h1 className={styles.title}>{t('selectAddress')}</h1>
-                <div className={styles.avatar}><span>N</span></div>
             </header>
 
             <div ref={mapRef} className={styles.map} />

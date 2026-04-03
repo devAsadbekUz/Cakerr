@@ -25,18 +25,36 @@ export default function CategoryFilter({ activeCategory, onSelectCategory, categ
     const { lang } = useLanguage();
     const router = useRouter();
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const wasClickedRef = useRef(false);
+
+    const isFirstRender = useRef(true);
 
     // Auto-scroll the active category into view
     useEffect(() => {
+        // Skip the very first scroll on mount to save CPU during boot
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
+        }
+
         if (scrollContainerRef.current) {
             const activeElement = scrollContainerRef.current.querySelector<HTMLElement>('[data-active="true"]');
             if (activeElement) {
-                activeElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                // Use 'auto' for programmatic scrolls (scroll-spy) to avoid CPU-heavy smooth scroll collisions.
+                // Only use 'smooth' if the user actually clicked the category.
+                const behavior = wasClickedRef.current ? 'smooth' : 'auto';
+                activeElement.scrollIntoView({ behavior, block: 'nearest', inline: 'center' });
+                
+                // Reset the flag after scrolling
+                if (wasClickedRef.current) {
+                    wasClickedRef.current = false;
+                }
             }
         }
     }, [activeCategory]);
 
     const handleCategoryClick = (id: string) => {
+        wasClickedRef.current = true;
         if (id === 'custom') {
             router.push('/yaratish');
         } else {
