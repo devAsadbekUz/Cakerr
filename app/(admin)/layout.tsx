@@ -26,10 +26,6 @@ export default async function AdminLayout({
     const cookieStore = await cookies();
 
     const isAdminVerified = headerStore.get('x-admin-verified') === 'true';
-    if (!isAdminVerified) {
-        return <>{children}</>;
-    }
-
     const roleHeader = headerStore.get('x-admin-role');
     const permissionsHeader = headerStore.get('x-admin-permissions') || undefined;
     const roleCookie = cookieStore.get('admin_role')?.value;
@@ -41,13 +37,17 @@ export default async function AdminLayout({
 
     return (
         <AdminLanguageProvider initialLang={initialLang}>
-            <div className={styles.layout}>
-                <AdminSidebar role={role} permissions={permissions} />
-                <main className={styles.mainContent}>
-                    {children}
-                </main>
-                <AdminBottomNav role={role} permissions={permissions} />
-            </div>
+            {isAdminVerified ? (
+                <div className={styles.layout}>
+                    <AdminSidebar role={role} permissions={permissions} />
+                    <main className={styles.mainContent}>
+                        {children}
+                    </main>
+                    <AdminBottomNav role={role} permissions={permissions} />
+                </div>
+            ) : (
+                <>{children}</>
+            )}
         </AdminLanguageProvider>
     );
 }

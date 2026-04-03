@@ -5,6 +5,14 @@ const withPWA = require("@ducanh2912/next-pwa").default({
   workboxOptions: {
     runtimeCaching: [
       {
+        urlPattern: /^\/admin\/.*/i,
+        handler: "NetworkOnly",
+      },
+      {
+        urlPattern: /^\/api\/admin\/.*/i,
+        handler: "NetworkOnly",
+      },
+      {
         urlPattern: /^https:\/\/images\.unsplash\.com\/.*/i,
         handler: "CacheFirst",
         options: {
@@ -16,7 +24,7 @@ const withPWA = require("@ducanh2912/next-pwa").default({
         },
       },
       {
-        urlPattern: /\.(?:js|css|png|jpg|jpeg|svg|gif|ico)$/i,
+        urlPattern: /^(?!\/admin\/|\/api\/admin\/).*\.(?:js|css|png|jpg|jpeg|svg|gif|ico)$/i,
         handler: "StaleWhileRevalidate",
         options: {
           cacheName: "static-assets-cache",
@@ -37,9 +45,8 @@ const withPWA = require("@ducanh2912/next-pwa").default({
           },
         },
       },
-      // Removed API caching to avoid stale auth errors
       {
-        urlPattern: /^\/_next\/static\/.*/i,
+        urlPattern: /^(?!\/admin\/|\/api\/admin\/).*\/\_next\/static\/.*/i,
         handler: "StaleWhileRevalidate",
         options: {
           cacheName: "next-static-js-assets",

@@ -49,11 +49,18 @@ export default function AdminLoginPage() {
                 };
                 const order = ['dashboard','orders','products','categories','schedule','custom','loyalty','messages','settings'];
                 const first = order.find(p => perms.includes(p));
-                router.replace(first ? pageMap[first] : '/admin/login');
+                
+                if (!first) {
+                    throw new Error('Hisobingizda ruxsatlar yo\'q. Admin bilan bog\'laning.');
+                }
+
+                // Hard redirect to clear any service worker state and pick up cookies
+                window.location.href = pageMap[first];
                 return;
             }
 
-            router.replace('/admin');
+            // Owner redirect
+            window.location.href = '/admin';
         } catch (err: any) {
             setError(
                 err.message === 'Invalid login credentials'
