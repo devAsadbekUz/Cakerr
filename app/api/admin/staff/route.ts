@@ -14,20 +14,19 @@ function hashPassword(password: string): string {
     return `pbkdf2:${salt}:${hash}`;
 }
 
-// GET — fetch current staff user (if any)
+// GET — fetch all staff members
 export async function GET() {
     if (!await isOwner()) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const { data } = await serviceClient
         .from('admin_staff')
-        .select('id, username, permissions, created_at')
-        .limit(1)
-        .maybeSingle();
+        .select('id, username, permissions, created_at, last_login_at')
+        .order('created_at', { ascending: false });
 
-    return NextResponse.json({ staff: data });
+    return NextResponse.json({ staff: data || [] });
 }
 
-// POST — create staff user (only if none exists)
+// POST — create staff user (Limit: 10)
 export async function POST(request: NextRequest) {
     if (!await isOwner()) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
@@ -36,16 +35,30 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
     }
 
+    const cleanUsername = username.toLowerCase().trim();
+
+    // 1. Check total count
     const { count } = await serviceClient
         .from('admin_staff')
         .select('*', { count: 'exact', head: true });
 
-    if ((count ?? 0) > 0) {
-        return NextResponse.json({ error: 'A staff user already exists' }, { status: 409 });
+    if ((count ?? 0) >= 10) {
+        return NextResponse.json({ error: 'Maximum limit of 10 staff members reached' }, { status: 409 });
+    }
+
+    // 2. Check username uniqueness
+    const { data: existing } = await serviceClient
+        .from('admin_staff')
+        .select('id')
+        .eq('username', cleanUsername)
+        .maybeSingle();
+
+    if (existing) {
+        return NextResponse.json({ error: 'Username already taken' }, { status: 409 });
     }
 
     const { error } = await serviceClient.from('admin_staff').insert({
-        username: username.toLowerCase().trim(),
+        username: cleanUsername,
         password_hash: hashPassword(password),
         permissions,
     });

@@ -22,13 +22,19 @@ export async function POST(request: NextRequest) {
 
     const { data: staff } = await serviceClient
         .from('admin_staff')
-        .select('username, password_hash, permissions')
+        .select('id, username, password_hash, permissions')
         .eq('username', username.toLowerCase().trim())
         .maybeSingle();
 
     if (!staff || !verifyPassword(password, staff.password_hash)) {
         return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
+
+    // Update last login timestamp
+    await serviceClient
+        .from('admin_staff')
+        .update({ last_login_at: new Date().toISOString() })
+        .eq('id', staff.id);
 
     const token = await signStaffToken({
         username: staff.username,
