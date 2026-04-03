@@ -29,9 +29,10 @@ type StatusActionsProps = {
     status: string;
     onUpdate: (id: string, status: string) => void;
     variant: 'card' | 'modal';
+    disabled?: boolean;
 };
 
-function StatusActions({ orderId, status, onUpdate, variant }: StatusActionsProps) {
+function StatusActions({ orderId, status, onUpdate, variant, disabled }: StatusActionsProps) {
     const { t } = useAdminI18n();
     const isModal = variant === 'modal';
     const pad    = isModal ? '14px' : '12px';
@@ -42,7 +43,10 @@ function StatusActions({ orderId, status, onUpdate, variant }: StatusActionsProp
     const btn = (bg: string, extra?: React.CSSProperties): React.CSSProperties => ({
         flex: 1, background: bg, color: 'white', border: 'none',
         padding: pad, borderRadius: radius, fontSize: fSize, fontWeight: fWeight,
-        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+        cursor: disabled ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+        opacity: disabled ? 0.6 : 1,
+        pointerEvents: disabled ? 'none' : 'auto',
+        transition: 'all 0.2s ease',
         ...extra,
     });
 
@@ -54,11 +58,11 @@ function StatusActions({ orderId, status, onUpdate, variant }: StatusActionsProp
                         {!isModal && <CheckCircle2 size={16} />} {t('confirmOrder')}
                     </button>
                     {isModal ? (
-                        <button onClick={() => onUpdate(orderId, 'cancelled')} style={btn('#FEF2F2', { color: '#EF4444', flex: 0.5 })}>
+                        <button onClick={() => onUpdate(orderId, 'cancelled')} disabled={disabled} style={btn('#FEF2F2', { color: '#EF4444', flex: 0.5 })}>
                             {t('cancel')}
                         </button>
                     ) : (
-                        <button onClick={() => onUpdate(orderId, 'cancelled')} style={{ width: '44px', height: '44px', background: '#FEF2F2', color: '#EF4444', border: 'none', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <button onClick={() => onUpdate(orderId, 'cancelled')} disabled={disabled} style={{ width: '44px', height: '44px', background: '#FEF2F2', color: '#EF4444', border: 'none', borderRadius: '10px', cursor: disabled ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: disabled ? 0.6 : 1, pointerEvents: disabled ? 'none' : 'auto' }}>
                             <XCircle size={18} />
                         </button>
                     )}
@@ -207,9 +211,10 @@ type OrderCardProps = {
     compact?: boolean;
     onUpdate: (id: string, status: string) => void;
     onSelect: (order: AdminOrderCardData) => void;
+    disabled?: boolean;
 };
 
-export const OrderCard = memo(function OrderCard({ order, compact, onUpdate, onSelect }: OrderCardProps) {
+export const OrderCard = memo(function OrderCard({ order, compact, onUpdate, onSelect, disabled }: OrderCardProps) {
     const { lang, t } = useAdminI18n();
     const statusLabels = useMemo(() => ({
         new: t('status_new'), confirmed: t('status_confirmed'), preparing: t('status_preparing'),
@@ -273,7 +278,7 @@ export const OrderCard = memo(function OrderCard({ order, compact, onUpdate, onS
             )}
 
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: 'auto' }} onClick={(e) => e.stopPropagation()}>
-                <StatusActions orderId={order.id} status={order.status} onUpdate={onUpdate} variant="card" />
+                <StatusActions orderId={order.id} status={order.status} onUpdate={onUpdate} variant="card" disabled={disabled} />
             </div>
         </div>
     );
@@ -284,9 +289,10 @@ type OrderDetailsModalProps = {
     onClose: () => void;
     onUpdate: (id: string, status: string) => void;
     loading?: boolean;
+    disabled?: boolean;
 };
 
-export function OrderDetailsModal({ order, onClose, onUpdate, loading = false }: OrderDetailsModalProps) {
+export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, disabled = false }: OrderDetailsModalProps) {
     const { lang, t } = useAdminI18n();
     const [previewImage, setPreviewImage] = useState<string | null>(null);
 
@@ -455,7 +461,7 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false }:
 
                     <footer className={styles.modalFooter}>
                         <div style={{ display: 'flex', gap: '12px' }}>
-                            <StatusActions orderId={order.id} status={order.status} onUpdate={onUpdate} variant="modal" />
+                            <StatusActions orderId={order.id} status={order.status} onUpdate={onUpdate} variant="modal" disabled={disabled} />
                         </div>
                     </footer>
                 </div>

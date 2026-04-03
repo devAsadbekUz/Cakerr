@@ -22,9 +22,21 @@ type OrderUpdatePayload = { new: { id: string; status: string } };
 type OrderInsertPayload = { new: { id: string } };
 type OrderDeletePayload = { old: { id: string } };
 
+const STATUS_RANK: Record<string, number> = {
+    new: 1,
+    confirmed: 2,
+    preparing: 3,
+    ready: 4,
+    delivering: 5,
+    completed: 6,
+    cancelled: 6
+};
+
 function capOrders(orders: AdminOrderCardData[]) {
     return orders.slice(0, ORDERS_PAGE_LIMIT);
 }
+
+const supabase = createClient();
 
 export default function AdminOrdersClient({ initialOrders }: { initialOrders: AdminOrderListItem[] }) {
     const { lang, t } = useAdminI18n();
@@ -38,7 +50,7 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Ad
     const [selectedOrderLoading, setSelectedOrderLoading] = useState(false);
     const [newOrderNotify, setNewOrderNotify] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
-    const supabase = createClient();
+    const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -60,13 +72,33 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Ad
     }, [errorMsg]);
 
     const handleUpdateStatus = useCallback(async (orderId: string, newStatus: string) => {
-        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
-        const { error } = await orderService.updateOrderStatus(orderId, newStatus, true, lang);
-        if (error) {
-            setErrorMsg(t('error') + ': ' + error.message);
+        if (processingIds.has(orderId)) return;
+
+        setProcessingIds(prev => new Set(prev).add(orderId));
+
+        try {
+            // Optimistic update
+            setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+            
+            const { error } = await orderService.updateOrderStatus(orderId, newStatus, true, lang);
+            if (error) {
+                setErrorMsg(t('error') + ': ' + error.message);
+                fetchData();
+            }
+        } catch (err) {
+            console.error('Update error:', err);
             fetchData();
+        } finally {
+            // Give a tiny bit of extra time for animation stability
+            setTimeout(() => {
+                setProcessingIds(prev => {
+                    const next = new Set(prev);
+                    next.delete(orderId);
+                    return next;
+                });
+            }, 300);
         }
-    }, [fetchData, lang, t]);
+    }, [fetchData, lang, t, processingIds]);
 
     const handleSelectOrder = useCallback(async (order: AdminOrderCardData) => {
         setSelectedOrder(order);
@@ -116,13 +148,44 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Ad
             })
             .on('postgres_changes', { event: 'UPDATE', table: 'orders', schema: 'public' }, (payload: OrderUpdatePayload) => {
                 const { id, status } = payload.new;
+                
                 const existing = updateTimeouts.get(id);
                 if (existing) clearTimeout(existing);
+
                 updateTimeouts.set(id, setTimeout(() => {
                     updateTimeouts.delete(id);
-                    setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
-                    setSelectedOrder(prev => prev?.id === id ? { ...prev, status } : prev);
-                }, 400));
+                    // Avoid flicker: ignore updates that would "revert" a completed/cancelled order to active
+                    setOrders(prev => {
+                        const order = prev.find(o => o.id === id);
+                        if (!order) return prev;
+                        
+                        const isFinal = (s: string) => s === 'completed' || s === 'cancelled';
+                        const currentIsFinal = isFinal(order.status);
+                        const nextIsFinal = isFinal(status);
+
+                        // 1. Lifecycle Guard (Manual optimization)
+                        if (currentIsFinal && !nextIsFinal) return prev;
+                        
+                        // 2. Rank Guard (Generalized optimization)
+                        // If current rank is higher than server rank, it's a stale event
+                        const currentRank = STATUS_RANK[order.status] || 0;
+                        const nextRank = STATUS_RANK[status] || 0;
+                        if (currentRank > nextRank) return prev;
+
+                        // 3. Equality Guard
+                        if (order.status === status) return prev; 
+                        
+                        return prev.map(o => o.id === id ? { ...o, status } : o);
+                    });
+                    
+                    setSelectedOrder(prev => {
+                        if (prev?.id !== id) return prev;
+                        const currentRank = STATUS_RANK[prev.status] || 0;
+                        const nextRank = STATUS_RANK[status] || 0;
+                        if (currentRank > nextRank) return prev;
+                        return prev.status === status ? prev : { ...prev, status };
+                    });
+                }, 200));
             })
             .on('postgres_changes', { event: 'DELETE', table: 'orders', schema: 'public' }, (payload: OrderDeletePayload) => {
                 setOrders(prev => prev.filter(o => o.id !== payload.old.id));
@@ -221,6 +284,7 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Ad
                     onClose={handleCloseModal}
                     onUpdate={handleModalUpdate}
                     loading={selectedOrderLoading}
+                    disabled={processingIds.has(selectedOrder.id)}
                 />
             )}
 
@@ -254,6 +318,7 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Ad
                                             order={order}
                                             onUpdate={handleUpdateStatus}
                                             onSelect={handleSelectOrder}
+                                            disabled={processingIds.has(order.id)}
                                         />
                                     ))}
                                 </Section>
@@ -292,7 +357,14 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Ad
                                 </div>
                             ) : (
                                 filteredByDate.map(order => (
-                                    <OrderCard key={order.id} order={order} compact onUpdate={handleUpdateStatus} onSelect={handleSelectOrder} />
+                                    <OrderCard 
+                                        key={order.id} 
+                                        order={order} 
+                                        compact 
+                                        onUpdate={handleUpdateStatus} 
+                                        onSelect={handleSelectOrder} 
+                                        disabled={processingIds.has(order.id)}
+                                    />
                                 ))
                             )}
                         </div>

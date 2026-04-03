@@ -29,7 +29,7 @@ export default function OrderCard({ date, items, price, image, productId, name, 
             name: name || items,
             price: price,
             image: image,
-            portion: portion || '2',
+            portion: portion || '',
             flavor: flavor || 'Klassik',
             quantity: 1
         });

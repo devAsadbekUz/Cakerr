@@ -47,7 +47,7 @@ function ProductCardComponent({ id, title, price, image, images, tag, isReady, v
             price: displayPrice,
             image: displayImage,
             quantity: 1,
-            portion: variants?.[0]?.value || '2',
+            portion: variants?.[0]?.value || '',
             flavor: 'Shokoladli'
         });
 
