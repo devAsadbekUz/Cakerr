@@ -1,19 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { headers } from 'next/headers';
-
-// Service Role client - module-level singleton for performance
-const serviceClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-// INSTANT admin check - just reads header set by middleware
-// No auth calls, no database queries!
-async function isAdminVerified(): Promise<boolean> {
-    const headersList = await headers();
-    return headersList.get('x-admin-verified') === 'true';
-}
+import { isAdminVerified } from '@/app/utils/admin-auth';
+import { serviceClient } from '@/app/utils/supabase/service';
 
 // Allowed tables for admin operations
 const ALLOWED_TABLES = [

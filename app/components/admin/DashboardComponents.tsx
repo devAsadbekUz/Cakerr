@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, memo } from 'react';
+import { useState, memo, useMemo } from 'react';
 import {
     Calendar as CalendarIcon, CheckCircle2,
     XCircle, Info, MapPinned, Clock, Truck, PackageCheck, ZoomIn, X
@@ -11,6 +11,82 @@ import { format, isToday } from 'date-fns';
 import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 import type { AdminOrderCardData, AdminOrderItem } from '@/app/types/admin-order';
 import styles from '@/app/(admin)/admin/AdminDashboard.module.css';
+
+// Colors never change with language — define once at module level
+const STATUS_COLORS: Record<string, { color: string; bg: string }> = {
+    new:        { color: '#FB923C',                      bg: '#FFF7ED' },
+    confirmed:  { color: '#3B82F6',                      bg: '#EFF6FF' },
+    preparing:  { color: '#8B5CF6',                      bg: '#F5F3FF' },
+    ready:      { color: '#10B981',                      bg: '#F0FDF4' },
+    delivering: { color: 'hsl(var(--color-primary-dark))', bg: 'hsla(var(--color-primary), 0.1)' },
+    completed:  { color: '#059669',                      bg: '#ECFDF5' },
+    cancelled:  { color: '#EF4444',                      bg: '#FEF2F2' },
+};
+const STATUS_COLORS_FALLBACK = { color: '#6B7280', bg: '#F3F4F6' };
+
+type StatusActionsProps = {
+    orderId: string;
+    status: string;
+    onUpdate: (id: string, status: string) => void;
+    variant: 'card' | 'modal';
+};
+
+function StatusActions({ orderId, status, onUpdate, variant }: StatusActionsProps) {
+    const { t } = useAdminI18n();
+    const isModal = variant === 'modal';
+    const pad    = isModal ? '14px' : '12px';
+    const radius = isModal ? '12px' : '10px';
+    const fSize  = isModal ? '14px' : '13px';
+    const fWeight = isModal ? 700 : 600;
+
+    const btn = (bg: string, extra?: React.CSSProperties): React.CSSProperties => ({
+        flex: 1, background: bg, color: 'white', border: 'none',
+        padding: pad, borderRadius: radius, fontSize: fSize, fontWeight: fWeight,
+        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+        ...extra,
+    });
+
+    return (
+        <>
+            {status === 'new' && (
+                <>
+                    <button onClick={() => onUpdate(orderId, 'confirmed')} style={btn('#3B82F6', isModal ? {} : { minWidth: '120px' })}>
+                        {!isModal && <CheckCircle2 size={16} />} {t('confirmOrder')}
+                    </button>
+                    {isModal ? (
+                        <button onClick={() => onUpdate(orderId, 'cancelled')} style={btn('#FEF2F2', { color: '#EF4444', flex: 0.5 })}>
+                            {t('cancel')}
+                        </button>
+                    ) : (
+                        <button onClick={() => onUpdate(orderId, 'cancelled')} style={{ width: '44px', height: '44px', background: '#FEF2F2', color: '#EF4444', border: 'none', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <XCircle size={18} />
+                        </button>
+                    )}
+                </>
+            )}
+            {status === 'confirmed' && (
+                <button onClick={() => onUpdate(orderId, 'preparing')} style={btn('#8B5CF6')}>
+                    {!isModal && <Info size={16} />} {t('startCooking')}
+                </button>
+            )}
+            {status === 'preparing' && (
+                <button onClick={() => onUpdate(orderId, 'ready')} style={btn('#10B981')}>
+                    {!isModal && <PackageCheck size={16} />} {t('finishCooking')}
+                </button>
+            )}
+            {status === 'ready' && (
+                <button onClick={() => onUpdate(orderId, 'delivering')} style={btn('hsl(var(--color-primary-dark))')}>
+                    {!isModal && <Truck size={16} />} {t('startDelivery')}
+                </button>
+            )}
+            {status === 'delivering' && (
+                <button onClick={() => onUpdate(orderId, 'completed')} style={btn('#059669')}>
+                    {!isModal && <CheckCircle2 size={16} />} {isModal ? t('finishDelivery') : t('completeOrder')}
+                </button>
+            )}
+        </>
+    );
+}
 
 // Image Preview Modal Component
 function ImagePreviewModal({ imageUrl, onClose }: { imageUrl: string; onClose: () => void }) {
@@ -135,17 +211,14 @@ type OrderCardProps = {
 
 export const OrderCard = memo(function OrderCard({ order, compact, onUpdate, onSelect }: OrderCardProps) {
     const { lang, t } = useAdminI18n();
-    const statusMeta: Record<string, { label: string; color: string; bg: string }> = {
-        new: { label: t('status_new'), color: '#FB923C', bg: '#FFF7ED' },
-        confirmed: { label: t('status_confirmed'), color: '#3B82F6', bg: '#EFF6FF' },
-        preparing: { label: t('status_preparing'), color: '#8B5CF6', bg: '#F5F3FF' },
-        ready: { label: t('status_ready'), color: '#10B981', bg: '#F0FDF4' },
-        delivering: { label: t('status_delivering'), color: 'hsl(var(--color-primary-dark))', bg: 'hsla(var(--color-primary), 0.1)' },
-        completed: { label: t('status_completed'), color: '#059669', bg: '#ECFDF5' },
-        cancelled: { label: t('status_cancelled'), color: '#EF4444', bg: '#FEF2F2' },
-    };
+    const statusLabels = useMemo(() => ({
+        new: t('status_new'), confirmed: t('status_confirmed'), preparing: t('status_preparing'),
+        ready: t('status_ready'), delivering: t('status_delivering'),
+        completed: t('status_completed'), cancelled: t('status_cancelled'),
+    }), [t]);
 
-    const s = statusMeta[order.status] || { label: order.status, color: '#6B7280', bg: '#F3F4F6' };
+    const sc = STATUS_COLORS[order.status] ?? STATUS_COLORS_FALLBACK;
+    const s = { label: statusLabels[order.status as keyof typeof statusLabels] ?? order.status, ...sc };
     const deliveryDate = new Date(order.delivery_time);
 
     return (
@@ -183,8 +256,8 @@ export const OrderCard = memo(function OrderCard({ order, compact, onUpdate, onS
                     <div style={{ marginTop: '4px' }}>
                         <p style={{ fontSize: '11px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', marginBottom: '8px' }}>{t('items')}</p>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                            {order.order_items?.map((item: AdminOrderItem, idx: number) => (
-                                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                            {order.order_items?.map((item: AdminOrderItem) => (
+                                <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
                                     <span style={{ color: '#374151', fontWeight: 500 }}>{item.quantity}x {item.name || t('cake')}</span>
                                     <span style={{ color: '#6B7280', fontSize: '12px' }}>{item.configuration?.portion || ''}</span>
                                 </div>
@@ -200,24 +273,7 @@ export const OrderCard = memo(function OrderCard({ order, compact, onUpdate, onS
             )}
 
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: 'auto' }} onClick={(e) => e.stopPropagation()}>
-                {order.status === 'new' && (
-                    <>
-                        <button onClick={() => onUpdate(order.id, 'confirmed')} style={{ flex: 1, minWidth: '120px', background: '#3B82F6', color: 'white', border: 'none', padding: '12px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}><CheckCircle2 size={16} /> {t('confirmOrder')}</button>
-                        <button onClick={() => onUpdate(order.id, 'cancelled')} style={{ width: '44px', height: '44px', background: '#FEF2F2', color: '#EF4444', border: 'none', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><XCircle size={18} /></button>
-                    </>
-                )}
-                {order.status === 'confirmed' && (
-                    <button onClick={() => onUpdate(order.id, 'preparing')} style={{ flex: 1, background: '#8B5CF6', color: 'white', border: 'none', padding: '12px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}><Info size={16} /> {t('startCooking')}</button>
-                )}
-                {order.status === 'preparing' && (
-                    <button onClick={() => onUpdate(order.id, 'ready')} style={{ flex: 1, background: '#10B981', color: 'white', border: 'none', padding: '12px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}><PackageCheck size={16} /> {t('finishCooking')}</button>
-                )}
-                {order.status === 'ready' && (
-                    <button onClick={() => onUpdate(order.id, 'delivering')} style={{ flex: 1, background: 'hsl(var(--color-primary-dark))', color: 'white', border: 'none', padding: '12px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}><Truck size={16} /> {t('startDelivery')}</button>
-                )}
-                {order.status === 'delivering' && (
-                    <button onClick={() => onUpdate(order.id, 'completed')} style={{ flex: 1, background: '#059669', color: 'white', border: 'none', padding: '12px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}><CheckCircle2 size={16} /> {t('completeOrder')}</button>
-                )}
+                <StatusActions orderId={order.id} status={order.status} onUpdate={onUpdate} variant="card" />
             </div>
         </div>
     );
@@ -234,17 +290,14 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false }:
     const { lang, t } = useAdminI18n();
     const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-    const statusMeta: Record<string, { label: string; color: string; bg: string }> = {
-        new: { label: t('status_new'), color: '#FB923C', bg: '#FFF7ED' },
-        confirmed: { label: t('status_confirmed'), color: '#3B82F6', bg: '#EFF6FF' },
-        preparing: { label: t('status_preparing'), color: '#8B5CF6', bg: '#F5F3FF' },
-        ready: { label: t('status_ready'), color: '#10B981', bg: '#F0FDF4' },
-        delivering: { label: t('status_delivering'), color: 'hsl(var(--color-primary-dark))', bg: 'hsla(var(--color-primary), 0.1)' },
-        completed: { label: t('status_completed'), color: '#059669', bg: '#ECFDF5' },
-        cancelled: { label: t('status_cancelled'), color: '#EF4444', bg: '#FEF2F2' },
-    };
+    const statusLabels = useMemo(() => ({
+        new: t('status_new'), confirmed: t('status_confirmed'), preparing: t('status_preparing'),
+        ready: t('status_ready'), delivering: t('status_delivering'),
+        completed: t('status_completed'), cancelled: t('status_cancelled'),
+    }), [t]);
 
-    const s = statusMeta[order.status] || { label: order.status, color: '#6B7280', bg: '#F3F4F6' };
+    const sc = STATUS_COLORS[order.status] ?? STATUS_COLORS_FALLBACK;
+    const s = { label: statusLabels[order.status as keyof typeof statusLabels] ?? order.status, ...sc };
 
     return (
         <>
@@ -319,8 +372,8 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false }:
                         <div className={styles.infoSection}>
                             <div className={styles.infoLabel}>{t('items')}</div>
                             <div style={{ marginTop: '12px' }}>
-                                {order.order_items?.map((item: AdminOrderItem, idx: number) => (
-                                    <div key={idx} className={styles.orderItemCard}>
+                                {order.order_items?.map((item: AdminOrderItem) => (
+                                    <div key={item.id} className={styles.orderItemCard}>
                                         <div
                                             style={{ position: 'relative', cursor: 'pointer' }}
                                             onClick={() => {
@@ -402,24 +455,7 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false }:
 
                     <footer className={styles.modalFooter}>
                         <div style={{ display: 'flex', gap: '12px' }}>
-                            {order.status === 'new' && (
-                                <>
-                                    <button onClick={() => onUpdate(order.id, 'confirmed')} style={{ flex: 2, background: '#3B82F6', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>{t('confirmOrder')}</button>
-                                    <button onClick={() => onUpdate(order.id, 'cancelled')} style={{ flex: 1, background: '#FEF2F2', color: '#EF4444', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>{t('cancel')}</button>
-                                </>
-                            )}
-                            {order.status === 'confirmed' && (
-                                <button onClick={() => onUpdate(order.id, 'preparing')} style={{ flex: 1, background: '#8B5CF6', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>{t('startCooking')}</button>
-                            )}
-                            {order.status === 'preparing' && (
-                                <button onClick={() => onUpdate(order.id, 'ready')} style={{ flex: 1, background: '#10B981', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>{t('finishCooking')}</button>
-                            )}
-                            {order.status === 'ready' && (
-                                <button onClick={() => onUpdate(order.id, 'delivering')} style={{ flex: 1, background: 'hsl(var(--color-primary-dark))', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>{t('startDelivery')}</button>
-                            )}
-                            {order.status === 'delivering' && (
-                                <button onClick={() => onUpdate(order.id, 'completed')} style={{ flex: 1, background: '#059669', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>{t('finishDelivery')}</button>
-                            )}
+                            <StatusActions orderId={order.id} status={order.status} onUpdate={onUpdate} variant="modal" />
                         </div>
                     </footer>
                 </div>

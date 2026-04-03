@@ -1,17 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { headers } from 'next/headers';
-
-// Service Role client for admin queries
-const serviceClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-async function isAdminVerified(): Promise<boolean> {
-    const headersList = await headers();
-    return headersList.get('x-admin-verified') === 'true';
-}
+import { isAdminVerified } from '@/app/utils/admin-auth';
+import { sanitizeAdminOrder } from '@/app/(admin)/admin/orders/orders-data';
+import { serviceClient } from '@/app/utils/supabase/service';
 
 export async function GET(
     request: NextRequest,
@@ -45,23 +35,8 @@ export async function GET(
         return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    // Clean payload (strip data-uri images)
-    const safeItems = order.order_items?.map((item: any) => {
-        if (item.configuration) {
-            const conf = { ...item.configuration };
-            if (conf.uploaded_photo_url?.startsWith('data:image')) {
-                conf.uploaded_photo_url = null;
-            }
-            if (conf.drawing?.startsWith('data:image')) {
-                conf.drawing = null;
-            }
-            return { ...item, configuration: conf };
-        }
-        return item;
-    });
-
     return NextResponse.json(
-        { order: { ...order, order_items: safeItems } },
+        { order: sanitizeAdminOrder(order as any) },
         { 
             headers: { 
                 'Cache-Control': 'private, no-cache, no-store, must-revalidate',

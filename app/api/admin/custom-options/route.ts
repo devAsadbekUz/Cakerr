@@ -1,17 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { headers } from 'next/headers';
-
-// Service Role client — bypasses RLS, safe because we verify admin via middleware header
-const serviceClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-async function isAdminVerified(): Promise<boolean> {
-    const headersList = await headers();
-    return headersList.get('x-admin-verified') === 'true';
-}
+import { isAdminVerified } from '@/app/utils/admin-auth';
+import { serviceClient } from '@/app/utils/supabase/service';
 
 // GET /api/admin/custom-options — fetch ALL options (including unavailable) for admin panel
 export async function GET() {

@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { pbkdf2Sync, timingSafeEqual } from 'crypto';
 import { signStaffToken } from '@/app/utils/adminStaffToken';
-
-const serviceClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { serviceClient } from '@/app/utils/supabase/service';
 
 function verifyPassword(password: string, stored: string): boolean {
     try {

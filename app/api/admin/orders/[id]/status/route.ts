@@ -1,18 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { headers } from 'next/headers';
-import { getStatusConfig, getTelegramButtons, buildOrderMessage, resolveOrderLanguage, parseLang } from '@/app/utils/orderConfig';
+import { getTelegramButtons, buildOrderMessage, resolveOrderLanguage } from '@/app/utils/orderConfig';
+import { isAdminVerified } from '@/app/utils/admin-auth';
 import { notifyCustomerStatusChange } from '@/app/services/telegramNotificationService';
+import { serviceClient } from '@/app/utils/supabase/service';
 
-// Service Role client
-const serviceClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Cache admin_tg_lang for 5 minutes — it almost never changes
+let cachedAdminLang: string | null = null;
+let adminLangCachedAt = 0;
+const ADMIN_LANG_TTL_MS = 5 * 60 * 1000;
 
-async function isAdminVerified(): Promise<boolean> {
-    const headersList = await headers();
-    return headersList.get('x-admin-verified') === 'true';
+async function getAdminTgLang(): Promise<string | null> {
+    if (cachedAdminLang !== null && Date.now() - adminLangCachedAt < ADMIN_LANG_TTL_MS) {
+        return cachedAdminLang;
+    }
+    const { data } = await serviceClient
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'admin_tg_lang')
+        .single();
+    cachedAdminLang = data?.value ?? null;
+    adminLangCachedAt = Date.now();
+    return cachedAdminLang;
 }
 
 export async function POST(
@@ -65,46 +73,23 @@ export async function POST(
                 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
                 const profile = Array.isArray(order.profiles) ? order.profiles[0] : order.profiles;
 
-                // Fetch Global Admin Preference for Telegram Group
-                const { data: adminSettings } = await serviceClient
-                    .from('app_settings')
-                    .select('value')
-                    .eq('key', 'admin_tg_lang')
-                    .single();
-
                 // Prioritize language stored in order.delivery_address if available
                 const deliveryAddr = (order.delivery_address || {}) as any;
 
                 const tgLang = resolveOrderLanguage({
                     orderSavedLang: deliveryAddr.lang,
-                    adminPreferredLang: adminSettings?.value,
+                    adminPreferredLang: await getAdminTgLang(),
                     fallbackLang: lang
                 });
 
-                console.log(`[Admin Order Status API] Localization Audit:`, {
-                    orderId: orderId,
-                    orderSavedValue: deliveryAddr.lang,
-                    adminPreferredValue: adminSettings?.value,
-                    requestedLang: lang,
-                    finalDecision: tgLang
-                });
-                
-                // Healing logic: If language wasn't stored yet, or it's malformed, store it now for consistency
-                const needsHealing = !deliveryAddr.lang || (typeof deliveryAddr.lang === 'string' && deliveryAddr.lang.includes('"'));
-                
-                if (needsHealing) {
-                    console.log(`[Admin Order Status API] Healing order ${orderId} with lang ${tgLang}`);
-                    let healedAddress = typeof deliveryAddr === 'string' ? { street: deliveryAddr } : { ...deliveryAddr };
-                    healedAddress.lang = tgLang;
-
-                    await serviceClient.from('orders').update({
-                        delivery_address: healedAddress
-                    }).eq('id', orderId);
-                }
-                
-                const statusConfig = getStatusConfig(newStatus);
-
                 const tasks = [];
+
+                // Heal delivery_address.lang if missing or malformed — runs in parallel with Telegram tasks
+                const needsHealing = !deliveryAddr.lang || (typeof deliveryAddr.lang === 'string' && deliveryAddr.lang.includes('"'));
+                if (needsHealing) {
+                    const healedAddress = typeof deliveryAddr === 'string' ? { street: deliveryAddr, lang: tgLang } : { ...deliveryAddr, lang: tgLang };
+                    tasks.push(serviceClient.from('orders').update({ delivery_address: healedAddress }).eq('id', orderId));
+                }
 
                 // Task A: Update Admin Group Message (Edit existing)
                 if (order.telegram_message_id && order.telegram_chat_id) {
@@ -130,7 +115,7 @@ export async function POST(
                 await Promise.all(tasks).catch(err => console.error('[Admin Orders Status API] Parallel Sync error:', err));
             })();
 
-            await syncPromise; 
+            syncPromise.catch(err => console.error('[Admin Orders Status API] Background sync error:', err));
         }
 
         return NextResponse.json({ success: true, order });

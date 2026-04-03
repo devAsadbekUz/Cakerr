@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import {
     addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format,
-    isSameDay, isToday, isTomorrow, startOfMonth, startOfWeek, subMonths
+    isSameDay, isSameMonth, isToday, isTomorrow, startOfMonth, startOfWeek, subMonths
 } from 'date-fns';
 import { ru, uz } from 'date-fns/locale';
 import { orderService } from '@/app/services/orderService';
@@ -16,11 +16,11 @@ import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 import { OrderCard, OrderDetailsModal, Section } from '@/app/components/admin/DashboardComponents';
 import type { AdminOrder, AdminOrderCardData, AdminOrderListItem } from '@/app/types/admin-order';
 import styles from '../AdminDashboard.module.css';
+import { ORDERS_FILTER_DAYS, ORDERS_PAGE_LIMIT } from './orders-config';
 
 type OrderUpdatePayload = { new: { id: string; status: string } };
 type OrderInsertPayload = { new: { id: string } };
 type OrderDeletePayload = { old: { id: string } };
-const ORDERS_PAGE_LIMIT = 30;
 
 function capOrders(orders: AdminOrderCardData[]) {
     return orders.slice(0, ORDERS_PAGE_LIMIT);
@@ -37,11 +37,12 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Ad
     const [selectedOrder, setSelectedOrder] = useState<AdminOrderCardData | null>(null);
     const [selectedOrderLoading, setSelectedOrderLoading] = useState(false);
     const [newOrderNotify, setNewOrderNotify] = useState(false);
-    const supabase = useMemo(() => createClient(), []);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const supabase = createClient();
 
     const fetchData = useCallback(async () => {
         setLoading(true);
-        const data = await orderService.getOrderSummariesAdmin(60, ORDERS_PAGE_LIMIT);
+        const data = await orderService.getOrderSummariesAdmin(ORDERS_FILTER_DAYS, ORDERS_PAGE_LIMIT);
         setOrders(capOrders(data || []));
         setLoading(false);
     }, []);
@@ -52,11 +53,17 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Ad
         return () => clearTimeout(timer);
     }, [newOrderNotify]);
 
+    useEffect(() => {
+        if (!errorMsg) return;
+        const timer = setTimeout(() => setErrorMsg(null), 5000);
+        return () => clearTimeout(timer);
+    }, [errorMsg]);
+
     const handleUpdateStatus = useCallback(async (orderId: string, newStatus: string) => {
         setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
         const { error } = await orderService.updateOrderStatus(orderId, newStatus, true, lang);
         if (error) {
-            alert(t('error') + ': ' + error.message);
+            setErrorMsg(t('error') + ': ' + error.message);
             fetchData();
         }
     }, [fetchData, lang, t]);
@@ -77,25 +84,45 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Ad
     }, [handleUpdateStatus]);
 
     useEffect(() => {
-        let updateTimeout: NodeJS.Timeout;
+        const updateTimeouts = new Map<string, NodeJS.Timeout>();
 
         const channel = supabase
             .channel('admin-orders-page')
             .on('postgres_changes', { event: 'INSERT', table: 'orders', schema: 'public' }, async (payload: OrderInsertPayload) => {
                 setNewOrderNotify(true);
-                const newOrder = await orderService.getOrderAdmin(payload.new.id);
-                if (newOrder) setOrders(prev => capOrders([newOrder, ...prev]));
+                const fullOrder = await orderService.getOrderAdmin(payload.new.id) as AdminOrder | null;
+                if (fullOrder) {
+                    const listItem: AdminOrderListItem = {
+                        id: fullOrder.id,
+                        status: fullOrder.status,
+                        total_price: fullOrder.total_price,
+                        delivery_time: fullOrder.delivery_time,
+                        delivery_slot: fullOrder.delivery_slot,
+                        created_at: fullOrder.created_at,
+                        comment: fullOrder.comment,
+                        delivery_address: fullOrder.delivery_address,
+                        profiles: fullOrder.profiles,
+                        items_count: fullOrder.order_items?.length ?? 0,
+                        order_items: fullOrder.order_items?.slice(0, 2).map(item => ({
+                            ...item,
+                            products: undefined,
+                            configuration: item.configuration?.portion
+                                ? { portion: item.configuration.portion }
+                                : null,
+                        })),
+                    };
+                    setOrders(prev => capOrders([listItem, ...prev]));
+                }
             })
             .on('postgres_changes', { event: 'UPDATE', table: 'orders', schema: 'public' }, (payload: OrderUpdatePayload) => {
-                if (updateTimeout) clearTimeout(updateTimeout);
-                updateTimeout = setTimeout(async () => {
-                    const updatedOrder = await orderService.getOrderAdmin(payload.new.id) as AdminOrder | null;
-                    if (updatedOrder) {
-                        updatedOrder.status = payload.new.status;
-                        setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
-                        setSelectedOrder(prev => prev?.id === updatedOrder.id ? updatedOrder : prev);
-                    }
-                }, 400);
+                const { id, status } = payload.new;
+                const existing = updateTimeouts.get(id);
+                if (existing) clearTimeout(existing);
+                updateTimeouts.set(id, setTimeout(() => {
+                    updateTimeouts.delete(id);
+                    setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
+                    setSelectedOrder(prev => prev?.id === id ? { ...prev, status } : prev);
+                }, 400));
             })
             .on('postgres_changes', { event: 'DELETE', table: 'orders', schema: 'public' }, (payload: OrderDeletePayload) => {
                 setOrders(prev => prev.filter(o => o.id !== payload.old.id));
@@ -105,7 +132,7 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Ad
             });
 
         return () => {
-            if (updateTimeout) clearTimeout(updateTimeout);
+            for (const t of updateTimeouts.values()) clearTimeout(t);
             supabase.removeChannel(channel);
         };
     }, [supabase]);
@@ -127,10 +154,21 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Ad
 
     const sortedDates = useMemo(() => Object.keys(groupedOrders).sort(), [groupedOrders]);
 
+    const ordersByDay = useMemo(() => {
+        if (viewMode !== 'calendar') return new Map<string, AdminOrderCardData[]>();
+        const map = new Map<string, AdminOrderCardData[]>();
+        for (const o of orders) {
+            const key = format(new Date(o.delivery_time), 'yyyy-MM-dd');
+            if (!map.has(key)) map.set(key, []);
+            map.get(key)!.push(o);
+        }
+        return map;
+    }, [orders, viewMode]);
+
     const filteredByDate = useMemo(() => {
         if (viewMode !== 'calendar') return [];
-        return orders.filter(o => isSameDay(new Date(o.delivery_time), selectedDate));
-    }, [orders, selectedDate, viewMode]);
+        return ordersByDay.get(format(selectedDate, 'yyyy-MM-dd')) ?? [];
+    }, [ordersByDay, selectedDate, viewMode]);
 
     return (
         <div className={styles.container}>
@@ -139,6 +177,13 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Ad
                     <AlertCircle size={20} />
                     <span style={{ fontWeight: 600 }}>{t('newOrderAlert')}</span>
                     <button onClick={() => setNewOrderNotify(false)} className={styles.dismissBtn}>{t('close')}</button>
+                </div>
+            )}
+            {errorMsg && (
+                <div className={styles.notification} style={{ background: '#FEF2F2', borderColor: '#FCA5A5', color: '#991B1B' }}>
+                    <AlertCircle size={20} />
+                    <span style={{ fontWeight: 600 }}>{errorMsg}</span>
+                    <button onClick={() => setErrorMsg(null)} className={styles.dismissBtn}>{t('close')}</button>
                 </div>
             )}
 
@@ -230,7 +275,7 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Ad
                             currentMonth={currentMonth}
                             selectedDate={selectedDate}
                             onSelectDate={setSelectedDate}
-                            orders={orders}
+                            ordersByDay={ordersByDay}
                             lang={lang}
                         />
                     </div>
@@ -262,11 +307,11 @@ type AdminCalendarProps = {
     currentMonth: Date;
     selectedDate: Date;
     onSelectDate: (date: Date) => void;
-    orders: AdminOrderCardData[];
+    ordersByDay: Map<string, AdminOrderCardData[]>;
     lang: 'uz' | 'ru';
 };
 
-const AdminCalendar = memo(function AdminCalendar({ currentMonth, selectedDate, onSelectDate, orders, lang }: AdminCalendarProps) {
+const AdminCalendar = memo(function AdminCalendar({ currentMonth, selectedDate, onSelectDate, ordersByDay, lang }: AdminCalendarProps) {
     const calendarDays = useMemo(() => {
         const monthStart = startOfMonth(currentMonth);
         const monthEnd = endOfMonth(monthStart);
@@ -274,16 +319,6 @@ const AdminCalendar = memo(function AdminCalendar({ currentMonth, selectedDate, 
         const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
         return eachDayOfInterval({ start: startDate, end: endDate });
     }, [currentMonth]);
-
-    const ordersByDay = useMemo(() => {
-        const map = new Map<string, AdminOrder[]>();
-        for (const o of orders) {
-            const key = format(new Date(o.delivery_time), 'yyyy-MM-dd');
-            if (!map.has(key)) map.set(key, []);
-            map.get(key)!.push(o);
-        }
-        return map;
-    }, [orders]);
 
     const getOrdersForDay = (date: Date) => ordersByDay.get(format(date, 'yyyy-MM-dd')) ?? [];
 
@@ -295,7 +330,7 @@ const AdminCalendar = memo(function AdminCalendar({ currentMonth, selectedDate, 
             {calendarDays.map((day, idx) => {
                 const dayOrders = getOrdersForDay(day);
                 const isSelected = isSameDay(day, selectedDate);
-                const isCurrentMonth = isSameDay(startOfMonth(day), startOfMonth(currentMonth));
+                const isCurrentMonth = isSameMonth(day, currentMonth);
 
                 return (
                     <div
@@ -310,8 +345,8 @@ const AdminCalendar = memo(function AdminCalendar({ currentMonth, selectedDate, 
                         <span style={{ fontSize: '14px', fontWeight: isSelected ? 800 : 500 }}>{format(day, 'd')}</span>
                         {dayOrders.length > 0 && !isSelected && (
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px', marginTop: '4px', justifyContent: 'center', maxWidth: '36px' }}>
-                                {dayOrders.slice(0, 10).map((o, i: number) => (
-                                    <div key={i} style={{ width: '4px', height: '4px', borderRadius: '50%', background: o.status === 'completed' ? '#BE185D' : '#F59E0B', flexShrink: 0 }} />
+                                {dayOrders.slice(0, 10).map((o) => (
+                                    <div key={o.id} style={{ width: '4px', height: '4px', borderRadius: '50%', background: o.status === 'completed' ? '#BE185D' : '#F59E0B', flexShrink: 0 }} />
                                 ))}
                             </div>
                         )}

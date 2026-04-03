@@ -1,18 +1,9 @@
 import 'server-only';
 
-import { headers } from 'next/headers';
-import { createClient } from '@supabase/supabase-js';
 import type { AdminOrder, AdminOrderItem, AdminOrderListItem } from '@/app/types/admin-order';
-
-const serviceClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-export async function isAdminVerified(): Promise<boolean> {
-    const headersList = await headers();
-    return headersList.get('x-admin-verified') === 'true';
-}
+import { isAdminVerified } from '@/app/utils/admin-auth';
+export { isAdminVerified } from '@/app/utils/admin-auth';
+import { serviceClient } from '@/app/utils/supabase/service';
 
 function sanitizeOrderItem(item: AdminOrderItem): AdminOrderItem {
     if (!item.configuration) {

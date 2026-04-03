@@ -1,11 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
 import { getStatusConfig } from '@/app/utils/orderConfig';
-
-// Make sure this is only imported in server environments!
-const serviceClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { serviceClient } from '@/app/utils/supabase/service';
 
 function resolveTgLang(code?: string | null): 'uz' | 'ru' {
     if (code?.startsWith('ru')) return 'ru';

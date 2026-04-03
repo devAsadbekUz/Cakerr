@@ -1,7 +1,7 @@
 import 'server-only';
 
-import { headers } from 'next/headers';
-import { createClient } from '@supabase/supabase-js';
+import { isAdminVerified } from '@/app/utils/admin-auth';
+import { serviceClient } from '@/app/utils/supabase/service';
 import {
     addDays,
     eachDayOfInterval,
@@ -44,15 +44,6 @@ type DashboardSourceOrder = {
     order_items?: DashboardSourceOrderItem[] | null;
 };
 
-const serviceClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-async function isAdminVerified(): Promise<boolean> {
-    const headersList = await headers();
-    return headersList.get('x-admin-verified') === 'true';
-}
 
 function applyDaysFilter<T>(query: T, filterDays?: number | null) {
     if (!filterDays) {

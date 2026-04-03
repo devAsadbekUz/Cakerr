@@ -47,8 +47,7 @@ export const orderService = {
 
     async getOrderAdmin(orderId: string) {
         try {
-            // Add timestamp for aggressive cache busting
-            const response = await fetch(`/api/admin/orders/${orderId}?t=${Date.now()}`, {
+            const response = await fetch(`/api/admin/orders/${orderId}`, {
                 credentials: 'include'
             });
 
