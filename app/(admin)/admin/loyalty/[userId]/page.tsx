@@ -55,6 +55,7 @@ export default function UserLoyaltyDetailPage({ params }: { params: Promise<{ us
     const [isAdjusting, setIsAdjusting] = useState(false);
     const [adjAmount, setAdjAmount] = useState('');
     const [adjReason, setAdjReason] = useState('');
+    const [adjNotifyMessage, setAdjNotifyMessage] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const fetchUserData = async () => {
@@ -128,7 +129,8 @@ export default function UserLoyaltyDetailPage({ params }: { params: Promise<{ us
                 body: JSON.stringify({
                     userId,
                     amount: parseInt(adjAmount),
-                    description: adjReason
+                    description: adjReason,
+                    notifyMessage: adjNotifyMessage
                 })
             });
 
@@ -136,6 +138,7 @@ export default function UserLoyaltyDetailPage({ params }: { params: Promise<{ us
                 setIsAdjusting(false);
                 setAdjAmount('');
                 setAdjReason('');
+                setAdjNotifyMessage('');
                 fetchUserData(); // Refresh data
             } else {
                 const error = await res.json();
@@ -374,6 +377,16 @@ export default function UserLoyaltyDetailPage({ params }: { params: Promise<{ us
                                     required
                                     value={adjReason}
                                     onChange={e => setAdjReason(e.target.value)}
+                                />
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label className={styles.formLabel}>{t('notificationFieldLabel')}</label>
+                                <textarea 
+                                    className={styles.formTextarea}
+                                    placeholder={t('notificationFieldPlaceholder')}
+                                    value={adjNotifyMessage}
+                                    onChange={e => setAdjNotifyMessage(e.target.value)}
+                                    style={{ height: '80px' }}
                                 />
                             </div>
                             <div className={styles.modalActions}>

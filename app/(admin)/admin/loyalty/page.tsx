@@ -68,12 +68,12 @@ export default function LoyaltyPage() {
 
                 // 3. Calculate stats
                 const earned = txJson.data
-                    .filter((t: { amount: number }) => t.amount > 0)
-                    .reduce((acc: number, t: { amount: number }) => acc + t.amount, 0);
+                    .filter((tx: { amount: number }) => tx.amount > 0)
+                    .reduce((acc: number, tx: { amount: number }) => acc + tx.amount, 0);
 
                 const spent = txJson.data
-                    .filter((t: { amount: number }) => t.amount < 0)
-                    .reduce((acc: number, t: { amount: number }) => acc + Math.abs(t.amount), 0);
+                    .filter((tx: { amount: number }) => tx.amount < 0)
+                    .reduce((acc: number, tx: { amount: number }) => acc + Math.abs(tx.amount), 0);
 
                 setStats({
                     totalEarned: earned,
@@ -357,26 +357,26 @@ export default function LoyaltyPage() {
                                         </td>
                                     </tr>
                                 ) : (
-                                    transactions.map((t) => (
-                                        <tr key={t.id}>
-                                            <td>{format(new Date(t.created_at), 'dd.MM.yyyy HH:mm')}</td>
+                                    transactions.map((tx) => (
+                                        <tr key={tx.id}>
+                                            <td>{format(new Date(tx.created_at), 'dd.MM.yyyy HH:mm')}</td>
                                             <td>
                                                 <div className={styles.userCell}>
-                                                    <span className={styles.userName}>{t.profiles?.full_name || t('unknown')}</span>
-                                                    <span className={styles.userPhone}>{t.profiles?.phone_number || '-'}</span>
+                                                    <span className={styles.userName}>{tx.profiles?.full_name || t('unknown')}</span>
+                                                    <span className={styles.userPhone}>{tx.profiles?.phone_number || '-'}</span>
                                                 </div>
                                             </td>
                                             <td>
-                                                <span className={`${styles.badge} ${t.amount > 0 ? styles.earnBadge : styles.spendBadge}`}>
-                                                    {t.type === 'earn' ? t('earn') : t.type === 'spend' ? t('spend') : t.type}
+                                                <span className={`${styles.badge} ${tx.amount > 0 ? styles.earnBadge : styles.spendBadge}`}>
+                                                    {tx.type === 'earn' ? t('earn') : tx.type === 'spend' ? t('spend') : tx.type}
                                                 </span>
                                             </td>
                                             <td>
-                                                <span className={`${styles.amount} ${t.amount > 0 ? styles.amountEarn : styles.amountSpend}`}>
-                                                    {t.amount > 0 ? '+' : ''}{t.amount.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')}
+                                                <span className={`${styles.amount} ${tx.amount > 0 ? styles.amountEarn : styles.amountSpend}`}>
+                                                    {tx.amount > 0 ? '+' : ''}{tx.amount.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')}
                                                 </span>
                                             </td>
-                                            <td>{t.description || (t.order_id ? `${t('order')} #${t.order_id.slice(0, 8)}` : '-')}</td>
+                                            <td>{tx.description || (tx.order_id ? `${t('orderLabel')} #${tx.order_id.slice(0, 8)}` : '-')}</td>
                                         </tr>
                                     ))
                                 )}

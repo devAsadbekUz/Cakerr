@@ -10,13 +10,13 @@ const supabaseAdmin = createClient(
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { userId, amount, description } = body;
+        const { userId, amount, description, notifyMessage } = body;
 
         if (!userId || amount === undefined || !description) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
-        // Call the RPC defined in migration 70
+        // 1. Update DB: Call the RPC defined in migration 70
         const { error } = await supabaseAdmin.rpc('admin_adjust_coins', {
             p_user_id: userId,
             p_amount: parseInt(amount),
@@ -24,6 +24,36 @@ export async function POST(req: NextRequest) {
         });
 
         if (error) throw error;
+
+        // 2. Optional: Send Telegram Notification if message provided
+        if (notifyMessage && notifyMessage.trim()) {
+            try {
+                // Fetch user's telegram_id
+                const { data: profile } = await supabaseAdmin
+                    .from('profiles')
+                    .select('telegram_id')
+                    .eq('id', userId)
+                    .single();
+
+                if (profile?.telegram_id) {
+                    const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+                    const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
+
+                    await fetch(`${TELEGRAM_API}/sendMessage`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chat_id: profile.telegram_id,
+                            text: notifyMessage,
+                            parse_mode: 'Markdown'
+                        })
+                    });
+                }
+            } catch (tgError) {
+                console.error('[Admin Loyalty Adjust API] Telegram notify error:', tgError);
+                // We don't fail the whole request if only notification fails
+            }
+        }
 
         return NextResponse.json({ success: true });
     } catch (error: any) {

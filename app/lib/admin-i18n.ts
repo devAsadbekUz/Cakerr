@@ -337,6 +337,8 @@ export const adminTranslations = {
         amountFieldHint: "Musbat son qo'shadi, manfiy son ayiradi.",
         reasonFieldLabel: "Sabab / Izoh",
         reasonFieldPlaceholder: "Mijozga nima uchun tanga berilmoqda/olinmoqda...",
+        notificationFieldLabel: "Mijozga xabar (Telegram)",
+        notificationFieldPlaceholder: "Mijozga yuboriladigan matn...",
         confirming: "Saqlanmoqda...",
     },
     ru: {
@@ -677,6 +679,8 @@ export const adminTranslations = {
         amountFieldHint: "Положительное число добавляет, отрицательное вычитает.",
         reasonFieldLabel: "Причина / Комментарий",
         reasonFieldPlaceholder: "Почему начисляются/списываются монеты...",
+        notificationFieldLabel: "Уведомление клиенту (Telegram)",
+        notificationFieldPlaceholder: "Текст, который будет отправлен клиенту...",
         confirming: "Сохранение...",
     }
 };
