@@ -54,12 +54,12 @@ export default function AdminSidebar({ role, permissions }: AdminSidebarProps) {
     const handleLogout = async () => {
         if (role === 'staff') {
             await fetch('/api/admin/auth/staff/logout', { method: 'POST' });
-            router.push('/admin/login');
         } else {
             const supabase = createClient();
             await supabase.auth.signOut();
-            router.push('/admin/login');
         }
+        // Hard redirect to clear all administrative UI and state
+        window.location.href = '/admin/login';
     };
 
     return (
