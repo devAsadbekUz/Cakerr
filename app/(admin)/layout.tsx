@@ -1,9 +1,16 @@
+import { Metadata } from 'next';
 import { cookies, headers } from 'next/headers';
 import AdminSidebar from "@/app/components/admin/AdminSidebar";
 import AdminBottomNav from "@/app/components/admin/AdminBottomNav";
 import { AdminLanguageProvider } from "@/app/context/AdminLanguageContext";
 import { adminTranslations, type AdminLang } from "@/app/lib/admin-i18n";
 import styles from "./AdminLayout.module.css";
+
+export const metadata: Metadata = {
+    title: 'Admin Dashboard | Cakerr',
+    description: 'Management panel for Cakerr orders and operations.',
+    robots: 'noindex, nofollow',
+};
 
 function parsePermissions(raw: string | undefined) {
     if (!raw) return [];

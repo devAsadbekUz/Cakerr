@@ -1,0 +1,204 @@
+.container {
+    padding: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 32px;
+}
+
+.title {
+    font-size: 28px;
+    font-weight: 800;
+    color: #111827;
+    margin: 0;
+}
+
+.actionsGroup {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.viewToggle {
+    display: flex;
+    background: #F3F4F6;
+    padding: 4px;
+    border-radius: 10px;
+}
+
+.toggleBtn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: transparent;
+    color: #6B7280;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.toggleBtnActive {
+    background: white;
+    color: hsl(var(--color-primary-dark));
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.addBtn {
+    background: hsl(var(--color-primary-dark));
+    color: white;
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: none;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.addBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px hsla(var(--color-primary-dark), 0.25);
+}
+
+/* Grid Layout Styles */
+.productGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+}
+
+.pCard {
+    background: white;
+    border-radius: 16px;
+    border: 1px solid #E5E7EB;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.pCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+}
+
+.imageWrapper {
+    position: relative;
+    padding-top: 75%;
+    background: #F3F4F6;
+}
+
+.pInfo {
+    padding: 16px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.pCategory {
+    background: #F3F4F6;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #4B5563;
+    text-transform: uppercase;
+}
+
+.pTitle {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 4px;
+}
+
+.pSubtitle {
+    font-size: 13px;
+    color: #6B7280;
+    margin-bottom: 12px;
+    line-height: 1.4;
+}
+
+.pFooter {
+    margin-top: auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.pPrice {
+    font-weight: 800;
+    color: hsl(var(--color-primary-dark));
+    font-size: 18px;
+}
+
+.pActions {
+    display: flex;
+    gap: 8px;
+}
+
+.visibilityBtn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    backdrop-filter: blur(6px);
+    color: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    transition: background 0.2s;
+}
+
+.visible {
+    background: rgba(22, 163, 74, 0.85);
+}
+
+.hidden {
+    background: rgba(107, 114, 128, 0.75);
+}
+
+.editBtn, .deleteBtn {
+    padding: 8px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.editBtn {
+    background: #EFF6FF;
+    color: #1D4ED8;
+}
+
+.deleteBtn {
+    background: #FEF2F2;
+    color: #DC2626;
+}
+
+@media (max-width: 640px) {
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .actionsGroup {
+        width: 100%;
+        justify-content: space-between;
+    }
+    .productGrid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+}

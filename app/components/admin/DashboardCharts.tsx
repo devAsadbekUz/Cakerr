@@ -81,8 +81,8 @@ export function CategoryDonutChart({ title, data }: DonutChartProps) {
                     <div className={styles.totalLabel}>
                         {hoveredItem ? hoveredItem.label : t('totalLabel').toUpperCase()}
                     </div>
-                    <div className={styles.totalValue} style={{ fontSize: hoveredItem ? '16px' : '20px', color: hoveredItem?.color }}>
-                        {(hoveredItem ? hoveredItem.value : total).toLocaleString()}
+                    <div className={styles.totalValue} style={{ fontSize: hoveredItem ? '16px' : '20px', color: hoveredItem?.color, fontVariantNumeric: 'tabular-nums' }}>
+                        {((hoveredItem ? hoveredItem.value : total)).toLocaleString()}
                     </div>
                 </div>
             </div>
@@ -101,7 +101,7 @@ export function CategoryDonutChart({ title, data }: DonutChartProps) {
                     >
                         <div className={styles.legendColor} style={{ backgroundColor: item.color }} />
                         <span className={styles.legendLabel}>{item.label}</span>
-                        <span className={styles.legendValue}>{item.percent.toFixed(0)}%</span>
+                        <span className={styles.legendValue} style={{ fontVariantNumeric: 'tabular-nums' }}>{item.percent.toFixed(0)}%</span>
                     </div>
                 ))}
             </div>
@@ -290,7 +290,7 @@ export function RevenueLineChart({ title, data }: { title: string; data: LineCha
                                 <line x1={padL} y1={y} x2={W - padR} y2={y}
                                     stroke={i === Y_STEPS ? '#E5E7EB' : '#F3F4F6'}
                                     strokeWidth={i === Y_STEPS ? 1.5 : 1}/>
-                                <text x={padL - 8} y={y + 4} fontSize="10" fill="#9CA3AF" fontWeight="600" textAnchor="end">
+                                <text x={padL - 8} y={y + 4} fontSize="10" fill="#9CA3AF" fontWeight="600" textAnchor="end" style={{ fontVariantNumeric: 'tabular-nums' }}>
                                     {fmtRev(val)}
                                 </text>
                             </g>
@@ -340,7 +340,7 @@ export function RevenueLineChart({ title, data }: { title: string; data: LineCha
                                     rx="4" fill="url(#gradBar)"/>
                                 <text x={x} y={barBotY - bh - 5}
                                     fontSize="11" fontWeight="800" textAnchor="middle" fill="#3B82F6"
-                                    className={styles.valueLabel}>
+                                    className={styles.valueLabel} style={{ fontVariantNumeric: 'tabular-nums' }}>
                                     {d.sales}
                                 </text>
                             </g>
@@ -357,7 +357,7 @@ export function RevenueLineChart({ title, data }: { title: string; data: LineCha
                                 <circle cx={x} cy={ry} r="4.5" fill="white" stroke="#BE185D" strokeWidth="2.5"/>
                                 {d.revenue > 0 && (
                                     <text x={x} y={ry - 13} fontSize="11" fontWeight="800"
-                                        textAnchor="middle" fill="#BE185D" className={styles.valueLabel}>
+                                        textAnchor="middle" fill="#BE185D" className={styles.valueLabel} style={{ fontVariantNumeric: 'tabular-nums' }}>
                                         {fmtRev(d.revenue)}
                                     </text>
                                 )}

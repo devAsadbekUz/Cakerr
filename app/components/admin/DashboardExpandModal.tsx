@@ -117,7 +117,7 @@ function RecentActivityFull({
                                     #{order.id.slice(0, 6)} - {order.profiles?.full_name || t('client')}
                                 </div>
                                 <div className={styles.orderMeta}>
-                                    {format(new Date(order.created_at), 'dd/MM/yyyy HH:mm')} • {order.total_price?.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}
+                                    {format(new Date(order.created_at), 'dd/MM/yyyy HH:mm')} • <span style={{ fontVariantNumeric: 'tabular-nums' }}>{order.total_price?.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}</span>
                                 </div>
                             </div>
                         </div>
@@ -163,7 +163,7 @@ function RevenueTrendFull({
                 <div className={styles.summaryRow}>
                     <div className={styles.summaryCard}>
                         <h4>{t('totalPayment')}</h4>
-                        <div className="value" style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>
+                        <div className="value" style={{ fontSize: 24, fontWeight: 800, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>
                             {totalRevenue >= 1_000_000
                                 ? `${(totalRevenue / 1_000_000).toFixed(1)}M`
                                 : `${(totalRevenue / 1_000).toFixed(0)}K`
@@ -172,13 +172,13 @@ function RevenueTrendFull({
                     </div>
                     <div className={styles.summaryCard}>
                         <h4>{t('orders')}</h4>
-                        <div className="value" style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>
+                        <div className="value" style={{ fontSize: 24, fontWeight: 800, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>
                             {totalOrders}
                         </div>
                     </div>
                     <div className={styles.summaryCard}>
                         <h4>{t('averagePerDay')}</h4>
-                        <div className="value" style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>
+                        <div className="value" style={{ fontSize: 24, fontWeight: 800, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>
                             {revenueTrend.length > 0 ? (totalRevenue / revenueTrend.length / 1000).toFixed(0) : 0}K
                         </div>
                     </div>
@@ -209,7 +209,7 @@ function RevenueTrendFull({
                                         )}
                                     </div>
                                 </div>
-                                <span className={styles.barAmount}>
+                                <span className={styles.barAmount} style={{ fontVariantNumeric: 'tabular-nums' }}>
                                     {point.revenue > 0 ? `${(point.revenue / 1000).toFixed(0)}K` : '—'}
                                 </span>
                             </div>
@@ -263,7 +263,7 @@ function WeeklyOrdersFull({
                                         }}
                                     >
                                         {widthPct > 20 && (
-                                            <span className={styles.barFillValue}>{day.count}</span>
+                                            <span className={styles.barFillValue} style={{ fontVariantNumeric: 'tabular-nums' }}>{day.count}</span>
                                         )}
                                     </div>
                                 </div>
@@ -308,9 +308,9 @@ function OrderStatusesFull({
                             className={styles.statusCard}
                             style={{ borderLeft: `4px solid ${status.text}` }}
                         >
-                            <div className={styles.statusCount} style={{ color: status.text }}>{status.count}</div>
+                            <div className={styles.statusCount} style={{ color: status.text, fontVariantNumeric: 'tabular-nums' }}>{status.count}</div>
                             <div className={styles.statusLabel}>{status.label}</div>
-                            <div className={styles.statusPercent}>
+                            <div className={styles.statusPercent} style={{ fontVariantNumeric: 'tabular-nums' }}>
                                 {analytics.totalOrders > 0 ? Math.round((status.count / analytics.totalOrders) * 100) : 0}%
                             </div>
                         </div>
@@ -355,11 +355,11 @@ function PeakHoursFull({
                 <div className={styles.summaryRow}>
                     <div className={styles.summaryCard}>
                         <h4>{t('totalLabel')} {t('orders').toLowerCase()}</h4>
-                        <div style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>{totalOrders}</div>
+                        <div style={{ fontSize: 24, fontWeight: 800, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>{totalOrders}</div>
                     </div>
                     <div className={styles.summaryCard}>
                         <h4>{t('peakActiveHour')}</h4>
-                        <div style={{ fontSize: 24, fontWeight: 800, color: '#BE185D' }}>{peakHour?.label}</div>
+                        <div style={{ fontSize: 24, fontWeight: 800, color: '#BE185D', fontVariantNumeric: 'tabular-nums' }}>{peakHour?.label}</div>
                     </div>
                 </div>
 
@@ -390,7 +390,7 @@ function PeakHoursFull({
                                         )}
                                     </div>
                                 </div>
-                                <span className={styles.barAmount}>
+                                <span className={styles.barAmount} style={{ fontVariantNumeric: 'tabular-nums' }}>
                                     {hour.count > 0 ? `${hour.count} ${t('ordersLabel')}` : '—'}
                                 </span>
                             </div>

@@ -110,11 +110,11 @@ export default function ABCAnalysisModal({ isOpen, onClose, data }: ABCAnalysisM
                                 <tr key={index}>
                                     <td>{index + 1}</td>
                                     <td className={styles.productName}>{item.name}</td>
-                                    <td>{item.quantity} {t('pcs')}</td>
-                                    <td className={styles.revenue}>{item.revenue.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}</td>
+                                    <td style={{ fontVariantNumeric: 'tabular-nums' }}>{item.quantity} {t('pcs')}</td>
+                                    <td className={styles.revenue} style={{ fontVariantNumeric: 'tabular-nums' }}>{item.revenue.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}</td>
                                     <td>
                                         <div className={styles.shareWrapper}>
-                                            <span className={styles.shareNum}>{item.share.toFixed(1)}%</span>
+                                            <span className={styles.shareNum} style={{ fontVariantNumeric: 'tabular-nums' }}>{item.share.toFixed(1)}%</span>
                                             <div className={styles.shareBar}>
                                                 <div
                                                     className={styles.shareFill}

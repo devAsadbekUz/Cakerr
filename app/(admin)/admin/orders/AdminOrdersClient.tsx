@@ -1,19 +1,21 @@
 'use client';
 
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
     ShoppingBag, Calendar as CalendarIcon,
     ChevronLeft, ChevronRight, Clock, AlertCircle
 } from 'lucide-react';
 import {
-    addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format,
-    isSameDay, isSameMonth, isToday, isTomorrow, startOfMonth, startOfWeek, subMonths
+    addMonths, format, isToday, isTomorrow, subMonths
 } from 'date-fns';
 import { ru, uz } from 'date-fns/locale';
 import { orderService } from '@/app/services/orderService';
 import { createClient } from '@/app/utils/supabase/client';
 import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 import { OrderCard, OrderDetailsModal, Section } from '@/app/components/admin/DashboardComponents';
+import { AdminCalendar } from '@/app/components/admin/dashboard/AdminCalendar';
+import { updateOrderStatusAction } from '@/app/actions/admin-actions';
 import type { AdminOrder, AdminOrderCardData, AdminOrderListItem } from '@/app/types/admin-order';
 import styles from '../AdminDashboard.module.css';
 import { ORDERS_FILTER_DAYS, ORDERS_PAGE_LIMIT } from './orders-config';
@@ -36,11 +38,12 @@ function capOrders(orders: AdminOrderCardData[]) {
     return orders.slice(0, ORDERS_PAGE_LIMIT);
 }
 
-const supabase = createClient();
-
 export default function AdminOrdersClient({ initialOrders }: { initialOrders: AdminOrderListItem[] }) {
     const { lang, t } = useAdminI18n();
+    const router = useRouter();
     const locale = lang === 'uz' ? uz : ru;
+    const supabase = createClient();
+
     const [orders, setOrders] = useState<AdminOrderCardData[]>(initialOrders);
     const [loading, setLoading] = useState(false);
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -52,51 +55,44 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Ad
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
 
+    // Update local state when initialOrders change (due to router.refresh)
+    useEffect(() => {
+        setOrders(initialOrders);
+    }, [initialOrders]);
+
     const fetchData = useCallback(async () => {
         setLoading(true);
-        const data = await orderService.getOrderSummariesAdmin(ORDERS_FILTER_DAYS, ORDERS_PAGE_LIMIT);
-        setOrders(capOrders(data || []));
-        setLoading(false);
-    }, []);
-
-    useEffect(() => {
-        if (!newOrderNotify) return;
-        const timer = setTimeout(() => setNewOrderNotify(false), 5000);
-        return () => clearTimeout(timer);
-    }, [newOrderNotify]);
-
-    useEffect(() => {
-        if (!errorMsg) return;
-        const timer = setTimeout(() => setErrorMsg(null), 5000);
-        return () => clearTimeout(timer);
-    }, [errorMsg]);
+        router.refresh();
+        // Since router.refresh() is async and updates initialOrders via server re-fetch,
+        // we don't strictly need to do more here if the page is set up correctly.
+        // But we'll keep a small delay to show loading state for UX.
+        setTimeout(() => setLoading(false), 500);
+    }, [router]);
 
     const handleUpdateStatus = useCallback(async (orderId: string, newStatus: string) => {
         if (processingIds.has(orderId)) return;
-
         setProcessingIds(prev => new Set(prev).add(orderId));
 
         try {
-            // Optimistic update
+            // Optimistic update for immediate feedback
             setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
             
-            const { error } = await orderService.updateOrderStatus(orderId, newStatus, true, lang);
-            if (error) {
-                setErrorMsg(t('error') + ': ' + error.message);
-                fetchData();
+            const result = await updateOrderStatusAction(orderId, newStatus, lang);
+            
+            if (result?.error) {
+                setErrorMsg(t('error') + ': ' + result.error);
+                fetchData(); // Rollback to server state
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Update error:', err);
+            setErrorMsg(t('error'));
             fetchData();
         } finally {
-            // Give a tiny bit of extra time for animation stability
-            setTimeout(() => {
-                setProcessingIds(prev => {
-                    const next = new Set(prev);
-                    next.delete(orderId);
-                    return next;
-                });
-            }, 300);
+            setProcessingIds(prev => {
+                const next = new Set(prev);
+                next.delete(orderId);
+                return next;
+            });
         }
     }, [fetchData, lang, t, processingIds]);
 
@@ -109,6 +105,7 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Ad
         setSelectedOrder(current => current?.id === order.id ? (fullOrder || current) : current);
         setSelectedOrderLoading(false);
     }, []);
+
     const handleCloseModal = useCallback(() => setSelectedOrder(null), []);
     const handleModalUpdate = useCallback((id: string, status: string) => {
         handleUpdateStatus(id, status);
@@ -116,89 +113,40 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Ad
     }, [handleUpdateStatus]);
 
     useEffect(() => {
-        const updateTimeouts = new Map<string, NodeJS.Timeout>();
-
         const channel = supabase
-            .channel('admin-orders-page')
-            .on('postgres_changes', { event: 'INSERT', table: 'orders', schema: 'public' }, async (payload: OrderInsertPayload) => {
+            .channel('admin-orders-realtime')
+            .on('postgres_changes', { event: 'INSERT', table: 'orders', schema: 'public' }, () => {
                 setNewOrderNotify(true);
-                const fullOrder = await orderService.getOrderAdmin(payload.new.id) as AdminOrder | null;
-                if (fullOrder) {
-                    const listItem: AdminOrderListItem = {
-                        id: fullOrder.id,
-                        status: fullOrder.status,
-                        total_price: fullOrder.total_price,
-                        delivery_time: fullOrder.delivery_time,
-                        delivery_slot: fullOrder.delivery_slot,
-                        created_at: fullOrder.created_at,
-                        comment: fullOrder.comment,
-                        delivery_address: fullOrder.delivery_address,
-                        profiles: fullOrder.profiles,
-                        items_count: fullOrder.order_items?.length ?? 0,
-                        order_items: fullOrder.order_items?.slice(0, 2).map(item => ({
-                            ...item,
-                            products: undefined,
-                            configuration: item.configuration?.portion
-                                ? { portion: item.configuration.portion }
-                                : null,
-                        })),
-                    };
-                    setOrders(prev => capOrders([listItem, ...prev]));
-                }
+                router.refresh();
             })
             .on('postgres_changes', { event: 'UPDATE', table: 'orders', schema: 'public' }, (payload: OrderUpdatePayload) => {
                 const { id, status } = payload.new;
                 
-                const existing = updateTimeouts.get(id);
-                if (existing) clearTimeout(existing);
-
-                updateTimeouts.set(id, setTimeout(() => {
-                    updateTimeouts.delete(id);
-                    // Avoid flicker: ignore updates that would "revert" a completed/cancelled order to active
-                    setOrders(prev => {
-                        const order = prev.find(o => o.id === id);
-                        if (!order) return prev;
-                        
-                        const isFinal = (s: string) => s === 'completed' || s === 'cancelled';
-                        const currentIsFinal = isFinal(order.status);
-                        const nextIsFinal = isFinal(status);
-
-                        // 1. Lifecycle Guard (Manual optimization)
-                        if (currentIsFinal && !nextIsFinal) return prev;
-                        
-                        // 2. Rank Guard (Generalized optimization)
-                        // If current rank is higher than server rank, it's a stale event
-                        const currentRank = STATUS_RANK[order.status] || 0;
-                        const nextRank = STATUS_RANK[status] || 0;
-                        if (currentRank > nextRank) return prev;
-
-                        // 3. Equality Guard
-                        if (order.status === status) return prev; 
-                        
-                        return prev.map(o => o.id === id ? { ...o, status } : o);
-                    });
+                setOrders(prev => {
+                    const order = prev.find(o => o.id === id);
+                    if (!order) return prev;
                     
-                    setSelectedOrder(prev => {
-                        if (prev?.id !== id) return prev;
-                        const currentRank = STATUS_RANK[prev.status] || 0;
-                        const nextRank = STATUS_RANK[status] || 0;
-                        if (currentRank > nextRank) return prev;
-                        return prev.status === status ? prev : { ...prev, status };
-                    });
-                }, 200));
+                    const isFinal = (s: string) => s === 'completed' || s === 'cancelled';
+                    if (isFinal(order.status) && !isFinal(status)) return prev;
+                    
+                    const currentRank = STATUS_RANK[order.status] || 0;
+                    const nextRank = STATUS_RANK[status] || 0;
+                    if (currentRank > nextRank) return prev;
+
+                    return prev.map(o => o.id === id ? { ...o, status } : o);
+                });
+                
+                router.refresh();
             })
-            .on('postgres_changes', { event: 'DELETE', table: 'orders', schema: 'public' }, (payload: OrderDeletePayload) => {
-                setOrders(prev => prev.filter(o => o.id !== payload.old.id));
+            .on('postgres_changes', { event: 'DELETE', table: 'orders', schema: 'public' }, () => {
+                router.refresh();
             })
-            .subscribe((_status: string, err: Error | null) => {
-                if (err) console.error('[Realtime] Error:', err);
-            });
+            .subscribe();
 
         return () => {
-            for (const t of updateTimeouts.values()) clearTimeout(t);
             supabase.removeChannel(channel);
         };
-    }, [supabase]);
+    }, [router, supabase]);
 
     const activeOrders = useMemo(() => {
         if (viewMode !== 'inbox') return [];
@@ -218,7 +166,6 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Ad
     const sortedDates = useMemo(() => Object.keys(groupedOrders).sort(), [groupedOrders]);
 
     const ordersByDay = useMemo(() => {
-        if (viewMode !== 'calendar') return new Map<string, AdminOrderCardData[]>();
         const map = new Map<string, AdminOrderCardData[]>();
         for (const o of orders) {
             const key = format(new Date(o.delivery_time), 'yyyy-MM-dd');
@@ -226,7 +173,7 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Ad
             map.get(key)!.push(o);
         }
         return map;
-    }, [orders, viewMode]);
+    }, [orders]);
 
     const filteredByDate = useMemo(() => {
         if (viewMode !== 'calendar') return [];
@@ -374,66 +321,3 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Ad
         </div>
     );
 }
-
-type AdminCalendarProps = {
-    currentMonth: Date;
-    selectedDate: Date;
-    onSelectDate: (date: Date) => void;
-    ordersByDay: Map<string, AdminOrderCardData[]>;
-    lang: 'uz' | 'ru';
-};
-
-const AdminCalendar = memo(function AdminCalendar({ currentMonth, selectedDate, onSelectDate, ordersByDay, lang }: AdminCalendarProps) {
-    const calendarDays = useMemo(() => {
-        const monthStart = startOfMonth(currentMonth);
-        const monthEnd = endOfMonth(monthStart);
-        const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
-        const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
-        return eachDayOfInterval({ start: startDate, end: endDate });
-    }, [currentMonth]);
-
-    const getOrdersForDay = (date: Date) => ordersByDay.get(format(date, 'yyyy-MM-dd')) ?? [];
-
-    return (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
-            {(lang === 'uz' ? ['Du', 'Se', 'Cho', 'Pa', 'Ju', 'Sha', 'Ya'] : ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']).map(day => (
-                <div key={day} style={{ textAlign: 'center', padding: '8px', fontSize: '12px', fontWeight: 700, color: '#6B7280' }}>{day}</div>
-            ))}
-            {calendarDays.map((day, idx) => {
-                const dayOrders = getOrdersForDay(day);
-                const isSelected = isSameDay(day, selectedDate);
-                const isCurrentMonth = isSameMonth(day, currentMonth);
-
-                return (
-                    <div
-                        key={idx}
-                        onClick={() => onSelectDate(day)}
-                        style={{
-                            aspectRatio: '1/1', padding: '4px', borderRadius: '12px', border: '1px solid #F3F4F6',
-                            background: isSelected ? '#BE185D' : 'white', color: isSelected ? 'white' : isCurrentMonth ? '#111827' : '#D1D5DB',
-                            cursor: 'pointer', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
-                        }}
-                    >
-                        <span style={{ fontSize: '14px', fontWeight: isSelected ? 800 : 500 }}>{format(day, 'd')}</span>
-                        {dayOrders.length > 0 && (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px', marginTop: '4px', justifyContent: 'center', maxWidth: '36px' }}>
-                                {dayOrders.slice(0, 10).map((o) => (
-                                    <div 
-                                        key={o.id} 
-                                        style={{ 
-                                            width: '4px', 
-                                            height: '4px', 
-                                            borderRadius: '50%', 
-                                            background: o.status === 'completed' ? '#10B981' : o.status === 'cancelled' ? '#EF4444' : '#F59E0B', 
-                                            flexShrink: 0 
-                                        }} 
-                                    />
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                );
-            })}
-        </div>
-    );
-});

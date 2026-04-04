@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
-import { AlertCircle, RotateCcw } from 'lucide-react';
+import { AlertCircle, RefreshCcw } from 'lucide-react';
+import styles from './AdminDashboard.module.css';
 
 export default function AdminError({
     error,
@@ -15,42 +16,33 @@ export default function AdminError({
     }, [error]);
 
     return (
-        <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: '60vh',
-            gap: '16px',
-            padding: '40px 20px',
-            textAlign: 'center'
-        }}>
-            <div style={{
-                width: 64, height: 64, borderRadius: '50%',
-                background: '#FEF2F2', color: '#EF4444',
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-            }}>
-                <AlertCircle size={32} />
+        <div className={styles.container} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
+            <div style={{ background: '#FEF2F2', padding: '48px', borderRadius: '24px', border: '1px solid #FCA5A5', textAlign: 'center', maxWidth: '500px' }}>
+                <AlertCircle size={64} color="#EF4444" style={{ marginBottom: '24px' }} />
+                <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#991B1B', marginBottom: '12px' }}>Dashboard Error</h2>
+                <p style={{ color: '#6B7280', marginBottom: '32px', fontSize: '16px' }}>
+                    There was a problem loading the dashboard data. This might be a temporary connection issue.
+                </p>
+                <button
+                    onClick={reset}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        background: '#EF4444',
+                        color: 'white',
+                        border: 'none',
+                        padding: '12px 32px',
+                        borderRadius: '12px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        margin: '0 auto'
+                    }}
+                >
+                    <RefreshCcw size={20} /> Try Again
+                </button>
             </div>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: '#111827', margin: 0 }}>
-                Admin xatolik
-            </h2>
-            <p style={{ fontSize: 14, color: '#6B7280', margin: 0, maxWidth: 360 }}>
-                {error.message || 'Kutilmagan xatolik yuz berdi'}
-            </p>
-            <button
-                onClick={reset}
-                style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    padding: '12px 24px', borderRadius: 12,
-                    background: '#BE185D', color: 'white',
-                    border: 'none', fontWeight: 600, fontSize: 14,
-                    cursor: 'pointer', marginTop: 8
-                }}
-            >
-                <RotateCcw size={16} />
-                Qaytadan urinish
-            </button>
         </div>
     );
 }
