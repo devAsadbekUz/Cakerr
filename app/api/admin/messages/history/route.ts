@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { isAdminVerified } from '@/app/utils/admin-auth';
 
 export async function GET(request: NextRequest) {
+    if (!await isAdminVerified()) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!

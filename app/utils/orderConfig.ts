@@ -118,8 +118,13 @@ export const tgEscape = (text: any): string => {
  */
 export const buildOrderMessage = (order: any, lang: 'uz' | 'ru' = 'uz') => {
     const statusConfig = getStatusConfig(order.status);
-    const statusLabel = statusConfig.tgLabels[lang];
+    let statusLabel = statusConfig.tgLabels[lang];
     const isPickup = order.delivery_type === 'pickup';
+
+    // Status Enhancement for Pickup orders (Adds " - Olib ketish" / " - Самовывоз")
+    if (isPickup) {
+        statusLabel += ` - ${lang === 'uz' ? 'Olib ketish' : 'Самовывоз'}`;
+    }
     const shortId = order.id.slice(0, 8);
     
     const t = {
@@ -152,7 +157,7 @@ export const buildOrderMessage = (order: any, lang: 'uz' | 'ru' = 'uz') => {
     }[lang];
 
     let messageText = isPickup 
-        ? `🏢 *${lang === 'uz' ? 'OLIB KETISH (SAMOVYVOZ)' : 'САМОВЫВОЗ'}* [${statusLabel}]\n`
+        ? `🏪 *【 ${lang === 'uz' ? 'OLIB KETISH' : 'САМОВЫВОЗ'} 】* 🏪\n*Status:* [${statusLabel}]\n`
         : `🎂 *${t.order}* [${statusLabel}]\n`;
     messageText += `📋 *ID:* #${shortId}\n\n`;
 

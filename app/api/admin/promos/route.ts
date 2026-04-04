@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { isAdminVerified } from '@/app/utils/admin-auth';
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,6 +10,9 @@ const supabaseAdmin = createClient(
 
 // Fetch all promos
 export async function GET() {
+    if (!await isAdminVerified()) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     try {
         const { data, error } = await supabaseAdmin
             .from('promo_codes')
@@ -25,6 +29,9 @@ export async function GET() {
 
 // Create a new promo
 export async function POST(req: NextRequest) {
+    if (!await isAdminVerified()) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     try {
         const body = await req.json();
         const { 

@@ -33,6 +33,12 @@ interface SuccessOrderSnapshot {
         lat: number | null;
         lng: number | null;
     };
+    branch_snapshot?: {
+        name_uz: string;
+        name_ru: string;
+        address_uz: string;
+        address_ru: string;
+    } | null;
     saved_at: number;
 }
 
@@ -259,7 +265,12 @@ export default function CheckoutPage() {
             }
 
             const result = await response.json();
-            const createdOrder = result.order as { id: string };
+            const createdOrder = result.order as { id?: string; order_id?: string };
+            const orderId = createdOrder.id || createdOrder.order_id;
+
+            if (!orderId) {
+                throw new Error('Order was created but ID is missing from response');
+            }
 
             // 3. Send Telegram notification — fire-and-forget, never block the success screen
             const monthNames = t('months') as unknown as string[];
@@ -274,7 +285,7 @@ export default function CheckoutPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    orderId: createdOrder.id,
+                    orderId: orderId,
                     customerName: user.user_metadata?.full_name || 'Mijoz',
                     customerPhone: user.phone_number || user.phone || 'Noma\'lum',
                     address: deliveryAddress,
@@ -295,7 +306,7 @@ export default function CheckoutPage() {
 
             try {
                 const successSnapshot: SuccessOrderSnapshot = {
-                    id: createdOrder.id,
+                    id: orderId,
                     total_price: total,
                     payment_method: paymentMethod,
                     comment,
@@ -303,6 +314,7 @@ export default function CheckoutPage() {
                     delivery_slot: selectedSlot,
                     delivery_type: deliveryType,
                     branch_id: deliveryType === 'pickup' ? selectedBranchId : null,
+                    branch_snapshot: deliveryType === 'pickup' ? branches.find(b => b.id === selectedBranchId) : null,
                     delivery_address: orderData.delivery_address,
                     saved_at: Date.now()
                 };
@@ -311,7 +323,7 @@ export default function CheckoutPage() {
                 console.error('[Checkout] Failed to cache success snapshot:', storageError);
             }
 
-            setCreatedOrderId(createdOrder.id);
+            setCreatedOrderId(orderId);
             setIsSuccessOpen(true);
         } catch (error) {
             console.error('Error creating order:', error);

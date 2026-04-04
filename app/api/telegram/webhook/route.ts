@@ -46,10 +46,11 @@ export async function POST(request: NextRequest) {
     const appUrl = resolveAppUrl(request.nextUrl.origin);
     if (!appUrl) console.error('[Telegram Webhook] appUrl is null — web app buttons will not be sent. Set NEXT_PUBLIC_APP_URL in env.');
 
-    // Security check: Verify Telegram Webhook Secret Token if configured
+    // Security check: Verify Telegram Webhook Secret Token
+    // Reject if secret is not configured or does not match — never allow unauthenticated calls.
     const incomingSecret = request.headers.get('X-Telegram-Bot-Api-Secret-Token');
-    if (WEBHOOK_SECRET && incomingSecret !== WEBHOOK_SECRET) {
-        console.warn('[Telegram Webhook] Unauthorized request blocked (Secret mismatch)');
+    if (!WEBHOOK_SECRET || incomingSecret !== WEBHOOK_SECRET) {
+        console.warn('[Telegram Webhook] Unauthorized request blocked (Secret missing or mismatch)');
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

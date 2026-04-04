@@ -30,7 +30,13 @@ interface CachedSuccessOrder {
         name_ru: string;
         address_uz: string;
         address_ru: string;
-        location_link: string;
+        location_link?: string;
+    } | null;
+    branch_snapshot?: {
+        name_uz: string;
+        name_ru: string;
+        address_uz: string;
+        address_ru: string;
     } | null;
     saved_at: number;
 }
@@ -143,9 +149,9 @@ function SuccessContent() {
 
     const monthNames = t('months') as unknown as string[];
 
-    // Use fetched order or fall back to context/defaults if something went wrong
+    // Use fetched order or fall back to cached snapshot or context
     const isPickup = (order as any)?.delivery_type === 'pickup';
-    const branch = (order as any)?.branches;
+    const branch = (order as any)?.branches || (order as any)?.branch_snapshot;
 
     const displayData = {
         id: order?.id || orderId || 'Noma\'lum',

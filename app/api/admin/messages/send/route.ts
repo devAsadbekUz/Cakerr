@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { isAdminVerified } from '@/app/utils/admin-auth';
 
 // Rate-limit delay between Telegram messages (ms)
 const SEND_DELAY_MS = 35;
@@ -9,6 +10,9 @@ function sleep(ms: number) {
 }
 
 export async function POST(request: NextRequest) {
+    if (!await isAdminVerified()) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
     if (!TELEGRAM_BOT_TOKEN) {
         return NextResponse.json({ error: 'Bot token not configured' }, { status: 500 });

@@ -64,6 +64,8 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
         cancelled: t('status_cancelled'),
     }), [t]);
 
+    const isPickup = order.delivery_type === 'pickup' || !!order.branch_id;
+
     const sc = STATUS_COLORS[order.status] ?? STATUS_COLORS_FALLBACK;
     const s = { label: statusLabels[order.status as keyof typeof statusLabels] ?? order.status, ...sc };
 
@@ -142,20 +144,44 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                         )}
 
                         <div className={styles.infoSection}>
-                            <div className={styles.infoLabel}>{t('delivery')}</div>
+                            <div className={styles.infoLabel}>{isPickup ? t('branch') : t('delivery')}</div>
                             <div style={{ fontSize: '15px', color: '#374151', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                                 <MapPinned size={18} color="hsl(var(--color-primary-dark))" />
-                                {order.delivery_address?.lat && order.delivery_address?.lng ? (
-                                    <a
-                                        href={`https://www.google.com/maps?q=${order.delivery_address.lat},${order.delivery_address.lng}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        style={{ color: '#3B82F6', fontWeight: 600, textDecoration: 'none' }}
-                                    >
-                                        {order.delivery_address?.street || t('noAddress')}{order.delivery_address?.apartment ? `, ${order.delivery_address.apartment}` : ''}
-                                    </a>
+                                {isPickup ? (
+                                    <>
+                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                            <span style={{ fontWeight: 700 }}>
+                                                {lang === 'uz' ? order.branches?.name_uz : order.branches?.name_ru}
+                                            </span>
+                                            {order.branches?.location_link ? (
+                                                <a
+                                                    href={order.branches.location_link}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    style={{ color: '#3B82F6', fontWeight: 600, textDecoration: 'none', fontSize: '13px' }}
+                                                >
+                                                    {lang === 'uz' ? order.branches?.address_uz : order.branches?.address_ru}
+                                                </a>
+                                            ) : (
+                                                <span style={{ fontSize: '13px' }}>
+                                                    {lang === 'uz' ? order.branches?.address_uz : order.branches?.address_ru}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </>
                                 ) : (
-                                    <span>{order.delivery_address?.street || t('noAddress')}{order.delivery_address?.apartment ? `, ${order.delivery_address.apartment}` : ''}</span>
+                                    order.delivery_address?.lat && order.delivery_address?.lng ? (
+                                        <a
+                                            href={`https://www.google.com/maps?q=${order.delivery_address.lat},${order.delivery_address.lng}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={{ color: '#3B82F6', fontWeight: 600, textDecoration: 'none' }}
+                                        >
+                                            {order.delivery_address?.street || t('noAddress')}{order.delivery_address?.apartment ? `, ${order.delivery_address.apartment}` : ''}
+                                        </a>
+                                    ) : (
+                                        <span>{order.delivery_address?.street || t('noAddress')}{order.delivery_address?.apartment ? `, ${order.delivery_address.apartment}` : ''}</span>
+                                    )
                                 )}
                             </div>
                             <div style={{ fontSize: '14px', color: '#6B7280', marginTop: '4px', fontVariantNumeric: 'tabular-nums' }}>
@@ -266,8 +292,14 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                                 </button>
                             )}
                             {order.status === 'ready' && (
-                                <button disabled={disabled} onClick={() => onUpdate(order.id, 'delivering')} className={styles.modalActionBtn} style={{ background: '#3B82F6', color: 'white' }}>
-                                    <Truck size={18} /> {t('startDelivery')}
+                                <button 
+                                    disabled={disabled} 
+                                    onClick={() => onUpdate(order.id, isPickup ? 'completed' : 'delivering')} 
+                                    className={styles.modalActionBtn} 
+                                    style={{ background: isPickup ? '#059669' : '#3B82F6', color: 'white' }}
+                                >
+                                    {isPickup ? <CheckCircle size={18} /> : <Truck size={18} />} 
+                                    {isPickup ? (t('finish' as any) || 'Finish') : t('startDelivery')}
                                 </button>
                             )}
                             {order.status === 'delivering' && (

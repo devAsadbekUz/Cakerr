@@ -94,7 +94,7 @@ export async function POST(
                 // Task A: Update Admin Group Message
                 if (order.telegram_message_id && order.telegram_chat_id) {
                     const messageText = buildOrderMessage(order, tgLang);
-                    const inline_keyboard = getTelegramButtons(newStatus, orderId, tgLang);
+                    const inline_keyboard = getTelegramButtons(newStatus, orderId, tgLang, order);
                     
                     console.log(`[AdminStatusSync] Updating Admin Group Msg: ${order.telegram_message_id} in chat ${order.telegram_chat_id}`);
                     

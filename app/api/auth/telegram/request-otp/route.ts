@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { randomInt } from 'crypto';
 import { TELEGRAM_CONFIG } from '@/app/utils/telegramConfig';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
@@ -50,8 +51,8 @@ export async function POST(request: NextRequest) {
             }, { status: 400 });
         }
 
-        // 2. Generate 6-digit OTP code
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        // 2. Generate 6-digit OTP code (cryptographically secure)
+        const code = randomInt(100000, 1000000).toString();
         const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
         // 3. Delete any existing OTP codes for this phone

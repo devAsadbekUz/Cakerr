@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { fetchAdminDashboardData } from '@/app/(admin)/admin/dashboard-data';
+import { isAdminVerified } from '@/app/utils/admin-auth';
 
 export async function GET(request: Request) {
+    if (!await isAdminVerified()) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     try {
         const { searchParams } = new URL(request.url);
         const rawDays = searchParams.get('days');

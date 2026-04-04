@@ -9,13 +9,13 @@ import { useLanguage } from '@/app/context/LanguageContext';
 import { getStatusConfig } from '@/app/utils/orderConfig';
 import { getLocalized } from '@/app/utils/i18n';
 
-const getProgressValue = (status: string) => {
+const getProgressValue = (status: string, isPickup: boolean = false) => {
     switch (status) {
         case 'new': return 15;
-        case 'confirmed': return 30;
-        case 'preparing': return 50;
-        case 'ready': return 75;
-        case 'delivering': return 90;
+        case 'confirmed': return 35;
+        case 'preparing': return 60;
+        case 'ready': return isPickup ? 90 : 80;
+        case 'delivering': return 95;
         case 'completed': return 100;
         default: return 0;
     }
@@ -81,7 +81,7 @@ export default function ActiveOrderSection() {
                 orderId={activeOrder.id}
                 itemName={getLocalized(activeOrder.order_items?.[0]?.name, lang) || 'Buyurtma'}
                 status={getStatusConfig(activeOrder.status).labels[lang]}
-                progress={getProgressValue(activeOrder.status)}
+                progress={getProgressValue(activeOrder.status, activeOrder.delivery_type === 'pickup')}
             />
         </div>
     );

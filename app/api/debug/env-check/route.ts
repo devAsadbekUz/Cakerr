@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server';
+import { isAdminVerified } from '@/app/utils/admin-auth';
 
 export async function GET() {
+    if (process.env.NODE_ENV === 'production') {
+        return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+    if (!await isAdminVerified()) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const checks = {
         TELEGRAM_BOT_TOKEN: {
             exists: !!process.env.TELEGRAM_BOT_TOKEN,

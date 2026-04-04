@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseLang } from '@/app/utils/orderConfig';
 import { serviceClient } from '@/app/utils/supabase/service';
+import { isAdminVerified } from '@/app/utils/admin-auth';
 
 export async function GET() {
+    if (!await isAdminVerified()) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     try {
         const { data } = await serviceClient
             .from('app_settings')
@@ -19,6 +23,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+    if (!await isAdminVerified()) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     try {
         const { lang } = await request.json();
         
