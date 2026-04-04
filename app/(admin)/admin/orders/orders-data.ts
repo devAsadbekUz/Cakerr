@@ -50,6 +50,7 @@ export async function fetchAdminOrders(filterDays?: number | null, limit = 500) 
         .select(`
             id, user_id, status, total_price, delivery_time, delivery_slot, created_at, comment, delivery_address,
             delivery_type, branch_id, customer_name, customer_phone, created_by_name,
+            payment_method, coins_spent, promo_discount,
             profiles (full_name, phone_number),
             branches (name_uz, name_ru, address_uz, address_ru, location_link),
             order_items (

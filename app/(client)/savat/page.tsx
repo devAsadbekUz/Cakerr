@@ -51,7 +51,7 @@ export default function SavatPage() {
                                 <div className={styles.itemContent}>
                                     <div className={styles.itemHeader}>
                                         <h3 className={styles.itemName}>{getLocalized(item.name, lang)}</h3>
-                                        <button className={styles.removeBtn} onClick={() => removeItem(item.cartId)}>
+                                        <button className={styles.removeBtn} onClick={() => setPendingDeleteItem(item)}>
                                             <Trash2 size={18} />
                                         </button>
                                     </div>

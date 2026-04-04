@@ -10,7 +10,7 @@ import { ChevronLeft, ChevronRight, Calendar, Banknote, CreditCard, Tag, CheckCi
 import CalendarModal from '@/app/components/checkout/CalendarModal';
 import AddressesModal from '@/app/components/checkout/AddressesModal';
 import SuccessModal from '@/app/components/checkout/SuccessModal';
-import { useSupabase } from '@/app/context/AuthContext';
+import { useAuth } from '@/app/context/AuthContext';
 import { getAuthHeader } from '@/app/utils/telegram';
 import { TELEGRAM_CONFIG } from '@/app/utils/telegramConfig';
 import { createClient } from '@/app/utils/supabase/client';
@@ -47,7 +47,7 @@ export default function CheckoutPage() {
     const router = useRouter();
     const { lang, t } = useLanguage();
     const { cart, subtotal, totalItems, deliveryAddress, deliveryCoords, clearCart } = useCart();
-    const { user } = useSupabase();
+    const { user, isTelegram, loginWithTelegram } = useAuth();
     const supabase = createClient();
 
     const [isAddressesOpen, setIsAddressesOpen] = useState(false);
@@ -189,11 +189,22 @@ export default function CheckoutPage() {
         }
 
         if (!hasPhone) {
-            alert(
-                lang === 'ru'
-                    ? `Для оформления заказа необходимо привязать номер телефона.\n\nОткройте бота @${TELEGRAM_CONFIG.botUsername} и поделитесь номером.`
-                    : `Buyurtma berish uchun telefon raqamingizni ulashingiz kerak.\n\n@${TELEGRAM_CONFIG.botUsername} botini oching va raqamingizni ulashing.`
-            );
+            if (isTelegram) {
+                // User is inside the mini app — request contact inline without leaving
+                try {
+                    await loginWithTelegram();
+                    // After sharing, user context is updated — re-check hasPhone
+                    // handleConfirmOrder will be retriggered by the user clicking the button again
+                } catch {
+                    // User dismissed the contact popup — do nothing
+                }
+            } else {
+                alert(
+                    lang === 'ru'
+                        ? `Для оформления заказа необходимо привязать номер телефона.\n\nОткройте бота @${TELEGRAM_CONFIG.botUsername} и поделитесь номером.`
+                        : `Buyurtma berish uchun telefon raqamingizni ulashingiz kerak.\n\n@${TELEGRAM_CONFIG.botUsername} botini oching va raqamingizni ulashing.`
+                );
+            }
             return;
         }
 
@@ -322,6 +333,10 @@ export default function CheckoutPage() {
             } catch (storageError) {
                 console.error('[Checkout] Failed to cache success snapshot:', storageError);
             }
+
+            // Clear cart immediately after confirmed order — before navigation or modal
+            // Must await so the DB delete completes before component unmounts
+            await clearCart({ rollbackOnError: false, syncServer: true });
 
             setCreatedOrderId(orderId);
             setIsSuccessOpen(true);
@@ -754,7 +769,6 @@ export default function CheckoutPage() {
                     isOpen={isSuccessOpen}
                     onClose={() => {
                         setIsSuccessOpen(false);
-                        void clearCart({ rollbackOnError: false, syncServer: false });
                         router.replace(`/savat/checkout/success?orderId=${createdOrderId}`);
                     }}
                 />

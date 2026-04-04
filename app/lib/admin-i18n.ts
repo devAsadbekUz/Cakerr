@@ -274,6 +274,11 @@ export const adminTranslations = {
         today: "Bugun",
         noOrders: "Buyurtmalar yo'q",
         pcs: "dona",
+        paymentMethod: "To'lov usuli",
+        paymentCash: "Naqd pul",
+        paymentCard: "Plastik karta",
+        coinsUsed: "Shirin tangalar",
+        promoDiscount: "Promokod chegirmasi",
         
         // Action Buttons
         confirmOrder: "Tasdiqlash",
@@ -647,6 +652,11 @@ export const adminTranslations = {
         today: "Сегодня",
         noOrders: "Заказов нет",
         pcs: "шт",
+        paymentMethod: "Способ оплаты",
+        paymentCash: "Наличными",
+        paymentCard: "Картой",
+        coinsUsed: "Монеты",
+        promoDiscount: "Скидка по промокоду",
         
         // Action Buttons
         confirmOrder: "Подтвердить",

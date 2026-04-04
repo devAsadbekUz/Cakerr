@@ -180,6 +180,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             };
                             updateUserIfChanged(u);
                             setupCoinSubscription(u.id);
+                            // Keep stored session fresh so it works as fallback next time
+                            storeSession({
+                                token: 'tg-auto',
+                                user: data.user,
+                                expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+                            });
                             setLoading(false);
                             return;
                         }
@@ -187,6 +193,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         console.error('[Auth] Telegram fetch failed', e);
                     }
                 }
+
+                // Fallback: API failed or initData missing — use stored session so user stays logged in
+                if (storedTgSession) {
+                    const u = {
+                        ...storedTgSession.user,
+                        user_metadata: {
+                            full_name: storedTgSession.user.full_name,
+                            avatar_url: storedTgSession.user.avatar_url
+                        }
+                    };
+                    updateUserIfChanged(u);
+                    setupCoinSubscription(storedTgSession.user.id);
+                }
+
+                if (isMounted) setLoading(false);
+                return; // Never fall through to Supabase for Telegram users
+
             } else if (storedTgSession) {
                 // If not in TG but have session (browser testing)
                 setIsTelegram(true);
@@ -203,7 +226,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 return;
             }
 
-            // 2. Fallback to Supabase
+            // 2. Fallback to Supabase (only for non-Telegram users)
             const { data: { user: sbUser } } = await supabase.auth.getUser();
             if (sbUser && isMounted) {
                 lastFetchedUserIdRef.current = sbUser.id;
@@ -274,14 +297,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     const data = await res.json();
                     if (data.error) throw new Error(data.error);
 
+                    // Fetch full profile from /api/user/me to get coins, role, username, etc.
+                    // /api/auth/telegram only returns a minimal subset
+                    let fullUser = data.user;
+                    try {
+                        const meRes = await fetch('/api/user/me', {
+                            headers: { 'X-Telegram-Init-Data': initData }
+                        });
+                        const meData = await meRes.json();
+                        if (meData.authenticated && meData.user) {
+                            fullUser = meData.user;
+                        }
+                    } catch (e) {
+                        console.warn('[Auth] Could not fetch full profile after contact share, using minimal data', e);
+                    }
+
                     storeSession({
-                        token: data.token || 'tg-auto',
-                        user: data.user,
+                        token: 'tg-auto',
+                        user: fullUser,
                         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
                     });
 
-                    updateUserIfChanged(data.user);
-                    setupCoinSubscription(data.user.id);
+                    const u = {
+                        ...fullUser,
+                        user_metadata: {
+                            full_name: fullUser.full_name,
+                            avatar_url: fullUser.avatar_url
+                        }
+                    };
+                    updateUserIfChanged(u);
+                    setupCoinSubscription(u.id);
                     resolve();
                 } catch (err: any) {
                     reject(err);

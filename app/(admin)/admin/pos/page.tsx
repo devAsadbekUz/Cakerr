@@ -61,6 +61,7 @@ export default function PosPage() {
     const [submitting, setSubmitting] = useState(false);
     const [orderSuccess, setOrderSuccess] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [orderNote, setOrderNote] = useState('');
 
     // Delivery vs Pickup
     const [deliveryType, setDeliveryType] = useState<'delivery' | 'pickup'>('delivery');
@@ -181,7 +182,8 @@ export default function PosPage() {
                         address: deliveryInfo.address,
                         slot: deliveryInfo.slot
                     },
-                    totalPrice: subtotal + (deliveryType === 'delivery' ? 40000 : 0)
+                    totalPrice: subtotal + (deliveryType === 'delivery' ? 40000 : 0),
+                    orderNote: orderNote.trim() || null
                 })
             });
 
@@ -189,6 +191,7 @@ export default function PosPage() {
             if (!response.ok) throw new Error(result.error || 'Xatolik yuz berdi');
 
             setOrderSuccess(result.orderId);
+            setOrderNote('');
             clearCart();
             setTimeout(() => setOrderSuccess(null), 5000);
         } catch (err: any) {
@@ -446,6 +449,17 @@ export default function PosPage() {
                                 {slots.map(s => <option key={s.id} value={s.label}>{s.label}</option>)}
                             </select>
                         </div>
+                    </div>
+
+                    <div className={styles.formControl}>
+                        <label className={styles.label}>📝 Izoh (ixtiyoriy)</label>
+                        <textarea
+                            value={orderNote}
+                            onChange={(e) => setOrderNote(e.target.value)}
+                            className={styles.textarea}
+                            rows={2}
+                            placeholder="Buyurtma bo'yicha qo'shimcha izoh..."
+                        />
                     </div>
 
                     <div className={styles.totalSection}>

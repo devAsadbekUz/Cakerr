@@ -58,6 +58,9 @@ export type AdminOrder = {
     customer_phone?: string | null;
     created_by_name?: string | null;
     last_updated_by_name?: string | null;
+    payment_method?: 'cash' | 'card' | null;
+    coins_spent?: number | null;
+    promo_discount?: number | null;
     order_items?: AdminOrderItem[] | null;
 };
 
@@ -78,6 +81,9 @@ export type AdminOrderListItem = {
     customer_phone?: string | null;
     created_by_name?: string | null;
     last_updated_by_name?: string | null;
+    payment_method?: 'cash' | 'card' | null;
+    coins_spent?: number | null;
+    promo_discount?: number | null;
     order_items?: AdminOrderItem[] | null;
     items_count?: number;
 };

@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { items, customerInfo, deliveryInfo } = body;
+        const { items, customerInfo, deliveryInfo, orderNote } = body;
 
         if (!items || items.length === 0 || !customerInfo.name || !customerInfo.phone) {
             return NextResponse.json({ error: 'Missing required order details' }, { status: 400 });
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
             delivery_slot: deliveryInfo.slot,
             delivery_type: deliveryInfo.delivery_type,
             branch_id: deliveryInfo.branch_id,
-            comment: 'Manual Order entry via POS'
+            comment: orderNote || 'Manual Order entry via POS'
         };
 
         // 2. Call RPC
@@ -53,7 +53,12 @@ export async function POST(req: NextRequest) {
                 name: item.name,
                 quantity: item.quantity,
                 unit_price: item.price,
-                configuration: item.configuration
+                configuration: item.configuration ?? {
+                    portion: item.portion || undefined,
+                    flavor: item.flavor || undefined,
+                    custom_note: item.customNote || undefined,
+                    image_url: item.image || undefined
+                }
             })),
             p_created_by_name: creatorNameHeader
         });

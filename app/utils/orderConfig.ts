@@ -218,12 +218,34 @@ export const buildOrderMessage = (order: any, lang: 'uz' | 'ru' = 'uz') => {
         order.order_items.forEach((item: any) => {
             const name = tgEscape(item.name || 'Mahsulot');
             const portionText = item.configuration?.portion ? ` (${tgEscape(item.configuration.portion)})` : '';
-            messageText += `  • ${item.quantity}x ${name}${portionText} - ${(item.unit_price * item.quantity).toLocaleString()} ${t.som}\n`;
+            const flavorText = item.configuration?.flavor ? ` | ${tgEscape(item.configuration.flavor)}` : '';
+            messageText += `  • ${item.quantity}x ${name}${portionText}${flavorText} - ${(item.unit_price * item.quantity).toLocaleString()} ${t.som}\n`;
+            const note = item.configuration?.custom_note || item.configuration?.order_note;
+            if (note) {
+                messageText += `    📝 _${tgEscape(note)}_\n`;
+            }
         });
     }
 
     if (order.comment) {
         messageText += `\n💬 *${t.comment}:* "${tgEscape(order.comment)}"\n`;
+    }
+
+    if (order.payment_method) {
+        const payLabel = lang === 'uz' ? "To'lov" : "Оплата";
+        const cashLabel = lang === 'uz' ? "Naqd pul 💵" : "Наличными 💵";
+        const cardLabel = lang === 'uz' ? "Plastik karta 💳" : "Картой 💳";
+        messageText += `\n💳 *${payLabel}:* ${order.payment_method === 'cash' ? cashLabel : cardLabel}\n`;
+    }
+
+    if (Number(order.promo_discount) > 0) {
+        const promoLabel = lang === 'uz' ? "Promokod chegirmasi" : "Скидка по промокоду";
+        messageText += `🏷 *${promoLabel}:* -${Number(order.promo_discount).toLocaleString()} ${t.som}\n`;
+    }
+
+    if (Number(order.coins_spent) > 0) {
+        const coinsLabel = lang === 'uz' ? "Shirin tangalar" : "Монеты";
+        messageText += `🪙 *${coinsLabel}:* -${Number(order.coins_spent).toLocaleString()} ${t.som}\n`;
     }
 
     if (order.total_price) {

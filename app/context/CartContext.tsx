@@ -8,9 +8,9 @@ import { cartService } from '../services/cartService';
 const mapDBCartItemToCartItem = (dbItem: any): CartItem => ({
     cartId: dbItem.id,
     id: dbItem.product_id,
-    name: dbItem.products?.title || 'Mahsulot',
+    name: dbItem.products?.title || dbItem.configuration?.name || 'Mahsulot',
     price: dbItem.products?.base_price || 0,
-    image: dbItem.products?.image_url || '',
+    image: dbItem.products?.image_url || dbItem.configuration?.image_url || dbItem.configuration?.uploaded_photo_url || '',
     portion: dbItem.portion,
     flavor: dbItem.flavor,
     quantity: dbItem.quantity,

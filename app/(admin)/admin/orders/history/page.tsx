@@ -35,10 +35,13 @@ export default function OrderHistoryPage() {
 
     const filteredOrders = useMemo(() => {
         return orders.filter(order => {
-            const matchesSearch = 
-                order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (order.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (order.customer_phone || '').includes(searchQuery);
+            const name = order.customer_name || order.profiles?.full_name || '';
+            const phone = order.customer_phone || order.profiles?.phone_number || '';
+            const normalizedQuery = searchQuery.toLowerCase().replace(/^#/, '');
+            const matchesSearch =
+                order.id.toLowerCase().includes(normalizedQuery) ||
+                name.toLowerCase().includes(normalizedQuery) ||
+                phone.includes(normalizedQuery);
             
             const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
             
@@ -147,10 +150,10 @@ export default function OrderHistoryPage() {
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#374151', fontWeight: 600 }}>
-                                        <User size={14} color="#9CA3AF" /> {order.customer_name || t('client')}
+                                        <User size={14} color="#9CA3AF" /> {order.customer_name || order.profiles?.full_name || t('client')}
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#6B7280' }}>
-                                        <Phone size={14} color="#9CA3AF" /> {order.customer_phone || '-'}
+                                        <Phone size={14} color="#9CA3AF" /> {order.customer_phone || order.profiles?.phone_number || '-'}
                                     </div>
                                 </div>
 

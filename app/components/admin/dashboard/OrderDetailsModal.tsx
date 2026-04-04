@@ -5,9 +5,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import { 
-    XCircle, MapPinned, Calendar as CalendarIcon, PackageCheck, 
-    CheckCircle2, Utensils, Truck, CheckCircle, ZoomIn, History
+import {
+    XCircle, MapPinned, Calendar as CalendarIcon, PackageCheck,
+    CheckCircle2, Utensils, Truck, CheckCircle, ZoomIn, History,
+    Banknote, CreditCard, Coins, Tag
 } from 'lucide-react';
 import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 import type { AdminOrder, AdminOrderListItem, AdminOrderItem, AdminOrderCardData } from '@/app/types/admin-order';
@@ -195,6 +196,34 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                                 <div className={styles.infoLabel} style={{ color: '#0369A1' }}>{t('orderComment')}</div>
                                 <div style={{ fontSize: '14px', color: '#0C4A6E', fontStyle: 'italic' }}>
                                     &ldquo;{order.comment}&rdquo;
+                                </div>
+                            </div>
+                        )}
+
+                        {(order.payment_method || (order.coins_spent ?? 0) > 0 || (order.promo_discount ?? 0) > 0) && (
+                            <div className={styles.infoSection} style={{ background: '#F9FAFB', padding: '12px', borderRadius: '12px', border: '1px solid #E5E7EB', marginBottom: '4px' }}>
+                                <div className={styles.infoLabel}>{t('paymentMethod')}</div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
+                                    {order.payment_method && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 700, color: '#111827' }}>
+                                            {order.payment_method === 'cash'
+                                                ? <Banknote size={16} color="#059669" />
+                                                : <CreditCard size={16} color="#3B82F6" />}
+                                            {order.payment_method === 'cash' ? t('paymentCash') : t('paymentCard')}
+                                        </div>
+                                    )}
+                                    {(order.promo_discount ?? 0) > 0 && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#BE185D' }}>
+                                            <Tag size={14} />
+                                            {t('promoDiscount')}: <strong>-{(order.promo_discount ?? 0).toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}</strong>
+                                        </div>
+                                    )}
+                                    {(order.coins_spent ?? 0) > 0 && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#D97706' }}>
+                                            <Coins size={14} />
+                                            {t('coinsUsed')}: <strong>-{(order.coins_spent ?? 0).toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}</strong>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}
