@@ -13,6 +13,7 @@ export const adminTranslations = {
         roles: "Rollar",
         logout: "Chiqish",
         users: "Foydalanuvchilar",
+        pos: "POS (Sotuv)",
         
         // Forms
         editProduct: "Mahsulotni tahrirlash",
@@ -355,6 +356,7 @@ export const adminTranslations = {
         roles: "Роли",
         logout: "Выйти",
         users: "Пользователи",
+        pos: "POS (Продажа)",
         
         // Forms
         editProduct: "Редактировать товар",

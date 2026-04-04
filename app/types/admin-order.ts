@@ -45,6 +45,8 @@ export type AdminOrder = {
         full_name?: string | null;
         phone_number?: string | null;
     } | null;
+    customer_name?: string | null;
+    customer_phone?: string | null;
     order_items?: AdminOrderItem[] | null;
 };
 
@@ -58,6 +60,8 @@ export type AdminOrderListItem = {
     comment?: string | null;
     delivery_address?: AdminOrder['delivery_address'];
     profiles?: AdminOrder['profiles'];
+    customer_name?: string | null;
+    customer_phone?: string | null;
     order_items?: AdminOrderItem[] | null;
     items_count?: number;
 };

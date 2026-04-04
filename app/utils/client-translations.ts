@@ -100,6 +100,9 @@ const uz: Record<string, string | string[]> = {
     fullName: "To'liq ismingiz",
     fullNamePlaceholder: "Masalan: Aziz Toshpulatov",
     errorOccurred: "Xatolik yuz berdi",
+    confirmRemoveTitle: "Mahsulotni o'chirish",
+    confirmRemoveMessage: "Ushbu mahsulotni savatdan o'chirmoqchimisiz?",
+    cancel: "Bekor qilish",
     // SuccessModal
     orderAccepted: "Buyurtma qabul qilindi! 🎉",
     orderAcceptedMsg: "Buyurtmangiz uchun rahmat, tez orada jamoamiz sizga bog'lanadi",
@@ -215,6 +218,7 @@ const uz: Record<string, string | string[]> = {
     promoErrUserLimit: "Siz bu kodni ishlatib bo'lgansiz",
     promoErrGeneric: "Promokod xatosi",
     coinExpiryNotice: "Tangalar olingan kundan boshlab 6 oy davomida amal qiladi",
+    coinLimitError: "Mavjud tangalaringizdan ko'p miqdor kiritdingiz",
 };
 
 const ru: Record<string, string | string[]> = {
@@ -313,6 +317,9 @@ const ru: Record<string, string | string[]> = {
     fullName: "Ваше полное имя",
     fullNamePlaceholder: "Например: Азиз Тошпулатов",
     errorOccurred: "Произошла ошибка",
+    confirmRemoveTitle: "Удаление товара",
+    confirmRemoveMessage: "Вы действительно хотите удалить этот товар из корзины?",
+    cancel: "Отмена",
     // SuccessModal
     orderAccepted: "Заказ принят! 🎉",
     orderAcceptedMsg: "Спасибо за ваш заказ, наша команда свяжется с вами в ближайшее время",
@@ -428,6 +435,7 @@ const ru: Record<string, string | string[]> = {
     promoErrUserLimit: "Вы уже использовали этот промокод",
     promoErrGeneric: "Ошибка промокода",
     coinExpiryNotice: "Монеты действительны в течение 6 месяцев с даты получения",
+    coinLimitError: "Вы ввели сумму, превышающую количество ваших монет",
 };
 
 export const clientTranslations: Record<Language, Record<string, string | string[]>> = { uz, ru };

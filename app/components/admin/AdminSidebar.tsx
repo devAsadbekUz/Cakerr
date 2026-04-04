@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
     LayoutDashboard, ShoppingBag, Package, Calendar, Settings,
-    LogOut, Tags, Menu, X, Wand2, Coins, MessageSquare, ShieldCheck,
+    LogOut, Tags, Menu, X, Wand2, Coins, MessageSquare, ShieldCheck, ShoppingCart,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { createClient } from '@/app/utils/supabase/client';
@@ -24,6 +24,7 @@ type MenuItem = {
 const MENU: MenuItem[] = [
     { path: '/admin',            label: 'dashboard',  icon: LayoutDashboard, slug: 'dashboard' },
     { path: '/admin/orders',     label: 'orders',     icon: ShoppingBag,     slug: 'orders' },
+    { path: '/admin/pos',        label: 'pos',        icon: ShoppingCart,    slug: 'orders' },
     { path: '/admin/products',   label: 'products',   icon: Package,         slug: 'products' },
     { path: '/admin/categories', label: 'categories', icon: Tags,            slug: 'categories' },
     { path: '/admin/schedule',   label: 'schedule',   icon: Calendar,        slug: 'schedule' },

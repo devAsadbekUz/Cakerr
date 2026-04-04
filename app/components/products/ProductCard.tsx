@@ -48,7 +48,7 @@ function ProductCardComponent({ id, title, price, image, images, tag, isReady, v
             image: displayImage,
             quantity: 1,
             portion: variants?.[0]?.value || '',
-            flavor: 'Shokoladli'
+            flavor: ''
         });
 
         // Trigger the flying animation

@@ -16,6 +16,7 @@ import React from 'react';
 import { Product, Variant } from '@/app/types';
 import { flyToCart } from '@/app/utils/animations';
 import ProductGallery from '@/app/components/products/ProductGallery';
+import ConfirmDeleteModal from '@/app/components/cart/ConfirmDeleteModal';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -45,6 +46,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
   const [loading, setLoading] = useState(true);
   const [portion, setPortion] = useState<string>('');
   const [localQuantity, setLocalQuantity] = useState(1);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
@@ -129,8 +131,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
       if (cartItem.quantity > 1) {
         updateQuantity(cartItem.cartId, cartItem.quantity - 1);
       } else {
-        removeItem(cartItem.cartId); // remove completely
-        setLocalQuantity(1); // reset local prep state
+        setShowDeleteConfirm(true);
       }
     } else {
       setLocalQuantity(prev => Math.max(1, prev - 1));
@@ -326,6 +327,19 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
         onIncrement={handleIncrement}
         onDecrement={handleDecrement}
         onMainAction={handleMainAction}
+      />
+
+      <ConfirmDeleteModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(null as any)} // will be handled by boolean state
+        onConfirm={() => {
+          if (cartItem) {
+            removeItem(cartItem.cartId);
+            setLocalQuantity(1);
+          }
+          setShowDeleteConfirm(false);
+        }}
+        itemName={getLocalized(product.title, lang)}
       />
     </div>
   );

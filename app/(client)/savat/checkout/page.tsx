@@ -55,7 +55,8 @@ export default function CheckoutPage() {
 
     // Shirin Tangalar State
     const [useCoins, setUseCoins] = useState(false);
-    const [coinsToSpend, setCoinsToSpend] = useState(0);
+    const [coinsToSpend, setCoinsToSpend] = useState<number | string>(0);
+    const [coinInputError, setCoinInputError] = useState(false);
 
     // DB-driven time slots (with hardcoded fallback)
     const FALLBACK_SLOTS = [
@@ -108,7 +109,7 @@ export default function CheckoutPage() {
     const deliveryFee = totalItems > 0 ? 25000 : 0;
     const discountedSubtotal = Math.max(0, subtotal - promoDiscount);
     const initialTotal = discountedSubtotal + deliveryFee;
-    const total = Math.max(0, initialTotal - (useCoins ? coinsToSpend : 0));
+    const total = Math.max(0, initialTotal - (useCoins ? (Number(coinsToSpend) || 0) : 0));
 
     const fetchAvailability = async () => {
         setLoadingAvailability(true);
@@ -190,7 +191,7 @@ export default function CheckoutPage() {
                 delivery_time: selectedDateObj ? selectedDateObj.toISOString() : new Date().toISOString(),
                 delivery_slot: selectedSlot,
                 comment: comment,
-                coins_spent: useCoins ? coinsToSpend : 0,
+                coins_spent: useCoins ? (Number(coinsToSpend) || 0) : 0,
                 payment_method: paymentMethod
             };
 
@@ -461,30 +462,63 @@ export default function CheckoutPage() {
 
                     {useCoins && (
                         <div className={styles.coinInputArea}>
-                            <div className={styles.coinSliderRow}>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max={Math.min(user.coins || 0, initialTotal)}
-                                    value={coinsToSpend}
-                                    onChange={(e) => setCoinsToSpend(parseInt(e.target.value))}
-                                    className={styles.coinRange}
-                                />
-                            </div>
                             <div className={styles.coinValueRow}>
-                                <span className={styles.coinSpentText}>
-                                    {t('using')}: <strong>{coinsToSpend.toLocaleString('en-US')}</strong>
-                                </span>
+                                <div className={styles.coinSpentText}>
+                                    <span>{t('using')}</span>
+                                    <div className={styles.coinInputWrapper}>
+                                        <input
+                                            type="number"
+                                            className={styles.coinInput}
+                                            value={coinsToSpend}
+                                            placeholder="0"
+                                            onChange={(e) => {
+                                                const raw = e.target.value;
+                                                if (raw === '') {
+                                                    setCoinsToSpend('');
+                                                    setCoinInputError(false);
+                                                    return;
+                                                }
+                                                const val = parseInt(raw) || 0;
+                                                setCoinsToSpend(val);
+                                                const maxPossible = Math.min(user.coins || 0, initialTotal);
+                                                setCoinInputError(val > maxPossible);
+                                            }}
+                                            onBlur={() => {
+                                                const numericVal = Number(coinsToSpend) || 0;
+                                                const maxPossible = Math.min(user.coins || 0, initialTotal);
+                                                
+                                                if (numericVal > maxPossible) {
+                                                    setCoinsToSpend(maxPossible);
+                                                    setCoinInputError(false);
+                                                } else if (coinsToSpend === '') {
+                                                    setCoinsToSpend(0);
+                                                } else {
+                                                    setCoinsToSpend(numericVal);
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                </div>
                                 <button
                                     className={styles.maxBtn}
-                                    onClick={() => setCoinsToSpend(Math.min(user.coins || 0, initialTotal))}
+                                    onClick={() => {
+                                        setCoinsToSpend(Math.min(user.coins || 0, initialTotal));
+                                        setCoinInputError(false);
+                                    }}
                                 >
                                     MAX
                                 </button>
                             </div>
-                            <p className={styles.discountHelp}>
-                                -{coinsToSpend.toLocaleString('en-US')} {t('som')} {t('discount')}
-                            </p>
+                            {coinInputError && (
+                                <span className={styles.coinError}>
+                                    {t('coinLimitError')}
+                                </span>
+                            )}
+                            {!coinInputError && (
+                                <p className={styles.discountHelp}>
+                                    -{(Number(coinsToSpend) || 0).toLocaleString('en-US')} {t('som')} {t('discount')}
+                                </p>
+                            )}
                         </div>
                     )}
                 </div>
@@ -579,10 +613,10 @@ export default function CheckoutPage() {
                             <span>-{promoDiscount.toLocaleString('en-US')} {t('som')}</span>
                         </div>
                     )}
-                    {useCoins && coinsToSpend > 0 && (
+                    {useCoins && (Number(coinsToSpend) || 0) > 0 && (
                         <div className={`${styles.summaryRow} ${styles.discountRow}`}>
                             <span>{t('shirinTangalar')} {t('discount')}:</span>
-                            <span>-{coinsToSpend.toLocaleString('en-US')} {t('som')}</span>
+                            <span>-{(Number(coinsToSpend) || 0).toLocaleString('en-US')} {t('som')}</span>
                         </div>
                     )}
                     <div className={styles.totalRow}>

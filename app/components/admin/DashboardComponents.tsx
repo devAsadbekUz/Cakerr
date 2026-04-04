@@ -251,7 +251,7 @@ export const OrderCard = memo(function OrderCard({ order, compact, onUpdate, onS
             {!compact && (
                 <>
                     <div className={styles.orderCardCustomer}>
-                        <div style={{ fontSize: '14px', fontWeight: 700, marginBottom: '6px' }}>{order.profiles?.full_name || t('client')}</div>
+                        <div style={{ fontSize: '14px', fontWeight: 700, marginBottom: '6px' }}>{order.customer_name || order.profiles?.full_name || t('client')}</div>
                         <div style={{ fontSize: '12px', color: '#6B7280', display: 'flex', alignItems: 'flex-start' }}>
                             <MapPinned size={14} style={{ marginRight: 6, marginTop: 1, minWidth: '14px' }} />
                             <span style={{ lineHeight: '1.4' }}>{order.delivery_address?.street || t('noAddress')}</span>
@@ -330,12 +330,12 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                     <div className={styles.modalContent}>
                         <div className={styles.customerCard}>
                             <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'hsl(var(--color-primary))', color: 'hsl(var(--color-primary-text))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 800 }}>
-                                {order.profiles?.full_name?.[0] || 'U'}
+                                {order.customer_name?.[0] || order.profiles?.full_name?.[0] || 'U'}
                             </div>
                             <div className={styles.infoSection}>
                                 <div className={styles.infoLabel}>{t('clientInfo')}</div>
-                                <div style={{ fontSize: '16px', fontWeight: 700 }}>{order.profiles?.full_name || t('client')}</div>
-                                <div style={{ fontSize: '14px', color: '#6B7280' }}>{order.profiles?.phone_number || t('noPhone')}</div>
+                                <div style={{ fontSize: '16px', fontWeight: 700 }}>{order.customer_name || order.profiles?.full_name || t('client')}</div>
+                                <div style={{ fontSize: '14px', color: '#6B7280' }}>{order.customer_phone || order.profiles?.phone_number || t('noPhone')}</div>
                             </div>
                         </div>
 

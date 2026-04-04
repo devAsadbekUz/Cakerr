@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
         .eq('id', staff.id);
 
     const token = await signStaffToken({
+        id: staff.id,
         username: staff.username,
         permissions: staff.permissions,
     });

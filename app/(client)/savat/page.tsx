@@ -7,10 +7,14 @@ import { getLocalized } from '@/app/utils/i18n';
 import styles from './page.module.css';
 import { Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
+import ConfirmDeleteModal from '@/app/components/cart/ConfirmDeleteModal';
+import { useState } from 'react';
+import { CartItem } from '@/app/context/CartContext';
 
 export default function SavatPage() {
     const { lang, t } = useLanguage();
     const { cart, removeItem, updateQuantity, totalItems, subtotal } = useCart();
+    const [pendingDeleteItem, setPendingDeleteItem] = useState<CartItem | null>(null);
     const deliveryFee = totalItems > 0 ? 25000 : 0;
     const total = subtotal + deliveryFee;
 
@@ -67,7 +71,13 @@ export default function SavatPage() {
                                         <div className={styles.stepper}>
                                             <button
                                                 className={styles.stepperBtn}
-                                                onClick={() => updateQuantity(item.cartId, item.quantity - 1)}
+                                                onClick={() => {
+                                                    if (item.quantity === 1) {
+                                                        setPendingDeleteItem(item);
+                                                    } else {
+                                                        updateQuantity(item.cartId, item.quantity - 1);
+                                                    }
+                                                }}
                                             >
                                                 <Minus size={14} />
                                             </button>
@@ -105,6 +115,13 @@ export default function SavatPage() {
                     </Link>
                 </>
             )}
+
+            <ConfirmDeleteModal
+                isOpen={!!pendingDeleteItem}
+                onClose={() => setPendingDeleteItem(null)}
+                onConfirm={() => pendingDeleteItem && removeItem(pendingDeleteItem.cartId)}
+                itemName={pendingDeleteItem ? getLocalized(pendingDeleteItem.name, lang) : ''}
+            />
         </div>
     );
 }

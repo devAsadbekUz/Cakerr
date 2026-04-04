@@ -4,6 +4,7 @@
  */
 
 export type StaffPayload = {
+    id: string;
     username: string;
     permissions: string[];
     iat: number;

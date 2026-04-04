@@ -29,7 +29,11 @@ const STEPS = [
     { title: 'Tekshirish', component: ReviewStep },
 ];
 
-export default function WizardShell() {
+interface WizardShellProps {
+    onItemComplete?: (item: any) => void;
+}
+
+export default function WizardShell({ onItemComplete }: WizardShellProps) {
     const {
         mode,
         step,
@@ -109,6 +113,11 @@ export default function WizardShell() {
                 estimated_total: total
             }
         };
+
+        if (onItemComplete) {
+            onItemComplete(item);
+            return;
+        }
 
         addItem(item);
         reset();

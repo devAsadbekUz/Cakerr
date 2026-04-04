@@ -13,6 +13,7 @@ function requiredPermission(pathname: string): string | null {
     if (pathname === '/admin' || pathname === '/admin/') return 'dashboard';
     if (pathname.startsWith('/admin/roles') || pathname.startsWith('/api/admin/staff')) return 'owner_only';
     if (pathname.startsWith('/admin/orders') || pathname.startsWith('/api/admin/orders')) return 'orders';
+    if (pathname.startsWith('/admin/pos') || pathname.startsWith('/api/admin/pos')) return 'orders';
     if (pathname.startsWith('/admin/products') || pathname.startsWith('/api/admin/products')) return 'products';
     if (pathname.startsWith('/admin/categories') || pathname.startsWith('/api/admin/categories')) return 'categories';
     if (pathname.startsWith('/admin/schedule') || pathname.startsWith('/api/admin/schedule')) return 'schedule';
@@ -76,6 +77,7 @@ export async function middleware(request: NextRequest) {
             const reqHeaders = new Headers(request.headers);
             reqHeaders.set('x-admin-verified', 'true');
             reqHeaders.set('x-admin-role', 'staff');
+            reqHeaders.set('x-admin-user-id', payload.id);
             reqHeaders.set('x-admin-permissions', payload.permissions.join(','));
             return NextResponse.next({ request: { headers: reqHeaders } });
         }

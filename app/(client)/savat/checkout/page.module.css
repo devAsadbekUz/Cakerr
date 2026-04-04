@@ -355,50 +355,47 @@ input:checked+.slider:before {
 
 /* Coin Input Area */
 .coinInputArea {
-    padding-top: 16px;
+    padding-top: 20px;
     border-top: 1px solid #F3F4F6;
-}
-
-.coinSliderRow {
-    margin-bottom: 16px;
-}
-
-.coinRange {
-    width: 100%;
-    accent-color: hsl(var(--color-primary));
-    height: 6px;
-    background: #F3F4F6;
-    border-radius: 5px;
-    outline: none;
-    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
 }
 
 .coinValueRow {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
     align-items: center;
-    margin-bottom: 8px;
+    gap: 12px;
+    width: 100%;
 }
 
 .coinSpentText {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
     font-size: 14px;
-    color: #374151;
-}
-
-.coinSpentText strong {
-    color: hsl(var(--color-primary-dark));
-    font-size: 16px;
+    color: #6B7280;
+    width: 100%;
 }
 
 .maxBtn {
-    background-color: #FFF0F5;
-    color: hsl(var(--color-primary-dark));
-    border: 1px solid #FFC1D3;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 11px;
+    background-color: #F9FAFB;
+    color: #374151;
+    border: 1px solid #E5E7EB;
+    padding: 6px 16px;
+    border-radius: 8px;
+    font-size: 13px;
     font-weight: 700;
     cursor: pointer;
+    transition: all 0.2s;
+}
+
+.maxBtn:active {
+    background-color: #F3F4F6;
+    transform: scale(0.95);
 }
 
 .discountHelp {
@@ -407,8 +404,51 @@ input:checked+.slider:before {
     font-weight: 600;
     margin: 0;
 }
+ 
+.coinInputWrapper {
+    display: flex;
+    align-items: center;
+    background: #FFFFFF;
+    border: 2px solid #E5E7EB;
+    padding: 8px 16px;
+    border-radius: 12px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%;
+    max-width: 200px;
+}
 
-.discountRow span:last-child {
+.coinInputWrapper:focus-within {
+    border-color: hsl(var(--color-primary));
+    box-shadow: 0 0 0 4px hsla(var(--color-primary), 0.1);
+}
+
+.coinInput {
+    border: none;
+    background: transparent;
+    font-size: 24px;
+    font-weight: 800;
+    color: #111827;
+    width: 100%;
+    outline: none;
+    padding: 0;
+    text-align: center;
+}
+ 
+ .coinInput::-webkit-outer-spin-button,
+ .coinInput::-webkit-inner-spin-button {
+     -webkit-appearance: none;
+     margin: 0;
+ }
+ 
+ .coinError {
+     color: #EF4444;
+     font-size: 12px;
+     font-weight: 600;
+     text-align: center;
+     width: 100%;
+ }
+ 
+ .discountRow span:last-child {
     color: #10B981;
     font-weight: 600;
 }

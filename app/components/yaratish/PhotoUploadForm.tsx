@@ -11,7 +11,11 @@ import styles from './PhotoUploadForm.module.css';
 import PhotoDropZone from './PhotoDropZone';
 import PhotoPreview from './PhotoPreview';
 
-export default function PhotoUploadForm() {
+interface PhotoUploadFormProps {
+    onItemComplete?: (item: any) => void;
+}
+
+export default function PhotoUploadForm({ onItemComplete }: PhotoUploadFormProps) {
     const {
         uploadedImage,
         setUploadedImage,
@@ -112,9 +116,8 @@ export default function PhotoUploadForm() {
                 .from('custom-cakes')
                 .getPublicUrl(filePath);
 
-            // 3. Add to Cart with the URL and the Placeholder UUID
-            await addItem({
-                id: '00000000-0000-0000-0000-000000000000', // FIXED UUID for Custom Cakes
+            const item = {
+                id: '00000000-0000-0000-0000-000000000000',
                 name: 'Maxsus tort (Rasm asosida)',
                 price: 350000,
                 image: publicUrl, 
@@ -129,8 +132,14 @@ export default function PhotoUploadForm() {
                     pricing_type: 'hybrid',
                     estimated_total: 350000
                 }
-            });
+            };
 
+            if (onItemComplete) {
+                onItemComplete(item);
+                return;
+            }
+
+            await addItem(item);
             router.push('/savat');
         } catch (err: any) {
             console.error('[PhotoUploadForm] Critical failure:', err);
