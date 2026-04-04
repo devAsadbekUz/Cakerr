@@ -24,7 +24,7 @@ type MenuItem = {
 const MENU: MenuItem[] = [
     { path: '/admin',            label: 'dashboard',  icon: LayoutDashboard, slug: 'dashboard' },
     { path: '/admin/orders',     label: 'orders',     icon: ShoppingBag,     slug: 'orders' },
-    { path: '/admin/pos',        label: 'pos',        icon: ShoppingCart,    slug: 'orders' },
+    { path: '/admin/pos',        label: 'pos',        icon: ShoppingCart,    slug: 'pos' },
     { path: '/admin/products',   label: 'products',   icon: Package,         slug: 'products' },
     { path: '/admin/categories', label: 'categories', icon: Tags,            slug: 'categories' },
     { path: '/admin/schedule',   label: 'schedule',   icon: Calendar,        slug: 'schedule' },

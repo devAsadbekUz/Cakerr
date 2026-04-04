@@ -13,7 +13,7 @@ function requiredPermission(pathname: string): string | null {
     if (pathname === '/admin' || pathname === '/admin/') return 'dashboard';
     if (pathname.startsWith('/admin/roles') || pathname.startsWith('/api/admin/staff')) return 'owner_only';
     if (pathname.startsWith('/admin/orders') || pathname.startsWith('/api/admin/orders')) return 'orders';
-    if (pathname.startsWith('/admin/pos') || pathname.startsWith('/api/admin/pos')) return 'orders';
+    if (pathname.startsWith('/admin/pos') || pathname.startsWith('/api/admin/pos')) return 'pos';
     if (pathname.startsWith('/admin/products') || pathname.startsWith('/api/admin/products')) return 'products';
     if (pathname.startsWith('/admin/categories') || pathname.startsWith('/api/admin/categories')) return 'categories';
     if (pathname.startsWith('/admin/schedule') || pathname.startsWith('/api/admin/schedule')) return 'schedule';
@@ -27,9 +27,9 @@ function requiredPermission(pathname: string): string | null {
 
 // First page the staff user is allowed to visit (used for redirects).
 function firstAllowedPage(permissions: string[]): string {
-    const order = ['dashboard', 'orders', 'products', 'categories', 'schedule', 'custom', 'loyalty', 'messages', 'settings'];
+    const order = ['dashboard', 'orders', 'pos', 'products', 'categories', 'schedule', 'custom', 'loyalty', 'messages', 'settings'];
     const paths: Record<string, string> = {
-        dashboard: '/admin', orders: '/admin/orders', products: '/admin/products',
+        dashboard: '/admin', orders: '/admin/orders', pos: '/admin/pos',
         categories: '/admin/categories', schedule: '/admin/schedule', custom: '/admin/custom',
         loyalty: '/admin/loyalty', messages: '/admin/messages', settings: '/admin/settings',
     };
@@ -78,6 +78,7 @@ export async function middleware(request: NextRequest) {
             reqHeaders.set('x-admin-verified', 'true');
             reqHeaders.set('x-admin-role', 'staff');
             reqHeaders.set('x-admin-user-id', payload.id);
+            reqHeaders.set('x-admin-username', payload.username);
             reqHeaders.set('x-admin-permissions', payload.permissions.join(','));
             return NextResponse.next({ request: { headers: reqHeaders } });
         }
@@ -129,6 +130,7 @@ export async function middleware(request: NextRequest) {
     reqHeaders.set('x-admin-verified', 'true');
     reqHeaders.set('x-admin-role', 'owner');
     reqHeaders.set('x-admin-user-id', user.id);
+    reqHeaders.set('x-admin-username', 'Owner');
 
     const ownerResponse = NextResponse.next({ request: { headers: reqHeaders } });
     // Keep Supabase cookies

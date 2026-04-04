@@ -233,6 +233,11 @@ export const OrderCard = memo(function OrderCard({ order, compact, onUpdate, onS
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
                         <span style={{ fontWeight: 800, fontSize: '15px' }}>#{order.id.slice(0, 8)}</span>
                         <span style={{ background: s.bg, color: s.color, padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>{s.label}</span>
+                        {order.created_by_name && (
+                            <span style={{ background: '#F3F4F6', color: '#6B7280', padding: '2px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 600 }}>
+                                👤 {order.created_by_name}
+                            </span>
+                        )}
                     </div>
                     <p style={{ margin: 0, fontSize: '14px', color: '#6B7280' }}>
                         <CalendarIcon size={14} style={{ marginRight: 4, verticalAlign: 'text-bottom' }} />
@@ -338,6 +343,15 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                                 <div style={{ fontSize: '14px', color: '#6B7280' }}>{order.customer_phone || order.profiles?.phone_number || t('noPhone')}</div>
                             </div>
                         </div>
+
+                        {order.created_by_name && (
+                            <div className={styles.infoSection} style={{ background: '#F9FAFB', padding: '10px', borderRadius: '10px', border: '1px solid #E5E7EB', marginBottom: '16px' }}>
+                                <div className={styles.infoLabel}>{t('acceptedBy')}</div>
+                                <div style={{ fontSize: '14px', fontWeight: 700, color: '#374151', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <PackageCheck size={16} /> {order.created_by_name === 'Owner' ? (lang === 'uz' ? 'Asosiy rahbar' : 'Владелец') : order.created_by_name}
+                                </div>
+                            </div>
+                        )}
 
                         <div className={styles.infoSection}>
                             <div className={styles.infoLabel}>{t('delivery')}</div>

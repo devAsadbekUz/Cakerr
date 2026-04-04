@@ -49,7 +49,7 @@ export async function fetchAdminOrders(filterDays?: number | null, limit = 500) 
         .from('orders')
         .select(`
             id, user_id, status, total_price, delivery_time, delivery_slot, created_at, comment, delivery_address,
-            customer_name, customer_phone,
+            customer_name, customer_phone, created_by_name,
             profiles (full_name, phone_number),
             order_items (
                 id, product_id, name, quantity, unit_price, configuration,
@@ -79,7 +79,7 @@ export async function fetchAdminOrderSummaries(filterDays?: number | null, limit
         .from('orders')
         .select(`
             id, status, total_price, delivery_time, delivery_slot, created_at,
-            delivery_address, customer_name, customer_phone,
+            delivery_address, customer_name, customer_phone, created_by_name,
             profiles (full_name),
             order_items (
                 id, name, quantity, unit_price, configuration

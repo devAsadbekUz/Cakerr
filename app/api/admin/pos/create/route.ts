@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
         // to find the staff ID. Middleware currently set x-admin-role as 'owner' or 'staff'.
         // Let's check middleware again — it sets x-admin-user-id for owner.
         const staffIdHeader = headerStore.get('x-admin-user-id');
+        const creatorNameHeader = headerStore.get('x-admin-username');
         
         if (!isAdminVerified) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
 
         // 2. Call RPC
         const { data, error } = await supabaseAdmin.rpc('create_pos_order', {
-            p_staff_id: staffIdHeader, // This will be the ID of the admin/staff who created it
+            p_staff_id: staffIdHeader,
             p_customer_name: customerInfo.name,
             p_customer_phone: customerInfo.phone,
             p_order_data: orderData,
@@ -50,7 +51,8 @@ export async function POST(req: NextRequest) {
                 quantity: item.quantity,
                 unit_price: item.price,
                 configuration: item.configuration
-            }))
+            })),
+            p_created_by_name: creatorNameHeader
         });
 
         if (error) {

@@ -6,6 +6,7 @@ import { UserPlus, Trash2, Save, Eye, EyeOff, ShieldCheck, Loader2 } from 'lucid
 const ALL_PAGES = [
     { slug: 'dashboard',   label: 'Dashboard' },
     { slug: 'orders',      label: 'Buyurtmalar' },
+    { slug: 'pos',         label: 'POS (Sotuv)' },
     { slug: 'products',    label: 'Mahsulotlar' },
     { slug: 'categories',  label: 'Kategoriyalar' },
     { slug: 'schedule',    label: 'Ish vaqti' },

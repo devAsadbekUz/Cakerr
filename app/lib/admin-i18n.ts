@@ -341,6 +341,7 @@ export const adminTranslations = {
         notificationFieldLabel: "Mijozga xabar (Telegram)",
         notificationFieldPlaceholder: "Mijozga yuboriladigan matn...",
         confirming: "Saqlanmoqda...",
+        acceptedBy: "Qabul qildi",
     },
     ru: {
         // Sidebar
@@ -684,6 +685,7 @@ export const adminTranslations = {
         notificationFieldLabel: "Уведомление клиенту (Telegram)",
         notificationFieldPlaceholder: "Текст, который будет отправлен клиенту...",
         confirming: "Сохранение...",
+        acceptedBy: "Принял(а)",
     }
 };
 
