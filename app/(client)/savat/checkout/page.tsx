@@ -6,7 +6,7 @@ import { useCart } from '@/app/context/CartContext';
 import { useLanguage } from '@/app/context/LanguageContext';
 import { getLocalized } from '@/app/utils/i18n';
 import styles from './page.module.css';
-import { ChevronLeft, ChevronRight, Calendar, Banknote, CreditCard, Tag, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Banknote, CreditCard, Tag, CheckCircle2, ShoppingBag, MapPin } from 'lucide-react';
 import CalendarModal from '@/app/components/checkout/CalendarModal';
 import AddressesModal from '@/app/components/checkout/AddressesModal';
 import SuccessModal from '@/app/components/checkout/SuccessModal';
@@ -17,7 +17,7 @@ import { createClient } from '@/app/utils/supabase/client';
 import { availabilityService } from '@/app/services/availabilityService';
 import { format } from 'date-fns';
 
-const LAST_ORDER_STORAGE_KEY = 'cakerr_last_order';
+const LAST_ORDER_STORAGE_KEY = 'tortele_last_order';
 
 interface SuccessOrderSnapshot {
     id: string;
@@ -26,6 +26,8 @@ interface SuccessOrderSnapshot {
     comment: string;
     delivery_time: string;
     delivery_slot: string;
+    delivery_type: 'delivery' | 'pickup';
+    branch_id: string | null;
     delivery_address: {
         street: string;
         lat: number | null;
@@ -52,6 +54,11 @@ export default function CheckoutPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSuccessOpen, setIsSuccessOpen] = useState(false);
     const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
+
+    // Delivery vs Pickup
+    const [deliveryType, setDeliveryType] = useState<'delivery' | 'pickup'>('delivery');
+    const [branches, setBranches] = useState<any[]>([]);
+    const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
 
     // Shirin Tangalar State
     const [useCoins, setUseCoins] = useState(false);
@@ -106,7 +113,7 @@ export default function CheckoutPage() {
         }
     };
 
-    const deliveryFee = totalItems > 0 ? 25000 : 0;
+    const deliveryFee = (totalItems > 0 && deliveryType === 'delivery') ? 40000 : 0;
     const discountedSubtotal = Math.max(0, subtotal - promoDiscount);
     const initialTotal = discountedSubtotal + deliveryFee;
     const total = Math.max(0, initialTotal - (useCoins ? (Number(coinsToSpend) || 0) : 0));
@@ -135,13 +142,25 @@ export default function CheckoutPage() {
             setLoadingAvailability(false);
         }
     };
+    const fetchBranches = async () => {
+        const { data } = await supabase
+            .from('branches')
+            .select('*')
+            .eq('is_active', true)
+            .order('name_uz', { ascending: true });
+        if (data) {
+            setBranches(data);
+            if (data.length > 0) setSelectedBranchId(data[0].id);
+        }
+    };
 
     useEffect(() => {
-        // Both fetches are independent — run in parallel
+        // Parallel fetches
         Promise.all([
             fetchAvailability(),
+            fetchBranches(),
             availabilityService.getGlobalSlots().catch(() => [])
-        ]).then(([, slots]) => {
+        ]).then(([,, slots]) => {
             if (Array.isArray(slots) && slots.length > 0) {
                 setTimeSlots(slots.map((s: any) => s.label));
             }
@@ -192,7 +211,9 @@ export default function CheckoutPage() {
                 delivery_slot: selectedSlot,
                 comment: comment,
                 coins_spent: useCoins ? (Number(coinsToSpend) || 0) : 0,
-                payment_method: paymentMethod
+                payment_method: paymentMethod,
+                delivery_type: deliveryType,
+                branch_id: deliveryType === 'pickup' ? selectedBranchId : null
             };
 
             const orderItems = cart.map(item => {
@@ -280,6 +301,8 @@ export default function CheckoutPage() {
                     comment,
                     delivery_time: orderData.delivery_time,
                     delivery_slot: selectedSlot,
+                    delivery_type: deliveryType,
+                    branch_id: deliveryType === 'pickup' ? selectedBranchId : null,
                     delivery_address: orderData.delivery_address,
                     saved_at: Date.now()
                 };
@@ -338,20 +361,100 @@ export default function CheckoutPage() {
                 </div>
             )}
 
-            {/* Address Section */}
-            <div
-                className={`${styles.card} ${styles.clickableCard}`}
-                onClick={() => setIsAddressesOpen(true)}
-            >
-                <h2 className={styles.cardTitle}>{t('deliveryAddress')}</h2>
-                <div className={styles.addressRow}>
-                    <div className={styles.addressDot} />
-                    <div className={styles.addressText}>
-                        <strong>{deliveryAddress}</strong>
-                    </div>
-                    <ChevronRight className={styles.chevron} size={20} />
+            {/* Delivery/Pickup Toggle */}
+            <div className={styles.card} style={{ padding: '4px', background: '#F3F4F6', borderRadius: '14px', marginBottom: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
+                    <button
+                        onClick={() => setDeliveryType('delivery')}
+                        style={{
+                            padding: '12px',
+                            borderRadius: '11px',
+                            border: 'none',
+                            background: deliveryType === 'delivery' ? 'white' : 'transparent',
+                            boxShadow: deliveryType === 'delivery' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                            color: deliveryType === 'delivery' ? '#BE185D' : '#6B7280',
+                            fontWeight: 700,
+                            fontSize: '14px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        <ShoppingBag size={18} /> {t('delivery')}
+                    </button>
+                    <button
+                        onClick={() => setDeliveryType('pickup')}
+                        style={{
+                            padding: '12px',
+                            borderRadius: '11px',
+                            border: 'none',
+                            background: deliveryType === 'pickup' ? 'white' : 'transparent',
+                            boxShadow: deliveryType === 'pickup' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                            color: deliveryType === 'pickup' ? '#BE185D' : '#6B7280',
+                            fontWeight: 700,
+                            fontSize: '14px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        <MapPin size={18} /> {t('pickup')}
+                    </button>
                 </div>
             </div>
+
+            {/* Address Section - Only for Delivery */}
+            {deliveryType === 'delivery' ? (
+                <div
+                    className={`${styles.card} ${styles.clickableCard}`}
+                    onClick={() => setIsAddressesOpen(true)}
+                >
+                    <h2 className={styles.cardTitle}>{t('deliveryAddress')}</h2>
+                    <div className={styles.addressRow}>
+                        <div className={styles.addressDot} />
+                        <div className={styles.addressText}>
+                            <strong>{deliveryAddress}</strong>
+                        </div>
+                        <ChevronRight className={styles.chevron} size={20} />
+                    </div>
+                </div>
+            ) : (
+                <div className={styles.card}>
+                    <h2 className={styles.cardTitle}>{t('selectBranch')}</h2>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
+                        {branches.map((branch) => (
+                            <div
+                                key={branch.id}
+                                onClick={() => setSelectedBranchId(branch.id)}
+                                style={{
+                                    padding: '12px 16px',
+                                    borderRadius: '12px',
+                                    border: `2px solid ${selectedBranchId === branch.id ? '#BE185D' : '#F3F4F6'}`,
+                                    background: selectedBranchId === branch.id ? '#FFF1F2' : 'white',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div style={{ fontWeight: 700, color: selectedBranchId === branch.id ? '#BE185D' : '#111827' }}>
+                                        {lang === 'uz' ? branch.name_uz : branch.name_ru}
+                                    </div>
+                                    {selectedBranchId === branch.id && <CheckCircle2 size={18} color="#BE185D" />}
+                                </div>
+                                <div style={{ fontSize: '13px', color: '#6B7280', marginTop: '4px' }}>
+                                    {lang === 'uz' ? branch.address_uz : branch.address_ru}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             <AddressesModal
                 isOpen={isAddressesOpen}

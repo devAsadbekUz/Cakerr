@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { headers } from 'next/headers';
+import { notifyAdminNewOrder } from '@/app/services/telegramNotificationService';
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -33,9 +34,11 @@ export async function POST(req: NextRequest) {
         // 1. Prepare data for RPC
         const orderData = {
             total_price: body.totalPrice,
-            delivery_address: { street: deliveryInfo.address },
+            delivery_address: deliveryInfo.delivery_type === 'delivery' ? { street: deliveryInfo.address } : null,
             delivery_time: deliveryInfo.date,
             delivery_slot: deliveryInfo.slot,
+            delivery_type: deliveryInfo.delivery_type,
+            branch_id: deliveryInfo.branch_id,
             comment: 'Manual Order entry via POS'
         };
 
@@ -58,6 +61,14 @@ export async function POST(req: NextRequest) {
         if (error) {
             console.error('[POS API] RPC Error:', error);
             throw error;
+        }
+
+        // 3. Trigger Telegram Notification to Admin Group
+        // Await to ensure delivery in serverless environments
+        try {
+            await notifyAdminNewOrder(data.id);
+        } catch (err) {
+            console.error('[POS API] Notification error:', err);
         }
 
         return NextResponse.json({ success: true, orderId: data.id });

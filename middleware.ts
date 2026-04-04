@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
-import { verifyStaffToken } from '@/app/utils/adminStaffToken';
+import { verifyStaffToken } from './app/utils/adminStaffToken';
 
 const OWNER_EMAIL = process.env.ADMIN_EMAIL
     ? process.env.ADMIN_EMAIL.toLowerCase()
@@ -137,6 +137,11 @@ export async function middleware(request: NextRequest) {
     response.cookies.getAll().forEach(c => ownerResponse.cookies.set(c.name, c.value));
     // Set non-HTTP-only role cookie for sidebar
     const isProd = process.env.NODE_ENV === 'production';
+    // Set admin_verified cookie as a fallback for the Layout rendering if headers are inconsistent
+    ownerResponse.cookies.set('x-admin-verified', 'true', {
+        httpOnly: false, sameSite: 'lax', path: '/',
+        maxAge: 7 * 24 * 60 * 60, secure: isProd,
+    });
     ownerResponse.cookies.set('admin_role', 'owner', {
         httpOnly: false, sameSite: 'lax', path: '/',
         maxAge: 7 * 24 * 60 * 60, secure: isProd,

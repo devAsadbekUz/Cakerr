@@ -45,9 +45,19 @@ export type AdminOrder = {
         full_name?: string | null;
         phone_number?: string | null;
     } | null;
+    delivery_type?: 'delivery' | 'pickup' | null;
+    branch_id?: string | null;
+    branches?: {
+        name_uz?: string | null;
+        name_ru?: string | null;
+        address_uz?: string | null;
+        address_ru?: string | null;
+        location_link?: string | null;
+    } | null;
     customer_name?: string | null;
     customer_phone?: string | null;
     created_by_name?: string | null;
+    last_updated_by_name?: string | null;
     order_items?: AdminOrderItem[] | null;
 };
 
@@ -59,11 +69,15 @@ export type AdminOrderListItem = {
     delivery_slot: string;
     created_at: string;
     comment?: string | null;
+    delivery_type?: AdminOrder['delivery_type'];
+    branch_id?: AdminOrder['branch_id'];
+    branches?: AdminOrder['branches'];
     delivery_address?: AdminOrder['delivery_address'];
     profiles?: AdminOrder['profiles'];
     customer_name?: string | null;
     customer_phone?: string | null;
     created_by_name?: string | null;
+    last_updated_by_name?: string | null;
     order_items?: AdminOrderItem[] | null;
     items_count?: number;
 };

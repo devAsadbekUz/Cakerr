@@ -35,7 +35,8 @@ export async function GET(
                 order_items (
                     *,
                     products (image_url, title)
-                )
+                ),
+                branches (name_uz, name_ru, address_uz, address_ru, location_link)
             `)
             .eq('id', orderId)
             .maybeSingle();

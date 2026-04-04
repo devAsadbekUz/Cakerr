@@ -55,12 +55,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head />
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+      <head>
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
-          strategy="beforeInteractive"
+          strategy="afterInteractive"
         />
+      </head>
+      <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <AuthProvider>
           <LanguageProvider>
             {children}

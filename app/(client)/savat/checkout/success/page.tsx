@@ -9,7 +9,7 @@ import { useLanguage } from '@/app/context/LanguageContext';
 import { createClient } from '@/app/utils/supabase/client';
 import { getAuthHeader } from '@/app/utils/telegram';
 
-const LAST_ORDER_STORAGE_KEY = 'cakerr_last_order';
+const LAST_ORDER_STORAGE_KEY = 'tortele_last_order';
 const LAST_ORDER_MAX_AGE_MS = 15 * 60 * 1000;
 
 interface CachedSuccessOrder {
@@ -23,7 +23,15 @@ interface CachedSuccessOrder {
         street: string;
         lat: number | null;
         lng: number | null;
-    };
+    } | null;
+    delivery_type: 'delivery' | 'pickup';
+    branches?: {
+        name_uz: string;
+        name_ru: string;
+        address_uz: string;
+        address_ru: string;
+        location_link: string;
+    } | null;
     saved_at: number;
 }
 
@@ -60,7 +68,7 @@ function readCachedOrder(orderId: string): CachedSuccessOrder | null {
 
 function SuccessContent() {
     const router = useRouter();
-    const { t } = useLanguage();
+    const { t, lang } = useLanguage();
     const searchParams = useSearchParams();
     const orderId = searchParams.get('orderId');
     const { deliveryAddress } = useCart();
@@ -136,18 +144,26 @@ function SuccessContent() {
     const monthNames = t('months') as unknown as string[];
 
     // Use fetched order or fall back to context/defaults if something went wrong
+    const isPickup = (order as any)?.delivery_type === 'pickup';
+    const branch = (order as any)?.branches;
+
     const displayData = {
         id: order?.id || orderId || 'Noma\'lum',
         deliveryDate: order?.delivery_time
             ? formattedDateWithSlot(order.delivery_time, monthNames, order.delivery_slot)
             : t('today') || 'Bugun',
         deliveryTime: '', // Combined into deliveryDate
-        address: order?.delivery_address?.street || deliveryAddress || t('noAddress'),
+        address: isPickup 
+            ? (lang === 'uz' ? branch?.name_uz : branch?.name_ru) || t('pickup')
+            : (order?.delivery_address?.street || deliveryAddress || t('noAddress')),
         comment: order?.comment || t('noNote'),
         paymentMethod: order?.payment_method === 'card' ? t('card') : t('cash'),
         total: order?.total_price || 0,
-        subtotal: order?.total_price ? order.total_price - 25000 : 0,
-        deliveryFee: 25000
+        subtotal: order?.total_price ? (order.total_price - (isPickup ? 0 : 40000)) : 0,
+        deliveryFee: isPickup ? 0 : 40000,
+        isPickup,
+        branchAddress: isPickup ? (lang === 'uz' ? branch?.address_uz : branch?.address_ru) : null,
+        branchLink: isPickup ? branch?.location_link : null
     };
 
     return (
@@ -182,11 +198,23 @@ function SuccessContent() {
 
                 <div className={styles.detailRow}>
                     <div className={`${styles.iconBox}`} style={{ backgroundColor: '#FFF1F2', color: '#E11D48' }}>
-                        <MapPin size={20} />
+                        {displayData.isPickup ? <ShoppingBag size={20} /> : <MapPin size={20} />}
                     </div>
                     <div className={styles.detailInfo}>
-                        <span className={styles.detailLabel}>{t('deliveryAddress')}</span>
-                        <span className={styles.detailValue}>{displayData.address}</span>
+                        <span className={styles.detailLabel}>{displayData.isPickup ? t('pickupAt') : t('deliveryAddress')}</span>
+                        <span className={styles.detailValue} style={{ fontWeight: displayData.isPickup ? 700 : 400 }}>{displayData.address}</span>
+                        {displayData.isPickup && displayData.branchAddress && (
+                            <span className={styles.detailValue} style={{ fontSize: '13px', color: '#6B7280', marginTop: '2px' }}>{displayData.branchAddress}</span>
+                        )}
+                        {displayData.isPickup && displayData.branchLink && (
+                            <a 
+                                href={displayData.branchLink} 
+                                target="_blank" rel="noopener noreferrer"
+                                style={{ fontSize: '12px', color: '#3B82F6', marginTop: '4px', textDecoration: 'none', fontWeight: 600 }}
+                            >
+                                {t('openInMaps') || "Xaritada ko'rish"}
+                            </a>
+                        )}
                     </div>
                 </div>
 
@@ -223,7 +251,7 @@ function SuccessContent() {
                 </div>
                 <div className={styles.summaryRow}>
                     <span className={styles.summaryLabel}>{t('delivery')}</span>
-                    <span className={styles.summaryValue}>{displayData.deliveryFee.toLocaleString('uz-UZ')} {t('som')}</span>
+                    <span className={styles.summaryValue}>{displayData.deliveryFee > 0 ? `${displayData.deliveryFee.toLocaleString('uz-UZ')} ${t('som')}` : t('tayyor') || 'Bepul'}</span>
                 </div>
                 <div className={`${styles.summaryRow} ${styles.totalRow}`}>
                     <span>{t('total')}</span>

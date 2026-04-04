@@ -1,4 +1,4 @@
-import { getStatusConfig, tgEscape } from '@/app/utils/orderConfig';
+import { getStatusConfig, tgEscape, buildOrderMessage, getTelegramButtons, resolveOrderLanguage } from '@/app/utils/orderConfig';
 import { serviceClient } from '@/app/utils/supabase/service';
 
 function resolveTgLang(code?: string | null): 'uz' | 'ru' {
@@ -78,7 +78,25 @@ export async function notifyCustomerStatusChange(orderId: string, newStatus: str
     const statusLabel = statusConfig.labels[clientLang];
     const statusDesc = statusConfig.descs[clientLang];
 
-    const clientMessage = `${clientLabels.title}\n\n${clientLabels.text}\n\n*${tgEscape(statusLabel)}*\n_${tgEscape(statusDesc)}_`;
+    let clientMessage = `${clientLabels.title}\n\n${clientLabels.text}\n\n*${tgEscape(statusLabel)}*\n_${tgEscape(statusDesc)}_`;
+
+    // Special additive info for Pickup orders once they are Ready
+    if (newStatus === 'ready' && order.delivery_type === 'pickup' && order.branches) {
+        const branch = order.branches;
+        const bName = clientLang === 'uz' ? branch.name_uz : branch.name_ru;
+        const bAddr = clientLang === 'uz' ? branch.address_uz : branch.address_ru;
+        const bLink = branch.location_link;
+
+        const pickupInfo = clientLang === 'uz'
+            ? `\n\n🏢 *Olib ketish manzili:* ${tgEscape(bName)}\n📍 ${tgEscape(bAddr)}`
+            : `\n\n🏢 *Адрес самовывоза:* ${tgEscape(bName)}\n📍 ${tgEscape(bAddr)}`;
+        
+        clientMessage += pickupInfo;
+        if (bLink) {
+            const mapLabel = clientLang === 'uz' ? "📍 Xaritada ko'rish" : "📍 Посмотреть на карте";
+            clientMessage += `\n\n[${mapLabel}](${bLink})`;
+        }
+    }
 
     try {
         const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
@@ -113,5 +131,94 @@ export async function notifyCustomerStatusChange(orderId: string, newStatus: str
         }
     } catch (err) {
         console.error('[notifyCustomerStatusChange] Send message error:', err);
+    }
+}
+
+/**
+ * Notifies the admin Telegram group about a new order.
+ * Common logic used by both Web Checkout and POS manual creation.
+ * 
+ * @param orderId The UUID of the order to notify about
+ */
+export async function notifyAdminNewOrder(orderId: string): Promise<boolean> {
+    const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+    const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+    
+    if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+        console.warn('[notifyAdminNewOrder] Missing Telegram credentials in ENV.');
+        return false;
+    }
+
+    const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
+
+    try {
+        // 1. Fetch complete order details including items and profile
+        const { data: order, error: fetchError } = await serviceClient
+            .from('orders')
+            .select(`
+                *,
+                profiles (full_name, phone_number, telegram_id),
+                branches (name_uz, name_ru, address_uz, address_ru, location_link),
+                order_items (*)
+            `)
+            .eq('id', orderId)
+            .single();
+
+        if (fetchError || !order) {
+            console.error('[notifyAdminNewOrder] Fetch error:', fetchError);
+            return false;
+        }
+
+        // 2. Resolve administrative preferred language
+        const { data: adminSettings } = await serviceClient
+            .from('app_settings')
+            .select('value')
+            .eq('key', 'admin_tg_lang')
+            .single();
+
+        const deliveryAddr = (order.delivery_address || {}) as any;
+        const finalLang = resolveOrderLanguage({
+            adminPreferredLang: adminSettings?.value,
+            orderSavedLang: deliveryAddr.lang,
+            fallbackLang: 'uz'
+        });
+
+        // 3. Construct message and buttons
+        const text = buildOrderMessage(order, finalLang);
+        const inline_keyboard = getTelegramButtons('new', orderId, finalLang, order);
+
+        // 4. Send to Telegram
+        const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: TELEGRAM_CHAT_ID,
+                text,
+                parse_mode: 'Markdown',
+                reply_markup: { inline_keyboard }
+            })
+        });
+
+        const result = await res.json();
+        if (result.ok) {
+            // 5. Success! Store the message_id for future edits
+            // AND persist the resolved language context so future status updates stay in the same lang
+            const updatedAddr = typeof deliveryAddr === 'string' 
+                ? { street: deliveryAddr, lang: finalLang } 
+                : { ...deliveryAddr, lang: finalLang };
+
+            await serviceClient.from('orders').update({
+                telegram_message_id: result.result.message_id,
+                telegram_chat_id: TELEGRAM_CHAT_ID,
+                delivery_address: updatedAddr
+            }).eq('id', orderId);
+            return true;
+        } else {
+            console.error('[notifyAdminNewOrder] Telegram API error:', result);
+            return false;
+        }
+    } catch (err) {
+        console.error('[notifyAdminNewOrder] Fatal error:', err);
+        return false;
     }
 }

@@ -71,12 +71,21 @@ export const getStatusConfig = (id: string) => {
 /**
  * Gets the next possible status transitions for Telegram buttons
  */
-export const getTelegramButtons = (status: string, orderId: string, lang: 'uz' | 'ru' = 'uz') => {
+export const getTelegramButtons = (status: string, orderId: string, lang: 'uz' | 'ru' = 'uz', order?: any) => {
     const current = getStatusConfig(status);
     if (!current || !current.nextAction) return [];
 
+    let nextAction = current.nextAction;
+
+    // Logic for Pickup orders: ready -> completed (skip delivering)
+    const isPickup = order?.delivery_type === 'pickup';
+    if (status === 'ready' && isPickup) {
+        nextAction = 'completed';
+    }
+
+    const nextLabels = getStatusConfig(nextAction).nextLabels;
     const buttons = [
-        { text: current.nextLabels![lang], callback_data: `${current.nextAction}_${orderId}_${lang}` }
+        { text: nextLabels![lang], callback_data: `${nextAction}_${orderId}_${lang}` }
     ];
 
     // Always allow cancellation if it's a new order
@@ -110,6 +119,7 @@ export const tgEscape = (text: any): string => {
 export const buildOrderMessage = (order: any, lang: 'uz' | 'ru' = 'uz') => {
     const statusConfig = getStatusConfig(order.status);
     const statusLabel = statusConfig.tgLabels[lang];
+    const isPickup = order.delivery_type === 'pickup';
     const shortId = order.id.slice(0, 8);
     
     const t = {
@@ -141,20 +151,34 @@ export const buildOrderMessage = (order: any, lang: 'uz' | 'ru' = 'uz') => {
         }
     }[lang];
 
-    let messageText = `🎂 *${t.order}* [${statusLabel}]\n`;
+    let messageText = isPickup 
+        ? `🏢 *${lang === 'uz' ? 'OLIB KETISH (SAMOVYVOZ)' : 'САМОВЫВОЗ'}* [${statusLabel}]\n`
+        : `🎂 *${t.order}* [${statusLabel}]\n`;
     messageText += `📋 *ID:* #${shortId}\n\n`;
 
     if (order.profiles) {
         const profile = Array.isArray(order.profiles) ? order.profiles[0] : order.profiles;
         if (profile) {
-            const name = tgEscape(profile.full_name || t.unknown);
-            const phone = tgEscape(profile.phone_number || t.unknown);
+            const name = tgEscape(profile.full_name || order.customer_name || t.unknown);
+            const phone = tgEscape(profile.phone_number || order.customer_phone || t.unknown);
             messageText += `👤 *${t.client}:* ${name}\n`;
             messageText += `📞 *${t.phone}:* ${phone}\n\n`;
         }
+    } else if (order.customer_name || order.customer_phone) {
+        const name = tgEscape(order.customer_name || t.unknown);
+        const phone = tgEscape(order.customer_phone || t.unknown);
+        messageText += `👤 *${t.client}:* ${name}\n`;
+        messageText += `📞 *${t.phone}:* ${phone}\n\n`;
     }
 
-    if (order.delivery_address) {
+    if (isPickup) {
+        const branchName = lang === 'uz' ? order.branches?.name_uz : order.branches?.name_ru;
+        const branchAddr = lang === 'uz' ? order.branches?.address_uz : order.branches?.address_ru;
+        const branchLink = order.branches?.location_link;
+
+        messageText += `🏢 *${lang === 'uz' ? 'Filial' : 'Филиал'}:* ${tgEscape(branchName || t.unknown)}\n`;
+        messageText += `📍 *${t.address}:* ${branchLink ? `[${tgEscape(branchAddr)}]( ${branchLink} )` : tgEscape(branchAddr || t.noAddress)}\n`;
+    } else if (order.delivery_address) {
         const addrObj = typeof order.delivery_address === 'string'
             ? { street: order.delivery_address }
             : order.delivery_address;

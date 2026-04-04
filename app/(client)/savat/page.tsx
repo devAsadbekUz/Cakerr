@@ -15,7 +15,7 @@ export default function SavatPage() {
     const { lang, t } = useLanguage();
     const { cart, removeItem, updateQuantity, totalItems, subtotal } = useCart();
     const [pendingDeleteItem, setPendingDeleteItem] = useState<CartItem | null>(null);
-    const deliveryFee = totalItems > 0 ? 25000 : 0;
+    const deliveryFee = totalItems > 0 ? 40000 : 0;
     const total = subtotal + deliveryFee;
 
     return (

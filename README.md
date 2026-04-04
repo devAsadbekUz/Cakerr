@@ -1,9 +1,9 @@
-# 🍰 Cakerr - Custom Cake Ordering Platform
+# 🍰 TORTEL'E - Custom Cake Ordering Platform
 
 A modern PWA for ordering custom cakes with a realtime Telegram integration for vendors.
 
 ## 🚀 Live Demo
-[https://cakerr.vercel.app](https://cakerr.vercel.app)
+[https://tortele.uz](https://tortele.uz)
 
 ## ✅ Features Implemented (MVP)
 ### Client Side
@@ -32,7 +32,7 @@ Currently, users log in via **Email**.
 - **Task**: Switch to **Eskiz (SMS)** or Firebase Phone Auth for better adoption in Uzbekistan.
 
 ### 3. Custom Domain
-- **Task**: Deploy to `cakerr.uz` (purchase domain and link to Vercel).
+- **Task**: Deploy to `tortele.uz` (purchase domain and link to Vercel).
 
 ### 4. Advanced Features
 - **"Sovg'a" Mode**: Gift ordering flow.

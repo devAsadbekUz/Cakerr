@@ -1,4 +1,4 @@
-# 🍰 Tashkent Cake Delivery System - Master Project Documentation
+# 🍰 TORTEL'E - Master Project Documentation
 
 **Version:** 1.0
 **Status:** In Progress (MVP Phase)
@@ -29,7 +29,7 @@ A premium, mobile-first Web Application (PWA) for a boutique bakery.
 ---
 
 ## 3. Architecture & Directory Structure
-Current root: `/Users/a1234/Documents/Cakerr`
+Current root: `/Users/a1234/Documents/Tortele`
 
 ```
 app/

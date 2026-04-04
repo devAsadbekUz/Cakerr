@@ -23,6 +23,7 @@ import { useCustomCake } from '@/app/context/CustomCakeContext';
 import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 import { adminFetch } from '@/app/utils/adminApi';
 import { availabilityService, GlobalTimeSlot } from '@/app/services/availabilityService';
+import { createClient } from '@/app/utils/supabase/client';
 import { Product, Category } from '@/app/types';
 import { getLocalized } from '@/app/utils/i18n';
 import WizardShell from '@/app/components/yaratish/WizardShell';
@@ -48,6 +49,7 @@ export default function PosPage() {
     
     const { reset: resetBuilder } = useCustomCake();
     const { lang, t } = useAdminI18n();
+    const supabase = createClient();
 
     // ── Local State ───────────────────────────────────────────────────────────
     const [products, setProducts] = useState<Product[]>([]);
@@ -59,6 +61,11 @@ export default function PosPage() {
     const [submitting, setSubmitting] = useState(false);
     const [orderSuccess, setOrderSuccess] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+
+    // Delivery vs Pickup
+    const [deliveryType, setDeliveryType] = useState<'delivery' | 'pickup'>('delivery');
+    const [branches, setBranches] = useState<any[]>([]);
+    const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
 
     // Modals
     const [showBuilder, setShowBuilder] = useState<'wizard' | 'upload' | null>(null);
@@ -81,7 +88,20 @@ export default function PosPage() {
                 setLoading(false);
             }
         };
+        const fetchBranches = async () => {
+            const { data } = await supabase
+                .from('branches')
+                .select('*')
+                .eq('is_active', true)
+                .order('name_uz', { ascending: true });
+            if (data) {
+                setBranches(data);
+                if (data.length > 0) setSelectedBranchId(data[0].id);
+            }
+        };
+
         loadData();
+        fetchBranches();
     }, []);
 
     // ── Filtering ─────────────────────────────────────────────────────────────
@@ -117,12 +137,30 @@ export default function PosPage() {
     };
 
     const handleSubmit = async () => {
-        if (!customerInfo.name || !customerInfo.phone) {
-            alert(t('error')); // Or specific message
+        // Validation
+        if (!customerInfo.name) {
+            setError(t('titleError'));
             return;
         }
-        if (!deliveryInfo.address || !deliveryInfo.date || !deliveryInfo.slot) {
-            alert(t('error'));
+
+        const phoneRegex = /^\+998\d{9}$/;
+        if (!phoneRegex.test(customerInfo.phone)) {
+            setError(t('invalidPhone'));
+            return;
+        }
+
+        if (deliveryType === 'delivery' && !deliveryInfo.address.trim()) {
+            setError(t('addressRequired'));
+            return;
+        }
+
+        if (deliveryType === 'pickup' && !selectedBranchId) {
+            setError(t('selectBranch'));
+            return;
+        }
+
+        if (!deliveryInfo.date || !deliveryInfo.slot) {
+            setError(t('error'));
             return;
         }
 
@@ -137,10 +175,13 @@ export default function PosPage() {
                     items: cart,
                     customerInfo,
                     deliveryInfo: {
-                        ...deliveryInfo,
-                        date: deliveryInfo.date?.toISOString()
+                        date: deliveryInfo.date?.toISOString(),
+                        delivery_type: deliveryType,
+                        branch_id: deliveryType === 'pickup' ? selectedBranchId : null,
+                        address: deliveryInfo.address,
+                        slot: deliveryInfo.slot
                     },
-                    totalPrice: subtotal
+                    totalPrice: subtotal + (deliveryType === 'delivery' ? 40000 : 0)
                 })
             });
 
@@ -294,6 +335,34 @@ export default function PosPage() {
                 </div>
 
                 <div className={styles.sidebarForms}>
+                    {/* Delivery/Pickup Toggle */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px', background: '#f1f5f9', padding: '4px', borderRadius: '12px' }}>
+                        <button 
+                            onClick={() => setDeliveryType('delivery')}
+                            style={{ 
+                                padding: '8px', borderRadius: '8px', border: 'none', 
+                                background: deliveryType === 'delivery' ? 'white' : 'transparent',
+                                color: deliveryType === 'delivery' ? '#BE185D' : '#64748b',
+                                fontWeight: 700, fontSize: '13px', cursor: 'pointer',
+                                boxShadow: deliveryType === 'delivery' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                            }}
+                        >
+                            {t('delivery')}
+                        </button>
+                        <button 
+                            onClick={() => setDeliveryType('pickup')}
+                            style={{ 
+                                padding: '8px', borderRadius: '8px', border: 'none', 
+                                background: deliveryType === 'pickup' ? 'white' : 'transparent',
+                                color: deliveryType === 'pickup' ? '#BE185D' : '#64748b',
+                                fontWeight: 700, fontSize: '13px', cursor: 'pointer',
+                                boxShadow: deliveryType === 'pickup' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                            }}
+                        >
+                            {t('pickup')}
+                        </button>
+                    </div>
+
                     <div className={styles.formRow}>
                         <div className={styles.formControl}>
                             <label className={styles.label}><User size={12} style={{ display: 'inline', marginRight: 4 }} /> Ismi</label>
@@ -310,23 +379,50 @@ export default function PosPage() {
                             <input 
                                 type="tel" 
                                 value={customerInfo.phone}
-                                onChange={(e) => setCustomerInfo({ phone: e.target.value })}
+                                onChange={(e) => {
+                                    let val = e.target.value;
+                                    // Always start with +998
+                                    if (!val.startsWith('+998')) {
+                                        val = '+998';
+                                    }
+                                    // Strip non-digits after +
+                                    const prefix = '+998';
+                                    const rest = val.slice(4).replace(/\D/g, '').slice(0, 9);
+                                    setCustomerInfo({ phone: prefix + rest });
+                                }}
                                 className={styles.input} 
                                 placeholder="+998"
                             />
                         </div>
                     </div>
 
-                    <div className={styles.formControl}>
-                        <label className={styles.label}><MapPin size={12} style={{ display: 'inline', marginRight: 4 }} /> Manzil</label>
-                        <textarea 
-                            value={deliveryInfo.address}
-                            onChange={(e) => setDeliveryInfo({ address: e.target.value })}
-                            className={styles.textarea} 
-                            rows={2}
-                            placeholder="Manzilni kiriting..."
-                        />
-                    </div>
+                    {deliveryType === 'delivery' ? (
+                        <div className={styles.formControl}>
+                            <label className={styles.label}><MapPin size={12} style={{ display: 'inline', marginRight: 4 }} /> Manzil</label>
+                            <textarea 
+                                value={deliveryInfo.address}
+                                onChange={(e) => setDeliveryInfo({ address: e.target.value })}
+                                className={styles.textarea} 
+                                rows={2}
+                                placeholder="Manzilni kiriting..."
+                            />
+                        </div>
+                    ) : (
+                        <div className={styles.formControl}>
+                            <label className={styles.label}><MapPin size={12} style={{ display: 'inline', marginRight: 4 }} /> {t('selectBranch')}</label>
+                            <select 
+                                className={styles.input}
+                                value={selectedBranchId || ''}
+                                onChange={(e) => setSelectedBranchId(e.target.value)}
+                            >
+                                {branches.map(b => (
+                                    <option key={b.id} value={b.id}>
+                                        {lang === 'uz' ? b.name_uz : b.name_ru}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
 
                     <div className={styles.formRow}>
                         <div className={styles.formControl}>
@@ -355,8 +451,13 @@ export default function PosPage() {
                     <div className={styles.totalSection}>
                         <div className={styles.totalRow}>
                             <span className={styles.totalLabel}>{t('totalLabel')}</span>
-                            <span className={styles.totalAmount}>{subtotal.toLocaleString()} so'm</span>
+                            <span className={styles.totalAmount}>{(subtotal + (deliveryType === 'delivery' ? 40000 : 0)).toLocaleString()} so'm</span>
                         </div>
+                        {deliveryType === 'delivery' && (
+                            <div style={{ fontSize: '11px', color: '#64748b', textAlign: 'right', marginTop: '2px' }}>
+                                (Inc. 40,000 delivery fee)
+                            </div>
+                        )}
                     </div>
 
                     {orderSuccess && (

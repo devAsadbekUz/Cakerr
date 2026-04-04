@@ -37,7 +37,7 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN
   -- Log error or just allow the user to be created in auth without a profile
   -- (Better to have a user without profile than no user at all, 
-  -- although for Cakerr profile is usually required).
+  -- although for TORTEL'E profile is usually required).
   -- RAISE WARNING 'Error in handle_new_user: %', SQLERRM;
   RETURN NEW;
 END;

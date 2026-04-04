@@ -274,11 +274,21 @@ export async function POST(request: NextRequest) {
             else if (action === 'cancel') newStatus = 'cancelled';
 
             console.log(`[Telegram Webhook] Action: ${action}, OrderId: ${orderId}, ExtractedLang: ${extractedLang}`);
+            
+            // Identify the admin from Telegram
+            const from = update.callback_query.from;
+            const adminName = from.last_name 
+                ? `${from.first_name} ${from.last_name.charAt(0)}. (TG)`
+                : `${from.first_name} (TG)`;
 
             // Update order in database
             const { error: updateError } = await supabase
                 .from('orders')
-                .update({ status: newStatus, updated_at: new Date().toISOString() })
+                .update({ 
+                    status: newStatus, 
+                    updated_at: new Date().toISOString(),
+                    last_updated_by_name: adminName
+                })
                 .eq('id', orderId);
 
             if (updateError) {
@@ -299,10 +309,13 @@ export async function POST(request: NextRequest) {
                     delivery_address, 
                     delivery_time, 
                     delivery_slot,
+                    delivery_type,
+                    branch_id,
                     total_price,
                     comment,
                     user_id,
                     profiles (full_name, phone_number, telegram_id, tg_lang),
+                    branches (name_uz, name_ru, address_uz, address_ru, location_link),
                     order_items (*)
                 `)
                 .eq('id', orderId)
@@ -346,13 +359,14 @@ export async function POST(request: NextRequest) {
                 healedAddress.lang = orderLang;
 
                 await supabase.from('orders').update({
-                    delivery_address: healedAddress
+                    delivery_address: healedAddress,
+                    last_updated_by_name: adminName
                 }).eq('id', orderId);
             }
 
             const statusConfig = getStatusConfig(newStatus);
             const updatedText = buildOrderMessage(order, orderLang as 'uz' | 'ru');
-            const inline_keyboard = getTelegramButtons(newStatus, orderId, orderLang as 'uz' | 'ru');
+            const inline_keyboard = getTelegramButtons(newStatus, orderId, orderLang as 'uz' | 'ru', order);
 
             await fetch(`${TELEGRAM_API}/editMessageText`, {
                 method: 'POST',

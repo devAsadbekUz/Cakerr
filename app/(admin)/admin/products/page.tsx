@@ -5,7 +5,7 @@ import { createClient } from '@/app/utils/supabase/server';
 import DashboardPageFallback from '../DashboardPageFallback';
 
 export const metadata = {
-    title: 'Mahsulotlar boshqaruvi | Cakerr',
+    title: 'Mahsulotlar boshqaruvi | TORTEL\'E',
     robots: { index: false, follow: false },
 };
 

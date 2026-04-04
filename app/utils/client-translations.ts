@@ -40,6 +40,12 @@ const uz: Record<string, string | string[]> = {
     defaultSubtitle: "Mazali va yangi tayyorlangan tort",
     items: "Mahsulotlar",
     delivery: "Yetkazib berish",
+    pickup: "Olib ketish (Samovyvoz)",
+    selectBranch: "Filialni tanlang",
+    pickupAt: "Filialdan olib ketish",
+    pickupLocation: "Olib ketish manzili",
+    deliveryFee: "Yetkazib berish narxi",
+    openInMaps: "Xaritada ochish",
     customerNote: "Izoh",
     mahsulot: "mahsulot",
     totalPrice: "Jami narx",
@@ -166,7 +172,7 @@ const uz: Record<string, string | string[]> = {
         { question: "Tortni sovg'a sifatida yuborishim mumkinmi?", answer: "Ha, buyurtma berish paytida 'Sovg'a rejimi'ni tanlang. Qabul qiluvchining telefon raqamini kiriting va narx yashirin qoladi." }
     ] as any,
     // Share page (ulashish)
-    shareCardTitle: "Cakerr ilovasini ulashing",
+    shareCardTitle: "TORTEL'E ilovasini ulashing",
     shareCardDesc: "Do'stlaringiz bilan ulashing va ular ham mazali tortlardan bahramand bo'lishsin!",
     copy: "Nusxalash",
     copied2: "Nusxalandi",
@@ -257,6 +263,12 @@ const ru: Record<string, string | string[]> = {
     defaultSubtitle: "Вкусный и свежеприготовленный торт",
     items: "Товары",
     delivery: "Доставка",
+    pickup: "Самовывоз",
+    selectBranch: "Выберите филиал",
+    pickupAt: "Забрать из филиала",
+    pickupLocation: "Место получения",
+    deliveryFee: "Стоимость доставки",
+    openInMaps: "Открыть в картах",
     customerNote: "Примечание",
     mahsulot: "товара",
     totalPrice: "Итоговая цена",
@@ -383,7 +395,7 @@ const ru: Record<string, string | string[]> = {
         { question: "Могу ли я отправить торт в подарок?", answer: "Да, при оформлении заказа выберите 'Режим подарка'. Введите номер телефона получателя — цена останется скрытой." }
     ] as any,
     // Share page (ulashish)
-    shareCardTitle: "Поделитесь приложением Cakerr",
+    shareCardTitle: "Поделитесь приложением TORTEL'E",
     shareCardDesc: "Поделитесь с друзьями — пусть они тоже наслаждаются вкусными тортами!",
     copy: "Копировать",
     copied2: "Скопировано",

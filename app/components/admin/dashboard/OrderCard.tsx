@@ -2,7 +2,8 @@
 
 import React, { memo, useMemo } from 'react';
 import { format, isToday } from 'date-fns';
-import { Calendar as CalendarIcon, Clock, MapPinned, CheckCircle2, XCircle, PackageCheck, Utensils, Truck, CheckCircle, Trash2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, MapPinned, CheckCircle2, XCircle, PackageCheck, Utensils, Truck, CheckCircle, Trash2, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
 import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 import type { AdminOrder, AdminOrderListItem, AdminOrderItem } from '@/app/types/admin-order';
 import styles from '@/app/(admin)/admin/AdminDashboard.module.css';
@@ -44,6 +45,7 @@ export const OrderCard = memo(function OrderCard({ order, compact, onUpdate, onS
     const sc = STATUS_COLORS[order.status] ?? STATUS_COLORS_FALLBACK;
     const s = { label: statusLabels[order.status as keyof typeof statusLabels] ?? order.status, ...sc };
     const deliveryDate = new Date(order.delivery_time);
+    const isPickup = order.delivery_type === 'pickup' || !!order.branch_id;
 
     return (
         <div className={styles.orderCard} onClick={() => onSelect(order)}>
@@ -60,6 +62,41 @@ export const OrderCard = memo(function OrderCard({ order, compact, onUpdate, onS
                             fontWeight: 700, 
                             textTransform: 'uppercase' 
                         }}>{s.label}</span>
+                        
+                        {isPickup && (
+                            <span style={{ 
+                                background: '#FFF1F2', 
+                                color: '#BE185D', 
+                                padding: '2px 8px', 
+                                borderRadius: '6px', 
+                                fontSize: '11px', 
+                                fontWeight: 700, 
+                                border: '1px solid #FFE4E6',
+                                textTransform: 'uppercase' 
+                            }}>
+                                🏪 {t('pickup') || 'Pickup'}
+                            </span>
+                        )}
+                        
+                        <Link 
+                            href={`/admin/orders/${order.id}`}
+                            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                            style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '4px',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                color: '#BE185D',
+                                textDecoration: 'none',
+                                padding: '2px 8px',
+                                borderRadius: '6px',
+                                background: 'white',
+                                border: '1.5px solid #F3F4F6'
+                            }}
+                        >
+                            {t('viewFull' as any)} <ChevronRight size={12} />
+                        </Link>
                         
                         {order.created_by_name && (
                             <span style={{ 
@@ -107,7 +144,13 @@ export const OrderCard = memo(function OrderCard({ order, compact, onUpdate, onS
                         </div>
                         <div style={{ fontSize: '12px', color: '#6B7280', display: 'flex', alignItems: 'flex-start' }}>
                             <MapPinned size={14} style={{ marginRight: 6, marginTop: 1, minWidth: '14px' }} />
-                            <span style={{ lineHeight: '1.4' }}>{order.delivery_address?.street || t('noAddress')}</span>
+                            <span style={{ lineHeight: '1.4' }}>
+                                {isPickup 
+                                    ? (lang === 'uz' ? (order.branches?.name_uz || '') : (order.branches?.name_ru || '')) + ' - ' + 
+                                      (lang === 'uz' ? (order.branches?.address_uz || '') : (order.branches?.address_ru || ''))
+                                    : (order.delivery_address?.street || t('noAddress'))
+                                }
+                            </span>
                         </div>
                     </div>
 
@@ -132,34 +175,39 @@ export const OrderCard = memo(function OrderCard({ order, compact, onUpdate, onS
                 </>
             )}
 
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: 'auto', paddingTop: '12px' }} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.orderActionContainer} onClick={(e) => e.stopPropagation()}>
                 {order.status === 'new' && (
-                    <button disabled={disabled} onClick={() => onUpdate(order.id, 'confirmed')} className={styles.orderActionBtn}>
+                    <button disabled={disabled} onClick={() => onUpdate(order.id, 'confirmed')} className={`${styles.orderActionBtn} ${styles.orderActionBtnPrimary}`}>
                         <CheckCircle2 size={16} /> {t('confirmOrder')}
                     </button>
                 )}
                 {order.status === 'confirmed' && (
-                    <button disabled={disabled} onClick={() => onUpdate(order.id, 'preparing')} className={styles.orderActionBtn}>
+                    <button disabled={disabled} onClick={() => onUpdate(order.id, 'preparing')} className={`${styles.orderActionBtn} ${styles.orderActionBtnPreparing}`}>
                         <Utensils size={16} /> {t('startCooking')}
                     </button>
                 )}
                 {order.status === 'preparing' && (
-                    <button disabled={disabled} onClick={() => onUpdate(order.id, 'ready')} className={styles.orderActionBtn}>
+                    <button disabled={disabled} onClick={() => onUpdate(order.id, 'ready')} className={`${styles.orderActionBtn} ${styles.orderActionBtnReady}`}>
                         <CheckCircle size={16} /> {t('finishCooking')}
                     </button>
                 )}
                 {order.status === 'ready' && (
-                    <button disabled={disabled} onClick={() => onUpdate(order.id, 'delivering')} className={styles.orderActionBtn}>
-                        <Truck size={16} /> {t('startDelivery')}
+                    <button 
+                        disabled={disabled} 
+                        onClick={() => onUpdate(order.id, isPickup ? 'completed' : 'delivering')} 
+                        className={`${styles.orderActionBtn} ${isPickup ? styles.orderActionBtnSuccess : styles.orderActionBtnDelivering}`}
+                    >
+                        {isPickup ? <CheckCircle size={16} /> : <Truck size={16} />} 
+                        {isPickup ? (t('finish') || 'Finish') : t('startDelivery')}
                     </button>
                 )}
-                {order.status === 'delivering' && (
-                    <button disabled={disabled} onClick={() => onUpdate(order.id, 'completed')} className={styles.orderActionBtn} style={{ background: '#10B981', color: 'white' }}>
+                {order.status === 'delivering' && !isPickup && (
+                    <button disabled={disabled} onClick={() => onUpdate(order.id, 'completed')} className={`${styles.orderActionBtn} ${styles.orderActionBtnSuccess}`}>
                         <CheckCircle size={16} /> {t('finishDelivery')}
                     </button>
                 )}
                 {onDelete && (order.status === 'new' || order.status === 'cancelled') && (
-                    <button disabled={disabled} onClick={() => onDelete(order.id)} className={styles.orderActionBtn} style={{ border: '1px solid #FEE2E2', color: '#EF4444' }}>
+                    <button disabled={disabled} onClick={() => onDelete(order.id)} className={`${styles.orderActionBtn} ${styles.orderActionBtnDanger}`}>
                         <Trash2 size={16} />
                     </button>
                 )}

@@ -23,14 +23,14 @@ const ORDER_STATUSES = CENTRAL_STATUSES.filter(s => s.id !== 'cancelled').map(s 
                     s.id === 'delivering' ? Truck : MapPin
 }));
 
-const getStatusStep = (status: string) => {
+const getStatusStep = (status: string, isPickup: boolean) => {
     switch (status) {
         case 'new': return 0;
         case 'confirmed': return 1;
         case 'preparing': return 2;
         case 'ready': return 3;
-        case 'delivering': return 4;
-        case 'completed': return 5;
+        case 'delivering': return isPickup ? 3 : 4;
+        case 'completed': return isPickup ? 4 : 5;
         case 'cancelled': return -1;
         default: return 0;
     }
@@ -75,11 +75,20 @@ export default function TrackingPage() {
             const { order: data } = await response.json();
 
             if (data) {
+                const isPickup = data.delivery_type === 'pickup';
+                const currentStep = getStatusStep(data.status, isPickup);
+                const filteredStatuses = isPickup 
+                    ? ORDER_STATUSES.filter(s => s.id !== 'delivering') 
+                    : ORDER_STATUSES;
+
                 setOrder({
                     id: data.id,
                     status: data.status,
-                    currentStep: getStatusStep(data.status),
-                    totalSteps: 6,
+                    delivery_type: data.delivery_type,
+                    branch: data.branches,
+                    currentStep,
+                    totalSteps: filteredStatuses.length + 1, // +1 for Completed
+                    filteredStatuses,
                     total: data.total_price,
                     address: {
                         label: data.delivery_address?.label || t('address'),
@@ -230,14 +239,14 @@ export default function TrackingPage() {
                     <div className={styles.card}>
                         <h2 className={styles.sectionTitle}>{t('summary')}</h2>
                         <div className={styles.timeline}>
-                            {ORDER_STATUSES.map((status, index) => {
+                            {(order.filteredStatuses || ORDER_STATUSES).map((status: any, index: number) => {
                                 const isCompleted = index < order.currentStep;
                                 const isActive = index === order.currentStep;
                                 const Icon = status.icon;
 
                                 return (
                                     <div key={status.id} className={`${styles.timelineItem} ${!isCompleted && !isActive ? styles.dimmed : ''}`}>
-                                        {index < ORDER_STATUSES.length - 1 && (
+                                        {index < (order.filteredStatuses?.length || ORDER_STATUSES.length) - 1 && (
                                             <div className={styles.timelineLine} />
                                         )}
 
@@ -257,17 +266,41 @@ export default function TrackingPage() {
                         </div>
                     </div>
 
-                    {/* Delivery Info */}
+                    {/* Fulfillment Info */}
                     <div className={styles.card}>
-                        <h2 className={styles.sectionTitle}>{t('deliveryAddress')}</h2>
+                        <h2 className={styles.sectionTitle}>
+                            {order.delivery_type === 'pickup' ? t('pickupLocation') : t('deliveryAddress')}
+                        </h2>
                         <div className={styles.addressCard}>
                             <div className={styles.iconBox}>
                                 <MapPin size={20} />
                             </div>
                             <div className={styles.addressDetails}>
-                                <span className={styles.addressLabel}>{order.address.label}</span>
-                                <span className={styles.addressText}>{order.address.text}</span>
-                                <span className={styles.addressText}>{order.address.phone}</span>
+                                {order.delivery_type === 'pickup' ? (
+                                    <>
+                                        <span className={styles.addressLabel}>
+                                            {lang === 'uz' ? order.branch?.name_uz : order.branch?.name_ru}
+                                        </span>
+                                        <span className={styles.addressText}>
+                                            {lang === 'uz' ? order.branch?.address_uz : order.branch?.address_ru}
+                                        </span>
+                                        {order.branch?.location_link && (
+                                            <a 
+                                                href={order.branch.location_link}
+                                                target="_blank" rel="noopener noreferrer"
+                                                style={{ fontSize: '13px', color: '#BE185D', fontWeight: 600, marginTop: '8px', display: 'inline-block' }}
+                                            >
+                                                {t('openInMaps')}
+                                            </a>
+                                        )}
+                                    </>
+                                ) : (
+                                    <>
+                                        <span className={styles.addressLabel}>{order.address.label}</span>
+                                        <span className={styles.addressText}>{order.address.text}</span>
+                                        <span className={styles.addressText}>{order.address.phone}</span>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>

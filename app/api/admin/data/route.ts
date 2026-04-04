@@ -7,7 +7,7 @@ const ALLOWED_TABLES = [
     'products', 'categories', 'orders', 'order_items',
     'availability_overrides', 'custom_cake_options',
     'banners', 'config', 'reward_transactions', 'profiles',
-    'app_settings', 'coin_transactions'
+    'app_settings', 'coin_transactions', 'branches'
 ];
 
 export async function GET(request: NextRequest) {

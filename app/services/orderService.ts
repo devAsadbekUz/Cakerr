@@ -64,6 +64,25 @@ export const orderService = {
         }
     },
 
+    async getOrderLogsAdmin(orderId: string) {
+        try {
+            const response = await fetch(`/api/admin/orders/${orderId}/logs`, {
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                console.error('[OrderService] Admin Order Logs API error:', response.status);
+                return [];
+            }
+
+            const { logs } = await response.json();
+            return logs || [];
+        } catch (err) {
+            console.error('[OrderService] Logs fetch error:', err);
+            return [];
+        }
+    },
+
     async updateOrderStatus(orderId: string, status: string, isAdmin: boolean = false, lang: string = 'uz') {
         if (isAdmin) {
             try {

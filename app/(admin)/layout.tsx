@@ -7,8 +7,8 @@ import { adminTranslations, type AdminLang } from "@/app/lib/admin-i18n";
 import styles from "./AdminLayout.module.css";
 
 export const metadata: Metadata = {
-    title: 'Admin Dashboard | Cakerr',
-    description: 'Management panel for Cakerr orders and operations.',
+    title: 'Admin Dashboard | TORTEL\'E',
+    description: 'Management panel for TORTEL\'E orders and operations.',
     robots: 'noindex, nofollow',
 };
 
@@ -32,11 +32,12 @@ export default async function AdminLayout({
     const headerStore = await headers();
     const cookieStore = await cookies();
 
-    const isAdminVerified = headerStore.get('x-admin-verified') === 'true';
+    const isAdminVerified = headerStore.get('x-admin-verified') === 'true' || cookieStore.get('x-admin-verified')?.value === 'true';
     const roleHeader = headerStore.get('x-admin-role');
     const permissionsHeader = headerStore.get('x-admin-permissions') || undefined;
     const roleCookie = cookieStore.get('admin_role')?.value;
     const langCookie = cookieStore.get('admin_lang')?.value;
+
 
     const role: 'owner' | 'staff' = roleHeader === 'staff' || roleCookie === 'staff' ? 'staff' : 'owner';
     const permissions = role === 'staff' ? parsePermissions(permissionsHeader) : [];

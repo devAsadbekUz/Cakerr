@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { ShoppingBag as OrderHistoryIcon } from 'lucide-react';
 import styles from './AdminDashboard.module.css';
 import { createClient } from '@/app/utils/supabase/client';
 import { useAdminI18n } from '@/app/context/AdminLanguageContext';
@@ -79,6 +80,14 @@ export default function AdminDashboardClient({ initialData }: { initialData: Adm
                 </div>
 
                 <div className={styles.filterBar}>
+                    <button
+                        className={styles.filterBtn}
+                        onClick={() => router.push('/admin/orders/history')}
+                        style={{ border: '1.5px solid #F3F4F6', color: '#BE185D', fontWeight: 800 }}
+                    >
+                        <OrderHistoryIcon size={14} /> {t('orderHistory')}
+                    </button>
+                    <div style={{ width: '1px', height: '24px', background: '#F3F4F6', margin: '0 4px' }}></div>
                     {[
                         { label: t('filter_30'), value: 30 },
                         { label: t('filter_90'), value: 90 },

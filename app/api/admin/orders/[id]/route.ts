@@ -17,8 +17,9 @@ export async function GET(
         .from('orders')
         .select(`
             id, status, total_price, delivery_time, delivery_slot, created_at, comment, delivery_address,
-            customer_name, customer_phone,
+            delivery_type, branch_id, customer_name, customer_phone,
             profiles (full_name, phone_number),
+            branches (name_uz, name_ru, address_uz, address_ru, location_link),
             order_items (
                 id, product_id, name, quantity, unit_price, configuration,
                 products (image_url, category_id)

@@ -39,10 +39,18 @@ export async function POST(
     }
 
     try {
+        // 0. Extract human identity for the audit log
+        const headersList = await request.headers;
+        const adminName = headersList.get('x-admin-username') || 'System';
+
         // 1. Update Order Status and Fetch Details in one atomic step (to avoid double fetching)
         const { data: order, error: updateError } = await serviceClient
             .from('orders')
-            .update({ status: newStatus, updated_at: new Date().toISOString() })
+            .update({ 
+                status: newStatus, 
+                updated_at: new Date().toISOString(),
+                last_updated_by_name: adminName
+            })
             .eq('id', orderId)
             .select(`
                 id,
@@ -53,10 +61,13 @@ export async function POST(
                 delivery_address, 
                 delivery_time, 
                 delivery_slot,
+                delivery_type,
+                branch_id,
                 total_price,
                 comment,
                 user_id,
                 profiles (full_name, phone_number, telegram_id),
+                branches (name_uz, name_ru, address_uz, address_ru, location_link),
                 order_items (*)
             `)
             .single();

@@ -15,7 +15,7 @@ BEGIN
     IF owner_id IS NOT NULL THEN
         -- Insert or Update profile role
         INSERT INTO public.profiles (id, role, full_name, created_at, updated_at)
-        VALUES (owner_id, 'admin', 'Cakerr Owner', NOW(), NOW())
+        VALUES (owner_id, 'admin', 'TORTEL\'E Owner', NOW(), NOW())
         ON CONFLICT (id) DO UPDATE 
         SET role = 'admin', updated_at = NOW();
         

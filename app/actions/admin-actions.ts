@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
 import { getTelegramButtons, buildOrderMessage, resolveOrderLanguage } from '@/app/utils/orderConfig';
 import { isAdminVerified } from '@/app/utils/admin-auth';
 import { notifyCustomerStatusChange } from '@/app/services/telegramNotificationService';
@@ -35,12 +36,17 @@ export async function updateOrderStatusAction(orderId: string, newStatus: string
     }
 
     try {
-        // 1. Update Order Status and Fetch Details
+        // 1. Get the current user name for accountability
+        const headersList = await headers();
+        const adminName = headersList.get('x-admin-username') || 'System';
+
+        // 2. Update Order Status and Fetch Details
         const { data: order, error: updateError } = await serviceClient
             .from('orders')
             .update({ 
                 status: newStatus, 
-                updated_at: new Date().toISOString() 
+                updated_at: new Date().toISOString(),
+                last_updated_by_name: adminName
             })
             .eq('id', orderId)
             .select(`

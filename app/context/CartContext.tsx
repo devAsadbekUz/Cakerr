@@ -79,19 +79,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         if (!isInitialized) {
             // Defer localStorage reads so they don't block first paint
             setTimeout(() => {
-                const savedCart = localStorage.getItem('cakerr_cart');
+                const savedCart = localStorage.getItem('tortele_cart');
                 if (savedCart) {
                     try { setCart(JSON.parse(savedCart)); } catch (e) { console.error(e); }
                 }
-                const savedAddress = localStorage.getItem('cakerr_address');
+                const savedAddress = localStorage.getItem('tortele_address');
                 if (savedAddress) setDeliveryAddress(savedAddress);
 
-                const savedCoords = localStorage.getItem('cakerr_coords');
+                const savedCoords = localStorage.getItem('tortele_coords');
                 if (savedCoords) {
                     try { setDeliveryCoords(JSON.parse(savedCoords)); } catch (e) { console.error(e); }
                 }
 
-                const savedList = localStorage.getItem('cakerr_saved_addresses');
+                const savedList = localStorage.getItem('tortele_saved_addresses');
                 if (savedList) {
                     try { setSavedAddresses(JSON.parse(savedList)); } catch (e) { console.error(e); }
                 } else {
@@ -114,10 +114,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                 // Logout case: Clear state or revert to what's in localstorage?
                 if (prevUser.current && prevUser.current.id) {
                     setCart([]);
-                    localStorage.removeItem('cakerr_cart');
-                    localStorage.removeItem('cakerr_cart_owner');
+                    localStorage.removeItem('tortele_cart');
+                    localStorage.removeItem('tortele_cart_owner');
                 } else {
-                    const savedCart = localStorage.getItem('cakerr_cart');
+                    const savedCart = localStorage.getItem('tortele_cart');
                     if (savedCart) {
                         try { setCart(JSON.parse(savedCart)); } catch (e) { setCart([]); }
                     } else {
@@ -131,7 +131,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     const fetchDBCart = async () => {
         const dbItems = await cartService.getCartItems();
-        const cartOwner = localStorage.getItem('cakerr_cart_owner');
+        const cartOwner = localStorage.getItem('tortele_cart_owner');
 
         // If user logged in and has local guest cart, migrate it!
         if (dbItems.length === 0 && cart.length > 0 && cartOwner === 'guest') {
@@ -157,7 +157,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             configuration: item.configuration
         })));
 
-        localStorage.removeItem('cakerr_cart');
+        localStorage.removeItem('tortele_cart');
 
         const finalItems = await cartService.getCartItems();
         setCart(finalItems.map(mapDBCartItemToCartItem));
@@ -208,7 +208,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             }))
         );
 
-        localStorage.removeItem('cakerr_saved_addresses');
+        localStorage.removeItem('tortele_saved_addresses');
 
         if (inserted.length > 0) {
             const mapped: SavedAddress[] = inserted.map((addr: any) => ({
@@ -227,8 +227,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     // Save to localStorage on change with QuotaExceededError protection
     useEffect(() => {
         try {
-            localStorage.setItem('cakerr_cart', JSON.stringify(cart));
-            localStorage.setItem('cakerr_cart_owner', user ? user.id : 'guest');
+            localStorage.setItem('tortele_cart', JSON.stringify(cart));
+            localStorage.setItem('tortele_cart_owner', user ? user.id : 'guest');
         } catch (e: any) {
             if (e.name === 'QuotaExceededError') {
                 console.error('[CartContext] localStorage quota exceeded');
@@ -241,7 +241,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         try {
-            localStorage.setItem('cakerr_address', deliveryAddress);
+            localStorage.setItem('tortele_address', deliveryAddress);
         } catch (e) {
             console.error('[CartContext] Failed to save address:', e);
         }
@@ -250,19 +250,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (deliveryCoords) {
             try {
-                localStorage.setItem('cakerr_coords', JSON.stringify(deliveryCoords));
+                localStorage.setItem('tortele_coords', JSON.stringify(deliveryCoords));
             } catch (e) {
                 console.error('[CartContext] Failed to save coords:', e);
             }
         } else {
-            localStorage.removeItem('cakerr_coords');
+            localStorage.removeItem('tortele_coords');
         }
     }, [deliveryCoords]);
 
     useEffect(() => {
         if (isInitialized) {
             try {
-                localStorage.setItem('cakerr_saved_addresses', JSON.stringify(savedAddresses));
+                localStorage.setItem('tortele_saved_addresses', JSON.stringify(savedAddresses));
             } catch (e) {
                 console.error('[CartContext] Failed to save addresses:', e);
             }

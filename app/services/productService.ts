@@ -1,6 +1,7 @@
 import { createClient as createBrowserClient } from '@/app/utils/supabase/client';
 import { Product } from '@/app/types';
 import { adminFetch, adminUpdate, adminDelete } from '@/app/utils/adminApi';
+import { serviceClient } from '@/app/utils/supabase/service';
 
 export const productService = {
     async getActiveProducts(supabaseClient?: any): Promise<Product[]> {
@@ -42,15 +43,15 @@ export const productService = {
     // Admin-only: Uses API route with Service Role Key (bypasses RLS)
     async getAllProductsAdmin(): Promise<Product[]> {
         try {
-            const allProducts = await adminFetch({
-                table: 'products',
-                select: 'id, title, subtitle, description, base_price, image_url, images, category_id, category, is_available, is_ready, variants, details',
-                orderBy: 'created_at',
-                orderAsc: false,
-                filterNull: 'deleted_at'
-            });
+            const { data: allProducts, error } = await serviceClient
+                .from('products')
+                .select('id, title, subtitle, description, base_price, image_url, images, category_id, category, is_available, is_ready, variants, details')
+                .is('deleted_at', null)
+                .order('created_at', { ascending: false });
 
-            return allProducts.map((item: any) => ({
+            if (error) throw error;
+
+            return (allProducts || []).map((item: any) => ({
                 ...item,
                 image: item.image_url,
                 images: Array.isArray(item.images) ? item.images : (item.image_url ? [item.image_url] : []),

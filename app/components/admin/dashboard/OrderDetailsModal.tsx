@@ -2,10 +2,12 @@
 
 import React, { useMemo, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { 
     XCircle, MapPinned, Calendar as CalendarIcon, PackageCheck, 
-    CheckCircle2, Utensils, Truck, CheckCircle, ZoomIn 
+    CheckCircle2, Utensils, Truck, CheckCircle, ZoomIn, History
 } from 'lucide-react';
 import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 import type { AdminOrder, AdminOrderListItem, AdminOrderItem, AdminOrderCardData } from '@/app/types/admin-order';
@@ -49,6 +51,7 @@ function ImagePreviewModal({ imageUrl, onClose }: { imageUrl: string; onClose: (
 
 export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, disabled = false }: OrderDetailsModalProps) {
     const { lang, t } = useAdminI18n();
+    const router = useRouter();
     const [previewImage, setPreviewImage] = useState<string | null>(null);
 
     const statusLabels = useMemo(() => ({
@@ -272,6 +275,13 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                                     <CheckCircle size={18} /> {t('finishDelivery')}
                                 </button>
                             )}
+                            <button 
+                                onClick={() => router.push(`/admin/orders/${order.id}`)} 
+                                className={styles.modalActionBtn} 
+                                style={{ background: 'white', color: '#BE185D', border: '1.5px solid #F3F4F6' }}
+                            >
+                                <History size={18} /> {t('viewFull' as any)}
+                            </button>
                             <button onClick={onClose} className={styles.modalActionBtn} style={{ background: '#F3F4F6', color: '#374151' }}>
                                 {t('close')}
                             </button>

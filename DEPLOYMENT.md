@@ -1,4 +1,4 @@
-# Deployment Guide for Cakerr
+# Deployment Guide for TORTEL'E
 
 ## Quick Deploy to Vercel (Recommended)
 
@@ -31,8 +31,8 @@
 
 ### Your Live URL
 After deployment, you'll get a URL like:
-- `https://cakerr.vercel.app`
-- `https://cakerr-username.vercel.app`
+- `https://tortele.uz`
+- `https://tortele-username.vercel.app`
 
 ---
 
@@ -48,10 +48,10 @@ git init
 git add .
 
 # Commit
-git commit -m "Initial commit - Cakerr MVP"
+git commit -m "Initial commit - TORTEL'E MVP"
 
 # Add remote (replace with your repo URL)
-git remote add origin https://github.com/YOUR_USERNAME/cakerr.git
+git remote add origin https://github.com/YOUR_USERNAME/tortele.git
 
 # Push
 git branch -M main
@@ -62,7 +62,7 @@ git push -u origin main
 
 1. Go to [vercel.com/new](https://vercel.com/new)
 2. Click "Import Git Repository"
-3. Select your `cakerr` repository
+3. Select your `tortele` repository
 4. Click "Deploy"
 
 **Benefits:**
@@ -88,7 +88,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
 ### In Vercel Dashboard:
 1. Go to your project settings
 2. Click "Domains"
-3. Add your domain (e.g., `cakerr.uz`)
+3. Add your domain (e.g., `tortele.uz`)
 4. Follow DNS configuration instructions
 
 ---
