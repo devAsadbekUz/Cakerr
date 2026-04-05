@@ -52,9 +52,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [isTelegram, setIsTelegram] = useState(false);
     const initializedRef = useRef(false);
     const subscriptionRef = useRef<any>(null);
+    const coinUserIdRef = useRef<string | null>(null);
     const lastFetchedUserIdRef = useRef<string | null>(null);
 
     const setupCoinSubscription = useCallback((userId: string) => {
+        coinUserIdRef.current = userId;
         if (subscriptionRef.current) {
             supabase.removeChannel(subscriptionRef.current);
         }
@@ -240,6 +242,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         init();
 
+        // On Android/Telegram, WebSocket channels drop when the screen is locked.
+        // Reconnect the coin subscription the moment the app becomes visible again.
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible' && coinUserIdRef.current) {
+                setupCoinSubscription(coinUserIdRef.current);
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
         // Supabase Auth listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: string, session: any) => {
             if (!isMounted) return;
@@ -261,6 +272,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return () => {
             isMounted = false;
             subscription.unsubscribe();
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
             if (subscriptionRef.current) supabase.removeChannel(subscriptionRef.current);
         };
     }, [fetchProfile, setupCoinSubscription]);

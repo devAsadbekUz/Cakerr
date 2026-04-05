@@ -40,11 +40,22 @@ export default function ActiveOrderSection() {
             return;
         }
 
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                fetchActiveOrder();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        // Use a ref-like object so the channel is accessible in cleanup
+        const channelRef: { current: ReturnType<typeof supabase.channel> | null } = { current: null };
+
         // Delay initial fetch and subscription by 500ms to allow Auth/Hydration to settle
         const timer = setTimeout(() => {
             fetchActiveOrder();
 
-            const channel = supabase
+            channelRef.current = supabase
                 .channel(`user-sync-${user.id}`)
                 .on(
                     'postgres_changes',
@@ -63,13 +74,13 @@ export default function ActiveOrderSection() {
                     }
                 )
                 .subscribe();
-
-            return () => {
-                supabase.removeChannel(channel);
-            };
         }, 500);
 
-        return () => clearTimeout(timer);
+        return () => {
+            clearTimeout(timer);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            if (channelRef.current) supabase.removeChannel(channelRef.current);
+        };
     }, [user?.id, supabase]);
 
     if (!activeOrder) return null;

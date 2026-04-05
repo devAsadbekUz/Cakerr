@@ -32,7 +32,7 @@ export async function POST(
     }
 
     const { id: orderId } = await params;
-    const { status: newStatus, lang = 'uz' } = await request.json();
+    const { status: newStatus, lang = 'uz', cancellation_reason } = await request.json();
 
     if (!orderId || !newStatus) {
         return NextResponse.json({ error: 'Missing orderId or status' }, { status: 400 });
@@ -44,13 +44,18 @@ export async function POST(
         const adminName = headersList.get('x-admin-username') || 'System';
 
         // 1. Update Order Status and Fetch Details in one atomic step (to avoid double fetching)
+        const updatePayload: Record<string, any> = {
+            status: newStatus,
+            updated_at: new Date().toISOString(),
+            last_updated_by_name: adminName
+        };
+        if (newStatus === 'cancelled' && cancellation_reason) {
+            updatePayload.cancellation_reason = cancellation_reason;
+        }
+
         const { data: order, error: updateError } = await serviceClient
             .from('orders')
-            .update({ 
-                status: newStatus, 
-                updated_at: new Date().toISOString(),
-                last_updated_by_name: adminName
-            })
+            .update(updatePayload)
             .eq('id', orderId)
             .select(`
                 id,

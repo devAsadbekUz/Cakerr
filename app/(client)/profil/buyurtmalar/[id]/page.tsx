@@ -48,12 +48,13 @@ export default function TrackingPage() {
 
     const [realtimeStatus, setRealtimeStatus] = useState<string>('connecting');
 
-    const fetchOrder = async () => {
+    const fetchOrder = async (signal?: AbortSignal) => {
         try {
             setErrorMsg(null);
             const response = await fetch(`/api/user/orders/${orderId}`, {
                 headers: getAuthHeader(),
-                credentials: 'include'
+                credentials: 'include',
+                signal
             });
 
             if (!response.ok) {
@@ -108,7 +109,8 @@ export default function TrackingPage() {
                     }))
                 });
             }
-        } catch (error) {
+        } catch (error: any) {
+            if (error?.name === 'AbortError') return;
             console.error('[Tracking] Fetch error:', error);
         } finally {
             setLoading(false);
@@ -116,29 +118,53 @@ export default function TrackingPage() {
     };
 
     useEffect(() => {
-        fetchOrder();
+        let abortController = new AbortController();
+        let pollInterval: ReturnType<typeof setInterval> | null = null;
 
-        // Fallback: Refresh data periodically in case socket fails
-        const pollInterval = setInterval(() => {
-            fetchOrder();
-        }, 5000);
+        const fetchOrderSafe = () => {
+            abortController.abort();
+            abortController = new AbortController();
+            fetchOrder(abortController.signal);
+        };
 
-        // Subscribe to real-time updates for this specific order
-        // Using the same robust pattern as the success page to ensure all data stays in sync
+        const startPolling = () => {
+            if (pollInterval) return;
+            pollInterval = setInterval(fetchOrderSafe, 5000);
+        };
+
+        const stopPolling = () => {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+            abortController.abort();
+        };
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                fetchOrderSafe();
+                startPolling();
+            } else {
+                stopPolling();
+            }
+        };
+
+        fetchOrder(abortController.signal);
+        startPolling();
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
         const channel = supabase
             .channel(`order-tracking-${orderId}`)
             .on(
                 'postgres_changes',
                 {
-                    event: 'UPDATE', // We mostly care about updates from admin/bot
+                    event: 'UPDATE',
                     schema: 'public',
                     table: 'orders',
                     filter: `id=eq.${orderId}`
                 },
-                (payload: any) => {
-                    // Instead of manual state updates, we re-fetch the whole order
-                    // This ensures items, address, and status are all perfectly in sync
-                    fetchOrder();
+                () => {
+                    fetchOrderSafe();
                 }
             )
             .subscribe((status: string) => {
@@ -150,7 +176,8 @@ export default function TrackingPage() {
             });
 
         return () => {
-            clearInterval(pollInterval);
+            stopPolling();
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
             supabase.removeChannel(channel);
         };
     }, [orderId, supabase]);

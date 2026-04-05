@@ -376,6 +376,27 @@ export const adminTranslations = {
         deliveryType: "Yetkazib berish turi",
         selectBranch: "Filialni tanlang",
         branch: "Filial",
+
+        // Cancellation
+        cancelOrderSection: "Buyurtmani bekor qilish",
+        cancelOrderWarning: "Bu amalni ortga qaytarib bo'lmaydi. Mijoz Telegram orqali xabardor qilinadi.",
+        cancelReasonLabel: "Bekor qilish sababi",
+        cancelReasonPlaceholder: "Sababni tanlang…",
+        cancelReasonNote: "Qo'shimcha izoh (ixtiyoriy)",
+        cancelReasonNotePlaceholder: "Batafsil izoh…",
+        cancelConfirmBtn: "Ha, buyurtmani bekor qilish",
+        cancellingBtn: "Bekor qilinmoqda…",
+        cancelSuccess: "Buyurtma bekor qilindi",
+        cancelError: "Xatolik yuz berdi. Qayta urining.",
+        cancelReasonCustomerRequest: "Mijoz so'rovi",
+        cancelReasonOutOfStock: "Mahsulot mavjud emas",
+        cancelReasonOperational: "Operatsion muammo",
+        cancelReasonDuplicate: "Takroriy buyurtma",
+        cancelReasonOther: "Boshqa sabab",
+        cancelOrderLink: "Bekor qilish uchun to'liq sahifaga o'ting →",
+        cancellationReason: "Bekor qilish sababi",
+        cancelNewOrder: "Bekor qilish",
+        cancelConfirmQuestion: "Rostdan ham bu buyurtmani bekor qilmoqchimisiz?",
     },
     ru: {
         // Sidebar
@@ -754,6 +775,27 @@ export const adminTranslations = {
         deliveryType: "Тип доставки",
         selectBranch: "Выберите филиал",
         branch: "Филиал",
+
+        // Cancellation
+        cancelOrderSection: "Отменить заказ",
+        cancelOrderWarning: "Это действие необратимо. Клиент получит уведомление в Telegram.",
+        cancelReasonLabel: "Причина отмены",
+        cancelReasonPlaceholder: "Выберите причину…",
+        cancelReasonNote: "Доп. комментарий (необяз.)",
+        cancelReasonNotePlaceholder: "Подробный комментарий…",
+        cancelConfirmBtn: "Да, отменить заказ",
+        cancellingBtn: "Отменяется…",
+        cancelSuccess: "Заказ отменён",
+        cancelError: "Произошла ошибка. Попробуйте снова.",
+        cancelReasonCustomerRequest: "Запрос клиента",
+        cancelReasonOutOfStock: "Нет в наличии",
+        cancelReasonOperational: "Операционная проблема",
+        cancelReasonDuplicate: "Дублирующий заказ",
+        cancelReasonOther: "Другая причина",
+        cancelOrderLink: "Для отмены — перейдите на полную страницу →",
+        cancellationReason: "Причина отмены",
+        cancelNewOrder: "Отменить",
+        cancelConfirmQuestion: "Вы уверены, что хотите отменить этот заказ?",
     }
 };
 

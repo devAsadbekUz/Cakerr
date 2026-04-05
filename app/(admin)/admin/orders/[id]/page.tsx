@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback, use } from 'react';
-import { 
-    ArrowLeft, MapPinned, Calendar, Clock, User, Phone, 
-    Package, CheckCircle2, AlertCircle, ShoppingBag, 
-    ClipboardList, History
+import {
+    ArrowLeft, MapPinned, Calendar, Clock, User, Phone,
+    Package, CheckCircle2, AlertCircle, ShoppingBag,
+    ClipboardList, History, ChevronDown, ChevronUp, XCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru, uz } from 'date-fns/locale';
@@ -13,6 +13,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 import { orderService } from '@/app/services/orderService';
+import { updateOrderStatusAction } from '@/app/actions/admin-actions';
 import type { AdminOrder, AdminOrderItem } from '@/app/types/admin-order';
 import styles from '../../AdminDashboard.module.css';
 
@@ -32,6 +33,13 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [logs, setLogs] = useState<OrderLog[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    // Cancel section state
+    const [cancelOpen, setCancelOpen] = useState(false);
+    const [cancelReason, setCancelReason] = useState('');
+    const [cancelNote, setCancelNote] = useState('');
+    const [cancelLoading, setCancelLoading] = useState(false);
+    const [cancelError, setCancelError] = useState<string | null>(null);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -80,6 +88,36 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     );
 
     const sc = statusColors[order.status] || { bg: '#F3F4F6', text: '#374151' };
+    const canCancel = !['completed', 'cancelled'].includes(order.status);
+
+    const CANCEL_REASONS = [
+        t('cancelReasonCustomerRequest'),
+        t('cancelReasonOutOfStock'),
+        t('cancelReasonOperational'),
+        t('cancelReasonDuplicate'),
+        t('cancelReasonOther'),
+    ];
+
+    const handleCancelOrder = async () => {
+        if (!cancelReason) return;
+        setCancelLoading(true);
+        setCancelError(null);
+        try {
+            const fullReason = cancelNote.trim()
+                ? `${cancelReason}: ${cancelNote.trim()}`
+                : cancelReason;
+            const result = await updateOrderStatusAction(order.id, 'cancelled', lang, fullReason);
+            if (result?.error) {
+                setCancelError(t('cancelError'));
+            } else {
+                router.push('/admin/orders');
+            }
+        } catch {
+            setCancelError(t('cancelError'));
+        } finally {
+            setCancelLoading(false);
+        }
+    };
 
     return (
         <div className={styles.container}>
@@ -265,10 +303,103 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 <div style={{ fontSize: '12px', color: '#9CA3AF', textTransform: 'uppercase', fontWeight: 700 }}>{t('orderCreated') || 'Created Time'}</div>
                                 <div style={{ fontSize: '14px', fontWeight: 600, color: '#374151', marginTop: '2px' }}>{format(new Date(order.created_at), 'HH:mm:ss, dd.MM.yyyy')}</div>
                             </div>
+                            {order.cancellation_reason && (
+                                <div>
+                                    <div style={{ fontSize: '12px', color: '#EF4444', textTransform: 'uppercase', fontWeight: 700 }}>{t('cancellationReason')}</div>
+                                    <div style={{ fontSize: '14px', fontWeight: 600, color: '#991B1B', marginTop: '2px' }}>{order.cancellation_reason}</div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
             </div>
+
+            {/* ── Danger zone: Cancel order ── */}
+            {canCancel && (
+                <div style={{ marginTop: '32px', border: '1.5px solid #FCA5A5', borderRadius: '16px', overflow: 'hidden' }}>
+                    <button
+                        onClick={() => { setCancelOpen(o => !o); setCancelError(null); }}
+                        style={{
+                            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '16px 20px', background: cancelOpen ? '#FEF2F2' : 'white',
+                            border: 'none', cursor: 'pointer', transition: 'background 0.15s'
+                        }}
+                    >
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#DC2626', fontWeight: 700, fontSize: '15px' }}>
+                            <XCircle size={18} /> {t('cancelOrderSection')}
+                        </span>
+                        {cancelOpen ? <ChevronUp size={18} color="#DC2626" /> : <ChevronDown size={18} color="#9CA3AF" />}
+                    </button>
+
+                    {cancelOpen && (
+                        <div style={{ padding: '0 20px 20px', background: '#FEF2F2', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <p style={{ margin: 0, fontSize: '13px', color: '#7F1D1D', background: '#FEE2E2', padding: '10px 14px', borderRadius: '8px', lineHeight: 1.5 }}>
+                                ⚠️ {t('cancelOrderWarning')}
+                            </p>
+
+                            {/* Reason dropdown */}
+                            <div>
+                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#374151', marginBottom: '6px' }}>
+                                    {t('cancelReasonLabel')} *
+                                </label>
+                                <select
+                                    value={cancelReason}
+                                    onChange={e => setCancelReason(e.target.value)}
+                                    style={{
+                                        width: '100%', padding: '10px 12px', borderRadius: '8px',
+                                        border: '1.5px solid #FCA5A5', fontSize: '14px',
+                                        background: 'white', color: cancelReason ? '#111827' : '#9CA3AF',
+                                        outline: 'none', cursor: 'pointer'
+                                    }}
+                                >
+                                    <option value="">{t('cancelReasonPlaceholder')}</option>
+                                    {CANCEL_REASONS.map(r => (
+                                        <option key={r} value={r}>{r}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Optional note */}
+                            <div>
+                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#374151', marginBottom: '6px' }}>
+                                    {t('cancelReasonNote')}
+                                </label>
+                                <textarea
+                                    value={cancelNote}
+                                    onChange={e => setCancelNote(e.target.value)}
+                                    placeholder={t('cancelReasonNotePlaceholder')}
+                                    rows={2}
+                                    style={{
+                                        width: '100%', padding: '10px 12px', borderRadius: '8px',
+                                        border: '1.5px solid #FCA5A5', fontSize: '14px',
+                                        background: 'white', resize: 'vertical', outline: 'none',
+                                        boxSizing: 'border-box'
+                                    }}
+                                />
+                            </div>
+
+                            {cancelError && (
+                                <p style={{ margin: 0, color: '#DC2626', fontSize: '13px', fontWeight: 600 }}>{cancelError}</p>
+                            )}
+
+                            <button
+                                onClick={handleCancelOrder}
+                                disabled={!cancelReason || cancelLoading}
+                                style={{
+                                    padding: '12px 24px', borderRadius: '10px', border: 'none', cursor: cancelReason && !cancelLoading ? 'pointer' : 'not-allowed',
+                                    background: cancelReason && !cancelLoading ? '#DC2626' : '#FCA5A5',
+                                    color: 'white', fontWeight: 700, fontSize: '15px',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                    transition: 'background 0.15s'
+                                }}
+                            >
+                                <XCircle size={18} />
+                                {cancelLoading ? t('cancellingBtn') : t('cancelConfirmBtn')}
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

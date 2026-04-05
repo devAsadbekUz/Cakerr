@@ -26,7 +26,7 @@ async function getAdminTgLang(): Promise<string | null> {
     return cachedAdminLang;
 }
 
-export async function updateOrderStatusAction(orderId: string, newStatus: string, lang: string = 'uz') {
+export async function updateOrderStatusAction(orderId: string, newStatus: string, lang: string = 'uz', cancellationReason?: string) {
     if (!await isAdminVerified()) {
         throw new Error('Unauthorized');
     }
@@ -41,27 +41,35 @@ export async function updateOrderStatusAction(orderId: string, newStatus: string
         const adminName = headersList.get('x-admin-username') || 'System';
 
         // 2. Update Order Status and Fetch Details
+        const updatePayload: Record<string, any> = {
+            status: newStatus,
+            updated_at: new Date().toISOString(),
+            last_updated_by_name: adminName
+        };
+        if (newStatus === 'cancelled' && cancellationReason) {
+            updatePayload.cancellation_reason = cancellationReason;
+        }
+
         const { data: order, error: updateError } = await serviceClient
             .from('orders')
-            .update({ 
-                status: newStatus, 
-                updated_at: new Date().toISOString(),
-                last_updated_by_name: adminName
-            })
+            .update(updatePayload)
             .eq('id', orderId)
             .select(`
                 id,
                 status,
-                telegram_message_id, 
-                telegram_chat_id, 
+                telegram_message_id,
+                telegram_chat_id,
                 client_tg_message_id,
-                delivery_address, 
-                delivery_time, 
+                delivery_address,
+                delivery_time,
                 delivery_slot,
+                delivery_type,
+                branch_id,
                 total_price,
                 comment,
                 user_id,
                 profiles (full_name, phone_number, telegram_id),
+                branches (name_uz, name_ru, address_uz, address_ru, location_link),
                 order_items (*)
             `)
             .single();
@@ -87,7 +95,7 @@ export async function updateOrderStatusAction(orderId: string, newStatus: string
                 // Task A: Update Admin Group Message
                 if (order.telegram_message_id && order.telegram_chat_id) {
                     const messageText = buildOrderMessage(order, tgLang);
-                    const inline_keyboard = getTelegramButtons(newStatus, orderId, tgLang);
+                    const inline_keyboard = getTelegramButtons(newStatus, orderId, tgLang, order);
                     
                     await fetch(`${TELEGRAM_API}/editMessageText`, {
                         method: 'POST',

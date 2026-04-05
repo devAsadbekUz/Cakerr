@@ -76,24 +76,30 @@ export const getTelegramButtons = (status: string, orderId: string, lang: 'uz' |
     if (!current || !current.nextAction) return [];
 
     let nextAction = current.nextAction;
+    let buttonLabel = current.nextLabels![lang];
 
     // Logic for Pickup orders: ready -> completed (skip delivering)
     const isPickup = order?.delivery_type === 'pickup';
     if (status === 'ready' && isPickup) {
         nextAction = 'completed';
+        buttonLabel = lang === 'uz' ? '✅ Olib ketildi' : '✅ Самовывоз завершён';
     }
 
-    const nextLabels = getStatusConfig(nextAction).nextLabels;
-    const buttons = [
-        { text: nextLabels![lang], callback_data: `${nextAction}_${orderId}_${lang}` }
+    const rows: { text: string; callback_data: string }[][] = [
+        [{ text: buttonLabel, callback_data: `${nextAction}_${orderId}_${lang}` }]
     ];
 
-    // Always allow cancellation if it's a new order
+    // new → easy cancel alongside the confirm button
     if (status === 'new') {
-        buttons.push({ text: lang === 'uz' ? '❌ Bekor qilish' : '❌ Отменить', callback_data: `cancel_${orderId}_${lang}` });
+        rows[0].push({ text: lang === 'uz' ? '❌ Bekor qilish' : '❌ Отменить', callback_data: `cancel_${orderId}_${lang}` });
     }
 
-    return [buttons]; // Telegram expects an array of arrays (rows)
+    // confirmed+ → friction cancel on a separate row (two-step confirmation in webhook)
+    if (['confirmed', 'preparing', 'ready', 'delivering'].includes(status)) {
+        rows.push([{ text: lang === 'uz' ? '⚠️ Bekor qilish' : '⚠️ Отменить', callback_data: `precancel_${orderId}_${lang}` }]);
+    }
+
+    return rows; // Telegram expects an array of arrays (rows)
 };
 
 /**

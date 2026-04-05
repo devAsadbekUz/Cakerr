@@ -275,6 +275,124 @@ export async function POST(request: NextRequest) {
             else if (action === 'cancel') newStatus = 'cancelled';
 
             console.log(`[Telegram Webhook] Action: ${action}, OrderId: ${orderId}, ExtractedLang: ${extractedLang}`);
+
+            // ── Two-step cancel flow for confirmed+ orders ──────────────────
+
+            // Step 1: Admin pressed ⚠️ Bekor qilish → edit message to show confirmation prompt
+            if (action === 'precancel') {
+                const shortId = orderId.slice(0, 8);
+                const confirmText = extractedLang === 'ru'
+                    ? `⚠️ *Подтвердите отмену*\n\nЗаказ #${shortId} будет отменён. Клиент получит уведомление.\n\nВы уверены?`
+                    : `⚠️ *Bekor qilishni tasdiqlang*\n\nBuyurtma #${shortId} bekor qilinadi. Mijoz xabardor qilinadi.\n\nIshonchingiz komilmi?`;
+
+                const confirmKeyboard = [[
+                    { text: extractedLang === 'ru' ? '✅ Да, отменить' : '✅ Ha, bekor qilish', callback_data: `confirmcancel_${orderId}_${extractedLang}` },
+                    { text: extractedLang === 'ru' ? '⬅️ Назад' : '⬅️ Orqaga', callback_data: `backcancel_${orderId}_${extractedLang}` }
+                ]];
+
+                await fetch(`${TELEGRAM_API}/editMessageText`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: chatId,
+                        message_id: messageId,
+                        text: confirmText,
+                        parse_mode: 'Markdown',
+                        reply_markup: { inline_keyboard: confirmKeyboard }
+                    })
+                });
+
+                await answerCallback(update.callback_query.id, extractedLang === 'ru' ? 'Подтвердите действие' : 'Tasdiqlang', TELEGRAM_API);
+                return NextResponse.json({ ok: true });
+            }
+
+            // Step 2a: Admin pressed ⬅️ Orqaga → restore original message + buttons
+            if (action === 'backcancel') {
+                const { data: order } = await supabase
+                    .from('orders')
+                    .select(`
+                        id, status, delivery_address, delivery_time, delivery_slot,
+                        delivery_type, branch_id, total_price, comment, payment_method,
+                        coins_spent, promo_discount, user_id,
+                        profiles (full_name, phone_number, telegram_id),
+                        branches (name_uz, name_ru, address_uz, address_ru, location_link),
+                        order_items (*)
+                    `)
+                    .eq('id', orderId)
+                    .single();
+
+                if (order) {
+                    const deliveryAddr = (order.delivery_address || {}) as any;
+                    const { data: adminSettings } = await supabase.from('app_settings').select('value').eq('key', 'admin_tg_lang').single();
+                    const lang = resolveOrderLanguage({ orderSavedLang: deliveryAddr.lang, adminPreferredLang: adminSettings?.value, fallbackLang: extractedLang }) as 'uz' | 'ru';
+                    const restoredText = buildOrderMessage(order, lang);
+                    const restoredKeyboard = getTelegramButtons(order.status, orderId, lang, order);
+                    await fetch(`${TELEGRAM_API}/editMessageText`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ chat_id: chatId, message_id: messageId, text: restoredText, parse_mode: 'Markdown', reply_markup: { inline_keyboard: restoredKeyboard } })
+                    });
+                }
+
+                await answerCallback(update.callback_query.id, extractedLang === 'ru' ? 'Отмена действия' : 'Bekor qilish bekor qilindi', TELEGRAM_API);
+                return NextResponse.json({ ok: true });
+            }
+
+            // Step 2b: Admin pressed ✅ Ha, bekor qilish → actually cancel the order
+            if (action === 'confirmcancel') {
+                newStatus = 'cancelled';
+                const from = update.callback_query.from;
+                const adminName = from.last_name
+                    ? `${from.first_name} ${from.last_name.charAt(0)}. (TG)`
+                    : `${from.first_name} (TG)`;
+
+                const { error: cancelError } = await supabase
+                    .from('orders')
+                    .update({
+                        status: 'cancelled',
+                        cancellation_reason: 'Admin cancelled via Telegram',
+                        updated_at: new Date().toISOString(),
+                        last_updated_by_name: adminName
+                    })
+                    .eq('id', orderId);
+
+                if (cancelError) {
+                    console.error('[Telegram Webhook] Cancel error:', cancelError);
+                    await answerCallback(update.callback_query.id, 'Xatolik / Ошибка', TELEGRAM_API);
+                    return NextResponse.json({ ok: true });
+                }
+
+                const { data: cancelledOrder } = await supabase
+                    .from('orders')
+                    .select(`
+                        id, status, delivery_address, delivery_time, delivery_slot,
+                        delivery_type, branch_id, total_price, comment, payment_method,
+                        coins_spent, promo_discount, client_tg_message_id, user_id,
+                        profiles (full_name, phone_number, telegram_id, tg_lang),
+                        branches (name_uz, name_ru, address_uz, address_ru, location_link),
+                        order_items (*)
+                    `)
+                    .eq('id', orderId)
+                    .single();
+
+                if (cancelledOrder) {
+                    const deliveryAddr = (cancelledOrder.delivery_address || {}) as any;
+                    const { data: adminSettings } = await supabase.from('app_settings').select('value').eq('key', 'admin_tg_lang').single();
+                    const lang = resolveOrderLanguage({ orderSavedLang: deliveryAddr.lang, adminPreferredLang: adminSettings?.value, fallbackLang: extractedLang }) as 'uz' | 'ru';
+                    const cancelledText = buildOrderMessage(cancelledOrder, lang);
+                    await fetch(`${TELEGRAM_API}/editMessageText`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ chat_id: chatId, message_id: messageId, text: cancelledText, parse_mode: 'Markdown', reply_markup: { inline_keyboard: [] } })
+                    });
+                    await notifyCustomerStatusChange(orderId, 'cancelled', cancelledOrder);
+                }
+
+                await answerCallback(update.callback_query.id, extractedLang === 'ru' ? '❌ Заказ отменён' : '❌ Buyurtma bekor qilindi', TELEGRAM_API);
+                return NextResponse.json({ ok: true });
+            }
+
+            // ── End two-step cancel flow ────────────────────────────────────
             
             // Identify the admin from Telegram
             const from = update.callback_query.from;

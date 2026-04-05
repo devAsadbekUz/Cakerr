@@ -127,9 +127,18 @@ export default function ProfilPage() {
     useEffect(() => {
         fetchProfileData(true); // Initial load shows loading state
 
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                fetchProfileData();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        let channel: ReturnType<typeof supabase.channel> | null = null;
+
         if (user?.id) {
             // Subscribe to real-time updates for user's orders to keep profile in sync
-            const channel = supabase
+            channel = supabase
                 .channel(`profile-orders-${user.id}`)
                 .on(
                     'postgres_changes',
@@ -140,7 +149,6 @@ export default function ProfilPage() {
                         filter: `user_id=eq.${user.id}`
                     },
                     (payload: any) => {
-
                         if (payload.eventType === 'UPDATE') {
                             // Targeted update - only change the activeOrder status if it matches
                             setActiveOrder((prev: any) => {
@@ -159,11 +167,12 @@ export default function ProfilPage() {
                 .subscribe((status: string, err: Error | null) => {
                     if (err) console.error('[Realtime] Error:', err);
                 });
-
-            return () => {
-                supabase.removeChannel(channel);
-            };
         }
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            if (channel) supabase.removeChannel(channel);
+        };
     }, [user?.id]);
 
     useEffect(() => {

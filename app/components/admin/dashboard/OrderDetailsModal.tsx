@@ -54,6 +54,7 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
     const { lang, t } = useAdminI18n();
     const router = useRouter();
     const [previewImage, setPreviewImage] = useState<string | null>(null);
+    const [cancelConfirm, setCancelConfirm] = useState(false);
 
     const statusLabels = useMemo(() => ({
         new: t('status_new'), 
@@ -304,11 +305,27 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                     </div>
 
                     <footer className={styles.modalFooter}>
+                        {order.status === 'new' && cancelConfirm && (
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%', marginBottom: '10px', padding: '10px 12px', background: '#FEF2F2', borderRadius: '10px', border: '1px solid #FECACA' }}>
+                                <span style={{ flex: 1, fontSize: '13px', color: '#991B1B', fontWeight: 600 }}>{t('cancelConfirmQuestion')}</span>
+                                <button disabled={disabled} onClick={() => { onUpdate(order.id, 'cancelled'); setCancelConfirm(false); }} className={styles.modalActionBtn} style={{ background: '#DC2626', color: 'white', padding: '8px 16px', minWidth: 0 }}>
+                                    ✓
+                                </button>
+                                <button disabled={disabled} onClick={() => setCancelConfirm(false)} className={styles.modalActionBtn} style={{ background: '#F3F4F6', color: '#374151', padding: '8px 16px', minWidth: 0 }}>
+                                    ✗
+                                </button>
+                            </div>
+                        )}
                         <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
                             {order.status === 'new' && (
-                                <button disabled={disabled} onClick={() => onUpdate(order.id, 'confirmed')} className={styles.modalActionBtn} style={{ background: '#F59E0B', color: 'white' }}>
-                                    <CheckCircle2 size={18} /> {t('confirmOrder')}
-                                </button>
+                                <>
+                                    <button disabled={disabled} onClick={() => onUpdate(order.id, 'confirmed')} className={styles.modalActionBtn} style={{ background: '#F59E0B', color: 'white' }}>
+                                        <CheckCircle2 size={18} /> {t('confirmOrder')}
+                                    </button>
+                                    <button disabled={disabled} onClick={() => setCancelConfirm(true)} className={styles.modalActionBtn} style={{ background: '#FEE2E2', color: '#991B1B', border: '1px solid #FECACA' }}>
+                                        <XCircle size={18} /> {t('cancelNewOrder')}
+                                    </button>
+                                </>
                             )}
                             {order.status === 'confirmed' && (
                                 <button disabled={disabled} onClick={() => onUpdate(order.id, 'preparing')} className={styles.modalActionBtn} style={{ background: '#8B5CF6', color: 'white' }}>
@@ -336,9 +353,9 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                                     <CheckCircle size={18} /> {t('finishDelivery')}
                                 </button>
                             )}
-                            <button 
-                                onClick={() => router.push(`/admin/orders/${order.id}`)} 
-                                className={styles.modalActionBtn} 
+                            <button
+                                onClick={() => router.push(`/admin/orders/${order.id}`)}
+                                className={styles.modalActionBtn}
                                 style={{ background: 'white', color: '#BE185D', border: '1.5px solid #F3F4F6' }}
                             >
                                 <History size={18} /> {t('viewFull' as any)}
@@ -347,6 +364,16 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                                 {t('close')}
                             </button>
                         </div>
+                        {['confirmed', 'preparing', 'ready', 'delivering'].includes(order.status) && (
+                            <div style={{ marginTop: '10px', textAlign: 'center', width: '100%' }}>
+                                <button
+                                    onClick={() => router.push(`/admin/orders/${order.id}`)}
+                                    style={{ background: 'none', border: 'none', color: '#9CA3AF', fontSize: '12px', cursor: 'pointer', textDecoration: 'underline' }}
+                                >
+                                    ⚠️ {t('cancelOrderLink')}
+                                </button>
+                            </div>
+                        )}
                     </footer>
                 </div>
             </div>
