@@ -69,16 +69,24 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Ad
         setTimeout(() => setLoading(false), 500);
     }, [router]);
 
-    const handleUpdateStatus = useCallback(async (orderId: string, newStatus: string) => {
+    const handleUpdateStatus = useCallback(async (
+        orderId: string,
+        newStatus: string,
+        paymentData?: { deposit_amount?: number; final_payment_amount?: number }
+    ) => {
         if (processingIds.has(orderId)) return;
         setProcessingIds(prev => new Set(prev).add(orderId));
 
         try {
             // Optimistic update for immediate feedback
-            setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
-            
-            const result = await updateOrderStatusAction(orderId, newStatus, lang);
-            
+            setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus, ...paymentData } : o));
+
+            const result = await updateOrderStatusAction(
+                orderId, newStatus, lang, undefined,
+                paymentData?.deposit_amount,
+                paymentData?.final_payment_amount
+            );
+
             if (result?.error) {
                 setErrorMsg(t('error') + ': ' + result.error);
                 fetchData(); // Rollback to server state
@@ -107,9 +115,13 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Ad
     }, []);
 
     const handleCloseModal = useCallback(() => setSelectedOrder(null), []);
-    const handleModalUpdate = useCallback((id: string, status: string) => {
-        handleUpdateStatus(id, status);
-        setSelectedOrder(prev => prev ? { ...prev, status } : null);
+    const handleModalUpdate = useCallback((
+        id: string,
+        status: string,
+        paymentData?: { deposit_amount?: number; final_payment_amount?: number }
+    ) => {
+        handleUpdateStatus(id, status, paymentData);
+        setSelectedOrder(prev => prev ? { ...prev, status, ...paymentData } : null);
     }, [handleUpdateStatus]);
 
     useEffect(() => {

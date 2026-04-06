@@ -12,7 +12,7 @@ import {
     ReviewStep
 } from './Steps';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useCart } from '@/app/context/CartContext';
+import { useCartActions } from '@/app/context/CartContext';
 import { useRouter } from 'next/navigation';
 import BuilderModeSelection from './BuilderModeSelection';
 import PhotoUploadForm from './PhotoUploadForm';
@@ -31,9 +31,10 @@ const STEPS = [
 
 interface WizardShellProps {
     onItemComplete?: (item: any) => void;
+    onClose?: () => void;
 }
 
-export default function WizardShell({ onItemComplete }: WizardShellProps) {
+export default function WizardShell({ onItemComplete, onClose }: WizardShellProps) {
     const {
         mode,
         step,
@@ -54,13 +55,19 @@ export default function WizardShell({ onItemComplete }: WizardShellProps) {
         calculateTotal,
         reset
     } = useCustomCake();
-    const { addItem } = useCart();
+    const { addItem } = useCartActions();
     const router = useRouter();
+    const [optionsError, setOptionsError] = React.useState<string | null>(null);
 
     useEffect(() => {
         const load = async () => {
-            const opts = await customCakeService.getOptions();
-            setOptions(opts);
+            try {
+                const opts = await customCakeService.getOptions();
+                setOptions(opts);
+            } catch (err) {
+                console.error('[WizardShell] Failed to load cake options:', err);
+                setOptionsError('Variantlarni yuklashda xatolik yuz berdi. Sahifani yangilang.');
+            }
         };
         load();
     }, []);
@@ -73,7 +80,24 @@ export default function WizardShell({ onItemComplete }: WizardShellProps) {
         return <PhotoUploadForm />;
     }
 
-    const CurrentStepComponent = STEPS[step - 1].component;
+    if (optionsError) {
+        return (
+            <div className={styles.container} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
+                <div style={{ textAlign: 'center', color: '#991B1B', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '12px', padding: '24px' }}>
+                    <p style={{ fontWeight: 700, marginBottom: '12px' }}>{optionsError}</p>
+                    <button
+                        onClick={() => { setOptionsError(null); customCakeService.getOptions().then(setOptions).catch(() => setOptionsError('Variantlarni yuklashda xatolik yuz berdi. Sahifani yangilang.')); }}
+                        style={{ padding: '8px 20px', borderRadius: '8px', background: '#BE185D', color: 'white', border: 'none', fontWeight: 700, cursor: 'pointer' }}
+                    >
+                        Qayta urinish
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    const CurrentStepComponent = STEPS[step - 1]?.component;
+    if (!CurrentStepComponent) return null;
     const progress = (step / STEPS.length) * 100;
 
     const isNextDisabled = () => {
@@ -126,7 +150,11 @@ export default function WizardShell({ onItemComplete }: WizardShellProps) {
 
     const handleBack = () => {
         if (step === 1) {
-            setMode(null);
+            if (onClose) {
+                onClose();
+            } else {
+                setMode(null);
+            }
         } else {
             prevStep();
         }
@@ -136,7 +164,7 @@ export default function WizardShell({ onItemComplete }: WizardShellProps) {
         <div className={styles.container}>
             <header className={styles.header}>
                 <h1 className={styles.title}>Tort Yaratish</h1>
-                <p>{STEPS[step - 1].title} - {step}/{STEPS.length}</p>
+                <p>{STEPS[step - 1]?.title} - {step}/{STEPS.length}</p>
                 <div className={styles.progressContainer}>
                     <div
                         className={styles.progressBar}

@@ -9,7 +9,7 @@ const mapDBCartItemToCartItem = (dbItem: any): CartItem => ({
     cartId: dbItem.id,
     id: dbItem.product_id,
     name: dbItem.products?.title || dbItem.configuration?.name || 'Mahsulot',
-    price: dbItem.products?.base_price || 0,
+    price: dbItem.products?.base_price || dbItem.configuration?.estimated_total || 0,
     image: dbItem.products?.image_url || dbItem.configuration?.image_url || dbItem.configuration?.uploaded_photo_url || '',
     portion: dbItem.portion,
     flavor: dbItem.flavor,
@@ -45,12 +45,15 @@ interface ClearCartOptions {
     syncServer?: boolean;
 }
 
-interface CartContextType {
-    cart: CartItem[];
+interface CartActionsContextType {
     addItem: (item: Omit<CartItem, 'cartId'>) => Promise<void>;
     removeItem: (cartId: string) => Promise<void>;
     updateQuantity: (cartId: string, quantity: number) => Promise<void>;
     clearCart: (options?: ClearCartOptions) => Promise<void>;
+}
+
+interface CartContextType {
+    cart: CartItem[];
     totalItems: number;
     subtotal: number;
     deliveryAddress: string;
@@ -63,6 +66,9 @@ interface CartContextType {
     removeSavedAddress: (id: string) => void;
 }
 
+// Actions context: stable reference — only changes when user changes
+const CartActionsContext = createContext<CartActionsContextType | undefined>(undefined);
+// State context: changes when cart/address/etc. changes
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
@@ -73,6 +79,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const [isInitialized, setIsInitialized] = useState(false);
     const { user } = useSupabase();
     const prevUser = useRef<any>(null);
+    // Always-current cart reference so callbacks don't close over stale state
+    const cartRef = useRef<CartItem[]>([]);
+    useEffect(() => { cartRef.current = cart; }, [cart]);
+
+    // Per-item debounce queue: coalesces rapid taps into a single API call
+    const pendingAdds = useRef<Map<string, { quantity: number; timer: ReturnType<typeof setTimeout>; tempIds: string[] }>>(new Map());
 
     // Load and Sync Addresses
     useEffect(() => {
@@ -109,7 +121,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (isInitialized) {
             if (user) {
-                Promise.all([fetchDBAddresses(), fetchDBCart()]);
+                const syncDB = async () => {
+                    await Promise.all([fetchDBAddresses(), fetchDBCart()]);
+                };
+                syncDB().catch(err => console.error('[CartContext] DB sync failed:', err));
             } else {
                 // Logout case: Clear state or revert to what's in localstorage?
                 if (prevUser.current && prevUser.current.id) {
@@ -130,41 +145,57 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }, [user, isInitialized]);
 
     const fetchDBCart = async () => {
-        const dbItems = await cartService.getCartItems();
-        const cartOwner = localStorage.getItem('tortele_cart_owner');
+        try {
+            const dbItems = await cartService.getCartItems();
+            const cartOwner = localStorage.getItem('tortele_cart_owner');
 
-        // If user logged in and has local guest cart, migrate it!
-        if (dbItems.length === 0 && cart.length > 0 && cartOwner === 'guest') {
-            await migrateGuestCart(cart);
-            return;
-        }
+            // If user logged in and has local guest cart, migrate it!
+            if (dbItems.length === 0 && cart.length > 0 && cartOwner === 'guest') {
+                await migrateGuestCart(cart);
+                return;
+            }
 
-        if (dbItems.length === 0) {
-            setCart([]);
-        } else if (dbItems.length > 0) {
-            setCart(dbItems.map(mapDBCartItemToCartItem));
+            if (dbItems.length === 0) {
+                setCart([]);
+            } else if (dbItems.length > 0) {
+                setCart(dbItems.map(mapDBCartItemToCartItem));
+            }
+        } catch (err) {
+            console.error('[CartContext] fetchDBCart failed:', err);
+            // Leave existing cart state intact — do not clear on network error
         }
     };
 
     const migrateGuestCart = async (guestCart: CartItem[]) => {
-        // Single batch request instead of N sequential requests
-        await cartService.addItemsBatch(guestCart.map(item => ({
-            product_id: item.id,
-            quantity: item.quantity,
-            portion: item.portion,
-            flavor: item.flavor,
-            custom_note: item.customNote,
-            configuration: item.configuration
-        })));
+        try {
+            // Single batch request instead of N sequential requests
+            await cartService.addItemsBatch(guestCart.map(item => ({
+                product_id: item.id,
+                quantity: item.quantity,
+                portion: item.portion,
+                flavor: item.flavor,
+                custom_note: item.customNote,
+                configuration: item.configuration
+            })));
 
-        localStorage.removeItem('tortele_cart');
+            localStorage.removeItem('tortele_cart');
 
-        const finalItems = await cartService.getCartItems();
-        setCart(finalItems.map(mapDBCartItemToCartItem));
+            const finalItems = await cartService.getCartItems();
+            setCart(finalItems.map(mapDBCartItemToCartItem));
+        } catch (err) {
+            console.error('[CartContext] migrateGuestCart failed:', err);
+            // Guest cart remains local — user keeps their items
+        }
     };
 
     const fetchDBAddresses = async () => {
-        const dbAddresses = await addressService.getUserAddresses();
+        let dbAddresses: any[] = [];
+        try {
+            dbAddresses = await addressService.getUserAddresses();
+        } catch (err) {
+            console.error('[CartContext] fetchDBAddresses failed:', err);
+            return;
+        }
 
         // If user logged in and has local guest addresses, migrate them!
         if (dbAddresses.length === 0 && savedAddresses.length > 0) {
@@ -272,8 +303,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const addItem = useCallback(async (newItem: Omit<CartItem, 'cartId'>) => {
         const tempId = `temp-${newItem.id}-${Date.now()}`;
         const itemWithId = { ...newItem, cartId: tempId };
-        const previousCart = [...cart];
 
+        // 1. Optimistic update — instant, no wait
         setCart((prev) => {
             const existingItemIndex = prev.findIndex(
                 (item) =>
@@ -282,41 +313,73 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                     item.portion === newItem.portion &&
                     item.flavor === newItem.flavor
             );
-
             if (existingItemIndex > -1) {
                 const updatedCart = [...prev];
-                updatedCart[existingItemIndex].quantity += newItem.quantity;
+                updatedCart[existingItemIndex] = {
+                    ...updatedCart[existingItemIndex],
+                    quantity: updatedCart[existingItemIndex].quantity + newItem.quantity
+                };
                 return updatedCart;
             }
             return [...prev, itemWithId];
         });
 
-        if (user) {
+        if (!user) return;
+
+        // 2. Coalesce rapid taps: accumulate quantity, reset 150ms debounce timer
+        const key = `${newItem.id}|${newItem.portion}|${newItem.flavor}`;
+        const existing = pendingAdds.current.get(key);
+        if (existing) {
+            clearTimeout(existing.timer);
+            existing.quantity += newItem.quantity;
+            existing.tempIds.push(tempId);
+        } else {
+            pendingAdds.current.set(key, { quantity: newItem.quantity, timer: null as any, tempIds: [tempId] });
+        }
+
+        const pending = pendingAdds.current.get(key)!;
+        pending.timer = setTimeout(async () => {
+            pendingAdds.current.delete(key);
+            const snapshot = cartRef.current;
             try {
                 const { data, error } = await cartService.addItem({
                     product_id: newItem.id,
-                    quantity: newItem.quantity,
+                    quantity: pending.quantity,
                     portion: newItem.portion,
                     flavor: newItem.flavor,
                     custom_note: newItem.customNote,
                     configuration: newItem.configuration
                 });
-
                 if (error) throw error;
                 if (data) {
                     const serverItem = mapDBCartItemToCartItem(data);
-                    setCart((prev) => prev.map(item => item.cartId === tempId ? serverItem : item));
+                    // Replace all tempIds for this product with the single confirmed server item
+                    setCart((prev) => {
+                        const withoutTemps = prev.filter(item => !pending.tempIds.includes(item.cartId));
+                        // Check if there's already a real (non-temp) entry for this product
+                        const hasReal = withoutTemps.some(
+                            item => item.id === newItem.id && item.portion === newItem.portion && item.flavor === newItem.flavor
+                        );
+                        if (hasReal) {
+                            return withoutTemps.map(item =>
+                                item.id === newItem.id && item.portion === newItem.portion && item.flavor === newItem.flavor
+                                    ? serverItem
+                                    : item
+                            );
+                        }
+                        return [...withoutTemps, serverItem];
+                    });
                 }
             } catch (err: any) {
-                console.error('[Cart Optimization] AddItem Error:', err);
-                setCart(previousCart);
+                console.error('[Cart] AddItem Error:', err);
+                setCart(snapshot);
                 alert(`Savatga qo'shishda xatolik yuz berdi: ${err.message}`);
             }
-        }
-    }, [cart, user]);
+        }, 150);
+    }, [user]);
 
     const removeItem = useCallback(async (cartId: string) => {
-        const previousCart = [...cart];
+        const previousCart = cartRef.current;
         setCart((prev) => prev.filter((item) => item.cartId !== cartId));
 
         if (user && !cartId.startsWith('temp-')) {
@@ -329,7 +392,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                 alert('O\'chirishda xatolik yuz berdi. Iltimos qayta urinib ko\'ring.');
             }
         }
-    }, [cart, user]);
+    }, [user]);
 
     const updateQuantity = useCallback(async (cartId: string, quantity: number) => {
         const newQty = Math.max(1, quantity);
@@ -358,7 +421,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }, [user]);
 
     const clearCart = useCallback(async (options?: ClearCartOptions) => {
-        const previousCart = [...cart];
+        const previousCart = cartRef.current;
         setCart([]);
         if (user && (options?.syncServer ?? true)) {
             try {
@@ -371,7 +434,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                 }
             }
         }
-    }, [cart, user]);
+    }, [user]);
 
     const addSavedAddress = useCallback(async (newAddr: Omit<SavedAddress, 'id'>) => {
         if (user) {
@@ -420,12 +483,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const totalItems = useMemo(() => cart.reduce((sum, item) => sum + (item.quantity || 0), 0), [cart]);
     const subtotal = useMemo(() => cart.reduce((sum, item) => sum + (Number(item.price) || 0) * (item.quantity || 0), 0), [cart]);
 
-    const value = useMemo(() => ({
-        cart,
+    // Actions value: stable — only recreated when user changes (addItem/removeItem/clearCart deps = [user])
+    const actionsValue = useMemo(() => ({
         addItem,
         removeItem,
         updateQuantity,
         clearCart,
+    }), [addItem, removeItem, updateQuantity, clearCart]);
+
+    // State value: changes with cart/address state
+    const stateValue = useMemo(() => ({
+        cart,
         totalItems,
         subtotal,
         deliveryAddress,
@@ -438,10 +506,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         removeSavedAddress,
     }), [
         cart,
-        addItem,
-        removeItem,
-        updateQuantity,
-        clearCart,
         totalItems,
         subtotal,
         deliveryAddress,
@@ -453,16 +517,43 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     ]);
 
     return (
-        <CartContext.Provider value={value}>
-            {children}
-        </CartContext.Provider>
+        <CartActionsContext.Provider value={actionsValue}>
+            <CartContext.Provider value={stateValue}>
+                {children}
+            </CartContext.Provider>
+        </CartActionsContext.Provider>
     );
 }
 
+/** Full cart state: cart items, totals, addresses. Rerenders on every cart change. */
 export function useCart() {
     const context = useContext(CartContext);
     if (context === undefined) {
         throw new Error('useCart must be used within a CartProvider');
     }
     return context;
+}
+
+const NO_OP_CART_ACTIONS: CartActionsContextType = {
+    addItem: async () => {
+        if (process.env.NODE_ENV === 'development') console.warn('[useCartActions] addItem called outside CartProvider — no-op');
+    },
+    removeItem: async () => {
+        if (process.env.NODE_ENV === 'development') console.warn('[useCartActions] removeItem called outside CartProvider — no-op');
+    },
+    updateQuantity: async () => {
+        if (process.env.NODE_ENV === 'development') console.warn('[useCartActions] updateQuantity called outside CartProvider — no-op');
+    },
+    clearCart: async () => {
+        if (process.env.NODE_ENV === 'development') console.warn('[useCartActions] clearCart called outside CartProvider — no-op');
+    },
+};
+
+/** Cart actions only: addItem, removeItem, updateQuantity, clearCart.
+ *  Stable reference — does NOT rerender when cart state changes.
+ *  Use this in ProductCard and any component that only needs to mutate the cart.
+ *  Returns no-op stubs when called outside CartProvider (e.g. in POS context). */
+export function useCartActions() {
+    const context = useContext(CartActionsContext);
+    return context ?? NO_OP_CART_ACTIONS;
 }

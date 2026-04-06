@@ -2,7 +2,7 @@
 
 import React, { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ChevronLeft, Check, Calendar, MapPin, MessageSquare, Banknote, ShoppingBag, Map as MapIcon } from 'lucide-react';
+import { ChevronLeft, Check, Calendar, MapPin, MessageSquare, Banknote, ShoppingBag, Map as MapIcon, AlertCircle } from 'lucide-react';
 import styles from './page.module.css';
 import { useCart } from '@/app/context/CartContext';
 import { useLanguage } from '@/app/context/LanguageContext';
@@ -262,6 +262,30 @@ function SuccessContent() {
                 <div className={`${styles.summaryRow} ${styles.totalRow}`}>
                     <span>{t('total')}</span>
                     <span className={styles.totalValue}>{displayData.total.toLocaleString('uz-UZ')} {t('som')}</span>
+                </div>
+            </div>
+
+            {/* Deposit notice */}
+            <div style={{
+                margin: '0 0 16px',
+                padding: '14px 16px',
+                background: '#FFFBEB',
+                border: '1.5px solid #FDE68A',
+                borderRadius: '14px',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '12px'
+            }}>
+                <AlertCircle size={18} color="#92400E" style={{ flexShrink: 0, marginTop: '1px' }} />
+                <div>
+                    <div style={{ fontWeight: 700, fontSize: '14px', color: '#78350F', marginBottom: '4px' }}>
+                        {lang === 'ru' ? 'Требуется предоплата' : 'Avans to\'lovi talab qilinadi'}
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#92400E', lineHeight: '1.5' }}>
+                        {lang === 'ru'
+                            ? 'После подтверждения заказа потребуется минимум 50% предоплата. Менеджер свяжется с вами для уточнения деталей.'
+                            : 'Buyurtmangiz tasdiqlanganidan so\'ng kamida 50% avans to\'lovi talab qilinadi. Menejer siz bilan bog\'lanadi.'}
+                    </div>
                 </div>
             </div>
 

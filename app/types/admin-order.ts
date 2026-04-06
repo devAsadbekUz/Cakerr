@@ -5,6 +5,7 @@ export type AdminOrderItemConfiguration = {
     mode?: string | null;
     flavor?: string | null;
     shape?: string | null;
+    size?: string | null;
     sponge?: string | null;
     decorations?: string | null;
     custom_note?: string | null;
@@ -62,6 +63,9 @@ export type AdminOrder = {
     payment_method?: 'cash' | 'card' | null;
     coins_spent?: number | null;
     promo_discount?: number | null;
+    deposit_amount?: number | null;
+    final_payment_amount?: number | null;
+    refund_needed?: boolean | null;
     order_items?: AdminOrderItem[] | null;
 };
 
@@ -85,6 +89,9 @@ export type AdminOrderListItem = {
     payment_method?: 'cash' | 'card' | null;
     coins_spent?: number | null;
     promo_discount?: number | null;
+    deposit_amount?: number | null;
+    final_payment_amount?: number | null;
+    refund_needed?: boolean | null;
     order_items?: AdminOrderItem[] | null;
     items_count?: number;
 };

@@ -162,10 +162,14 @@ export const buildOrderMessage = (order: any, lang: 'uz' | 'ru' = 'uz') => {
         }
     }[lang];
 
-    let messageText = isPickup 
+    let messageText = isPickup
         ? `🏪 *【 ${lang === 'uz' ? 'OLIB KETISH' : 'САМОВЫВОЗ'} 】* 🏪\n*Status:* [${statusLabel}]\n`
         : `🎂 *${t.order}* [${statusLabel}]\n`;
-    messageText += `📋 *ID:* #${shortId}\n\n`;
+    messageText += `📋 *ID:* #${shortId}\n`;
+    if (order.created_by_name) {
+        messageText += `🖥️ *POS* | ${lang === 'uz' ? 'Qabul qildi' : 'Принял'}: ${tgEscape(order.created_by_name)}\n`;
+    }
+    messageText += '\n';
 
     if (order.profiles) {
         const profile = Array.isArray(order.profiles) ? order.profiles[0] : order.profiles;
@@ -222,14 +226,30 @@ export const buildOrderMessage = (order: any, lang: 'uz' | 'ru' = 'uz') => {
     if (order.order_items?.length) {
         messageText += `🛒 *${t.products}:*\n`;
         order.order_items.forEach((item: any) => {
+            const cfg = item.configuration || {};
+            const isCustom = !item.product_id || item.product_id === '00000000-0000-0000-0000-000000000000';
             const name = tgEscape(item.name || 'Mahsulot');
-            const portionText = item.configuration?.portion ? ` (${tgEscape(item.configuration.portion)})` : '';
-            const flavorText = item.configuration?.flavor ? ` | ${tgEscape(item.configuration.flavor)}` : '';
-            messageText += `  • ${item.quantity}x ${name}${portionText}${flavorText} - ${(item.unit_price * item.quantity).toLocaleString()} ${t.som}\n`;
-            const note = item.configuration?.custom_note || item.configuration?.order_note;
-            if (note) {
-                messageText += `    📝 _${tgEscape(note)}_\n`;
+            const price = (item.unit_price * item.quantity).toLocaleString();
+
+            if (isCustom) {
+                // Custom cake — show full configuration on separate lines
+                messageText += `  • ${item.quantity}x *${name}* - ${price} ${t.som}\n`;
+                const details: string[] = [];
+                if (cfg.shape) details.push(`Shakl: ${tgEscape(cfg.shape)}`);
+                if (cfg.size) details.push(`O'lcham: ${tgEscape(cfg.size)}`);
+                if (cfg.sponge) details.push(`Biskvit: ${tgEscape(cfg.sponge)}`);
+                if (cfg.flavor) details.push(`Krem: ${tgEscape(cfg.flavor)}`);
+                if (details.length) messageText += `    🔹 ${details.join(' | ')}\n`;
+                if (cfg.decorations) messageText += `    🎀 ${lang === 'uz' ? 'Bezaklar' : 'Декор'}: ${tgEscape(cfg.decorations)}\n`;
+            } else {
+                // Standard product — compact format
+                const portionText = cfg.portion ? ` (${tgEscape(cfg.portion)})` : '';
+                const flavorText = cfg.flavor ? ` | ${tgEscape(cfg.flavor)}` : '';
+                messageText += `  • ${item.quantity}x ${name}${portionText}${flavorText} - ${price} ${t.som}\n`;
             }
+
+            const note = cfg.custom_note || cfg.order_note;
+            if (note) messageText += `    📝 _${tgEscape(note)}_\n`;
         });
     }
 
@@ -256,6 +276,29 @@ export const buildOrderMessage = (order: any, lang: 'uz' | 'ru' = 'uz') => {
 
     if (order.total_price) {
         messageText += `\n💰 *${t.total}:* ${Number(order.total_price).toLocaleString()} ${t.som}`;
+    }
+
+    const depositAmount = Number(order.deposit_amount ?? 0);
+    const finalPayment = Number(order.final_payment_amount ?? 0);
+    const confirmedStatuses = ['confirmed', 'preparing', 'ready', 'delivering', 'completed'];
+    const isConfirmedPlus = confirmedStatuses.includes(order.status);
+
+    if (isConfirmedPlus) {
+        if (depositAmount > 0) {
+            const remaining = Math.max(0, Number(order.total_price ?? 0) - depositAmount);
+            const depositLabel = lang === 'uz' ? 'Avans' : 'Аванс';
+            const remainingLabel = lang === 'uz' ? 'Qoldiq' : 'Остаток';
+            messageText += `\n💵 *${depositLabel}:* ${depositAmount.toLocaleString()} ${t.som}`;
+            if (order.status === 'completed' && finalPayment > 0) {
+                const finalLabel = lang === 'uz' ? "Yakuniy to'lov" : 'Итог. оплата';
+                messageText += ` | *${finalLabel}:* ${finalPayment.toLocaleString()} ${t.som}`;
+            } else if (remaining > 0) {
+                messageText += ` | *${remainingLabel}:* ${remaining.toLocaleString()} ${t.som}`;
+            }
+        } else if (order.status !== 'completed') {
+            const noDepositLabel = lang === 'uz' ? 'Avans qabul qilinmagan' : 'Аванс не получен';
+            messageText += `\n⚠️ _${noDepositLabel}_`;
+        }
     }
 
     return messageText;

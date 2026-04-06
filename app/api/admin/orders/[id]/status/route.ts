@@ -32,27 +32,71 @@ export async function POST(
     }
 
     const { id: orderId } = await params;
-    const { status: newStatus, lang = 'uz', cancellation_reason } = await request.json();
+    const {
+        status: newStatus,
+        lang = 'uz',
+        cancellation_reason,
+        deposit_amount,
+        final_payment_amount,
+    } = await request.json();
 
     if (!orderId || !newStatus) {
         return NextResponse.json({ error: 'Missing orderId or status' }, { status: 400 });
     }
 
     try {
-        // 0. Extract human identity for the audit log
         const headersList = await request.headers;
         const adminName = headersList.get('x-admin-username') || 'System';
 
-        // 1. Update Order Status and Fetch Details in one atomic step (to avoid double fetching)
+        // ── Fetch current order to validate payment amounts ───────────────────
+        const { data: currentOrder, error: fetchError } = await serviceClient
+            .from('orders')
+            .select('total_price, deposit_amount, status')
+            .eq('id', orderId)
+            .single();
+
+        if (fetchError || !currentOrder) {
+            return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+        }
+
+        // ── Validate final payment amount on completion ───────────────────────
+        if (newStatus === 'completed' && final_payment_amount !== undefined) {
+            const remaining = currentOrder.total_price - (currentOrder.deposit_amount ?? 0);
+            if (final_payment_amount !== remaining) {
+                return NextResponse.json(
+                    { error: `Final payment must equal remaining balance: ${remaining} so'm` },
+                    { status: 400 }
+                );
+            }
+        }
+
+        // ── Build order update payload ────────────────────────────────────────
         const updatePayload: Record<string, any> = {
             status: newStatus,
             updated_at: new Date().toISOString(),
             last_updated_by_name: adminName
         };
+
         if (newStatus === 'cancelled' && cancellation_reason) {
             updatePayload.cancellation_reason = cancellation_reason;
         }
 
+        // Set refund_needed when cancelling an order that had a deposit
+        if (newStatus === 'cancelled' && (currentOrder.deposit_amount ?? 0) > 0) {
+            updatePayload.refund_needed = true;
+        }
+
+        // Record deposit when confirming
+        if (newStatus === 'confirmed' && deposit_amount !== undefined) {
+            updatePayload.deposit_amount = deposit_amount;
+        }
+
+        // Record final payment when completing
+        if (newStatus === 'completed' && final_payment_amount !== undefined) {
+            updatePayload.final_payment_amount = final_payment_amount;
+        }
+
+        // ── Update order ──────────────────────────────────────────────────────
         const { data: order, error: updateError } = await serviceClient
             .from('orders')
             .update(updatePayload)
@@ -60,6 +104,10 @@ export async function POST(
             .select(`
                 id,
                 status,
+                total_price,
+                deposit_amount,
+                final_payment_amount,
+                refund_needed,
                 telegram_message_id,
                 telegram_chat_id,
                 client_tg_message_id,
@@ -68,13 +116,13 @@ export async function POST(
                 delivery_slot,
                 delivery_type,
                 branch_id,
-                total_price,
                 comment,
                 payment_method,
                 coins_spent,
                 promo_discount,
+                created_by_name,
                 user_id,
-                profiles (full_name, phone_number, telegram_id),
+                profiles (full_name, phone_number, telegram_id, tg_lang),
                 branches (name_uz, name_ru, address_uz, address_ru, location_link),
                 order_items (*)
             `)
@@ -85,12 +133,32 @@ export async function POST(
             return NextResponse.json({ error: updateError.message }, { status: 500 });
         }
 
-        // 2. Sync to Telegram (Awaited to prevent Vercel termination)
+        // ── Write payment log entry ───────────────────────────────────────────
+        if (newStatus === 'confirmed' && deposit_amount !== undefined) {
+            await serviceClient.from('order_payment_logs').insert({
+                order_id: orderId,
+                event_type: 'deposit_recorded',
+                amount: deposit_amount,
+                previous_amount: null,
+                recorded_by_name: adminName
+            });
+        }
+
+        if (newStatus === 'completed' && final_payment_amount !== undefined) {
+            await serviceClient.from('order_payment_logs').insert({
+                order_id: orderId,
+                event_type: 'final_payment_recorded',
+                amount: final_payment_amount,
+                previous_amount: null,
+                recorded_by_name: adminName
+            });
+        }
+
+        // ── Sync to Telegram ──────────────────────────────────────────────────
         const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
         if (TELEGRAM_BOT_TOKEN) {
             try {
                 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
-                const profile = Array.isArray(order.profiles) ? order.profiles[0] : order.profiles;
 
                 const deliveryAddr = (order.delivery_address || {}) as any;
                 const tgLang = resolveOrderLanguage({
@@ -103,9 +171,7 @@ export async function POST(
                 if (order.telegram_message_id && order.telegram_chat_id) {
                     const messageText = buildOrderMessage(order, tgLang);
                     const inline_keyboard = getTelegramButtons(newStatus, orderId, tgLang, order);
-                    
-                    console.log(`[AdminStatusSync] Updating Admin Group Msg: ${order.telegram_message_id} in chat ${order.telegram_chat_id}`);
-                    
+
                     const tgRes = await fetch(`${TELEGRAM_API}/editMessageText`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -117,24 +183,22 @@ export async function POST(
                             reply_markup: { inline_keyboard }
                         })
                     });
-                    
+
                     const tgResult = await tgRes.json();
                     if (!tgResult.ok) {
                         console.error('[AdminStatusSync] Telegram Edit Error:', tgResult);
-                    } else {
-                        console.log('[AdminStatusSync] Telegram Edit Success');
                     }
-                } else {
-                    console.log('[AdminStatusSync] No Telegram IDs found in order, skipping group update.');
                 }
 
-                // Task B: Status Update for Client
+                // Task B: Notify customer
                 await notifyCustomerStatusChange(orderId, newStatus, order);
-                
+
                 // Task C: Heal delivery_address.lang if missing
                 const needsHealing = !deliveryAddr.lang || (typeof deliveryAddr.lang === 'string' && deliveryAddr.lang.includes('"'));
                 if (needsHealing) {
-                    const healedAddress = typeof deliveryAddr === 'string' ? { street: deliveryAddr, lang: tgLang } : { ...deliveryAddr, lang: tgLang };
+                    const healedAddress = typeof deliveryAddr === 'string'
+                        ? { street: deliveryAddr, lang: tgLang }
+                        : { ...deliveryAddr, lang: tgLang };
                     await serviceClient.from('orders').update({ delivery_address: healedAddress }).eq('id', orderId);
                 }
 
@@ -146,7 +210,7 @@ export async function POST(
         return NextResponse.json({ success: true, order });
     } catch (error: any) {
         console.error('[Admin Orders Status API] Final Catch error:', error);
-        return NextResponse.json({ 
+        return NextResponse.json({
             error: error.message || 'Internal server error',
             details: error.stack
         }, { status: 500 });

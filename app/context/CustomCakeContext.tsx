@@ -95,19 +95,20 @@ export function CustomCakeProvider({ children }: { children: ReactNode }) {
     const calculateTotal = useCallback(() => {
         let total = 0;
 
-        // Find selected item prices
+        const selectedShape = state.options.find(o => o.id === state.shape);
         const selectedSize = state.options.find(o => o.id === state.size);
         const selectedSponge = state.options.find(o => o.id === state.sponge);
         const selectedCream = state.options.find(o => o.id === state.cream);
         const selectedDecors = state.options.filter(o => state.decorations.includes(o.id));
 
+        if (selectedShape) total += Number(selectedShape.price);
         if (selectedSize) total += Number(selectedSize.price);
         if (selectedSponge) total += Number(selectedSponge.price);
         if (selectedCream) total += Number(selectedCream.price);
         selectedDecors.forEach(d => total += Number(d.price));
 
         return total;
-    }, [state.options, state.size, state.sponge, state.cream, state.decorations]);
+    }, [state.options, state.shape, state.size, state.sponge, state.cream, state.decorations]);
 
     const value = useMemo(() => ({
         ...state,

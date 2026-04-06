@@ -23,6 +23,7 @@ import { useCustomCake } from '@/app/context/CustomCakeContext';
 import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 import { adminFetch } from '@/app/utils/adminApi';
 import { availabilityService, GlobalTimeSlot } from '@/app/services/availabilityService';
+import { format } from 'date-fns';
 import { createClient } from '@/app/utils/supabase/client';
 import { Product, Category } from '@/app/types';
 import { getLocalized } from '@/app/utils/i18n';
@@ -30,6 +31,8 @@ import WizardShell from '@/app/components/yaratish/WizardShell';
 import PhotoUploadForm from '@/app/components/yaratish/PhotoUploadForm';
 import styles from './page.module.css';
 import Image from 'next/image';
+
+const DELIVERY_FEE = 40000;
 
 export default function PosPage() {
     // ── Contexts ──────────────────────────────────────────────────────────────
@@ -47,7 +50,7 @@ export default function PosPage() {
         clearCart
     } = useAdminCart();
     
-    const { reset: resetBuilder } = useCustomCake();
+    const { reset: resetBuilder, setMode: setBuilderMode } = useCustomCake();
     const { lang, t } = useAdminI18n();
     const supabase = createClient();
 
@@ -55,6 +58,7 @@ export default function PosPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [slots, setSlots] = useState<GlobalTimeSlot[]>([]);
+    const [overrides, setOverrides] = useState<any[]>([]);
     const [activeCategory, setActiveCategory] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(true);
@@ -75,14 +79,22 @@ export default function PosPage() {
     useEffect(() => {
         const loadData = async () => {
             try {
-                const [pData, cData, sData] = await Promise.all([
+                const today = new Date();
+                const rangeEnd = new Date();
+                rangeEnd.setDate(today.getDate() + 45);
+                const startDate = format(today, 'yyyy-MM-dd');
+                const endDate = format(rangeEnd, 'yyyy-MM-dd');
+
+                const [pData, cData, sData, ovData] = await Promise.all([
                     adminFetch<Product>({ table: 'products', filterColumn: 'is_available', filterValue: 'true' }),
                     adminFetch<Category>({ table: 'categories', orderBy: 'sort_order', orderAsc: true }),
-                    availabilityService.getGlobalSlots()
+                    availabilityService.getGlobalSlots(),
+                    availabilityService.getOverrides(startDate, endDate)
                 ]);
                 setProducts(pData);
                 setCategories(cData);
                 setSlots(sData);
+                setOverrides(ovData || []);
             } catch (err) {
                 console.error('POS Load error:', err);
             } finally {
@@ -117,6 +129,16 @@ export default function PosPage() {
             return matchesCategory && matchesSearch;
         });
     }, [products, activeCategory, searchQuery, lang]);
+
+    // ── Availability Helpers ──────────────────────────────────────────────────
+    const isDateFullyBlocked = (dateStr: string) =>
+        overrides.some(o => o.date === dateStr && o.slot === null);
+
+    const isSlotBlocked = (slotLabel: string) => {
+        if (!deliveryInfo.date) return false;
+        const dateStr = deliveryInfo.date.toISOString().split('T')[0];
+        return overrides.some(o => o.date === dateStr && (o.slot === null || o.slot === slotLabel));
+    };
 
     // ── Handlers ──────────────────────────────────────────────────────────────
     const handleAddStandard = (product: Product) => {
@@ -182,7 +204,7 @@ export default function PosPage() {
                         address: deliveryInfo.address,
                         slot: deliveryInfo.slot
                     },
-                    totalPrice: subtotal + (deliveryType === 'delivery' ? 40000 : 0),
+                    totalPrice: subtotal + (deliveryType === 'delivery' ? DELIVERY_FEE : 0),
                     orderNote: orderNote.trim() || null
                 })
             });
@@ -193,6 +215,8 @@ export default function PosPage() {
             setOrderSuccess(result.orderId);
             setOrderNote('');
             clearCart();
+            setDeliveryType('delivery');
+            setSelectedBranchId(branches.length > 0 ? branches[0].id : null);
             setTimeout(() => setOrderSuccess(null), 5000);
         } catch (err: any) {
             setError(err.message);
@@ -243,7 +267,7 @@ export default function PosPage() {
 
                 <div className={styles.grid}>
                     {/* Special Interaction Cards */}
-                    <div className={styles.productCard} onClick={() => setShowBuilder('wizard')}>
+                    <div className={styles.productCard} onClick={() => { resetBuilder(); setBuilderMode('wizard'); setShowBuilder('wizard'); }}>
                         <div className={styles.specialCard} style={{ background: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)' }}>
                             <div className={styles.specialIcon}>
                                 <Cake size={32} />
@@ -255,7 +279,7 @@ export default function PosPage() {
                         </div>
                     </div>
 
-                    <div className={styles.productCard} onClick={() => setShowBuilder('upload')}>
+                    <div className={styles.productCard} onClick={() => { resetBuilder(); setBuilderMode('upload'); setShowBuilder('upload'); }}>
                         <div className={styles.specialCard} style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)' }}>
                             <div className={styles.specialIcon}>
                                 <ImageIcon size={32} />
@@ -430,11 +454,27 @@ export default function PosPage() {
                     <div className={styles.formRow}>
                         <div className={styles.formControl}>
                             <label className={styles.label}><Calendar size={12} style={{ display: 'inline', marginRight: 4 }} /> Sana</label>
-                            <input 
-                                type="date" 
-                                className={styles.input} 
+                            <input
+                                type="date"
+                                className={styles.input}
                                 value={deliveryInfo.date ? deliveryInfo.date.toISOString().split('T')[0] : ''}
-                                onChange={(e) => setDeliveryInfo({ date: e.target.value ? new Date(e.target.value) : null })}
+                                onChange={(e) => {
+                                    const dateVal = e.target.value;
+                                    if (!dateVal) {
+                                        setDeliveryInfo({ date: null });
+                                        return;
+                                    }
+                                    if (isDateFullyBlocked(dateVal)) {
+                                        setError('Bu sana yopiq (jadval bo\'yicha)');
+                                        setDeliveryInfo({ date: null });
+                                        return;
+                                    }
+                                    const newDate = new Date(dateVal);
+                                    const slotNowBlocked = deliveryInfo.slot &&
+                                        overrides.some(o => o.date === dateVal && (o.slot === null || o.slot === deliveryInfo.slot));
+                                    setDeliveryInfo({ date: newDate, ...(slotNowBlocked ? { slot: '' } : {}) });
+                                    setError(null);
+                                }}
                                 min={new Date().toISOString().split('T')[0]}
                             />
                         </div>
@@ -446,7 +486,14 @@ export default function PosPage() {
                                 onChange={(e) => setDeliveryInfo({ slot: e.target.value })}
                             >
                                 <option value="">Tanlang</option>
-                                {slots.map(s => <option key={s.id} value={s.label}>{s.label}</option>)}
+                                {slots.map(s => {
+                                    const blocked = isSlotBlocked(s.label);
+                                    return (
+                                        <option key={s.id} value={s.label} disabled={blocked}>
+                                            {s.label}{blocked ? ' — yopiq' : ''}
+                                        </option>
+                                    );
+                                })}
                             </select>
                         </div>
                     </div>
@@ -465,11 +512,11 @@ export default function PosPage() {
                     <div className={styles.totalSection}>
                         <div className={styles.totalRow}>
                             <span className={styles.totalLabel}>{t('totalLabel')}</span>
-                            <span className={styles.totalAmount}>{(subtotal + (deliveryType === 'delivery' ? 40000 : 0)).toLocaleString()} so'm</span>
+                            <span className={styles.totalAmount}>{(subtotal + (deliveryType === 'delivery' ? DELIVERY_FEE : 0)).toLocaleString()} so'm</span>
                         </div>
                         {deliveryType === 'delivery' && (
                             <div style={{ fontSize: '11px', color: '#64748b', textAlign: 'right', marginTop: '2px' }}>
-                                (Inc. 40,000 delivery fee)
+                                (Inc. {DELIVERY_FEE.toLocaleString()} delivery fee)
                             </div>
                         )}
                     </div>
@@ -500,13 +547,13 @@ export default function PosPage() {
             {showBuilder && (
                 <div className={styles.modalOverlay}>
                     <div className={styles.modalContent}>
-                        <button className={styles.closeModal} onClick={() => setShowBuilder(null)}>
+                        <button className={styles.closeModal} onClick={() => { setShowBuilder(null); resetBuilder(); }}>
                             <X size={20} />
                         </button>
                         {showBuilder === 'wizard' ? (
-                            <WizardShell onItemComplete={handleBuilderComplete} />
+                            <WizardShell onItemComplete={handleBuilderComplete} onClose={() => setShowBuilder(null)} />
                         ) : (
-                            <PhotoUploadForm onItemComplete={handleBuilderComplete} />
+                            <PhotoUploadForm onItemComplete={handleBuilderComplete} onClose={() => setShowBuilder(null)} />
                         )}
                     </div>
                 </div>

@@ -55,7 +55,6 @@ export default function ProductGallery({ images, title }: ProductGalleryProps) {
                             className={styles.image}
                             sizes="(max-width: 1024px) 100vw, 800px"
                             priority={index === 0}
-                            loading={index === 0 ? 'eager' : 'lazy'} // Performance optimization
                         />
                     </div>
                 ))}

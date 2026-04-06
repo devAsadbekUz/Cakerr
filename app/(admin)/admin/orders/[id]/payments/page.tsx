@@ -1,0 +1,261 @@
+'use client';
+
+import { useState, useEffect, use } from 'react';
+import { ArrowLeft, Receipt, AlertCircle } from 'lucide-react';
+import { format } from 'date-fns';
+import { ru, uz } from 'date-fns/locale';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAdminI18n } from '@/app/context/AdminLanguageContext';
+import styles from '../../../AdminDashboard.module.css';
+
+type PaymentLog = {
+    id: string;
+    event_type: 'deposit_recorded' | 'deposit_edited' | 'final_payment_recorded';
+    amount: number;
+    previous_amount: number | null;
+    recorded_by_name: string;
+    created_at: string;
+};
+
+type OrderSummary = {
+    id: string;
+    total_price: number;
+    deposit_amount: number;
+    final_payment_amount: number;
+    status: string;
+    refund_needed: boolean;
+};
+
+export default function PaymentHistoryPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
+    const { lang } = useAdminI18n();
+    const router = useRouter();
+
+    const [logs, setLogs] = useState<PaymentLog[]>([]);
+    const [order, setOrder] = useState<OrderSummary | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        async function fetchData() {
+            setLoading(true);
+            try {
+                const res = await fetch(`/api/admin/orders/${id}/payments`, {
+                    credentials: 'include'
+                });
+                if (!res.ok) throw new Error('Failed to fetch');
+                const data = await res.json();
+                setLogs(data.logs ?? []);
+                setOrder(data.order ?? null);
+            } catch {
+                setError(lang === 'uz' ? 'Xatolik yuz berdi' : 'Произошла ошибка');
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchData();
+    }, [id, lang]);
+
+    const copy = {
+        uz: {
+            title: "To'lov tarixi",
+            backToOrder: "Buyurtmaga qaytish",
+            orderSummary: "Buyurtma xulosasi",
+            total: "Jami:",
+            deposit: "Avans:",
+            remaining: "Qoldiq:",
+            fullyPaid: "To'liq to'langan",
+            noLogs: "Hozircha to'lov yozuvlari yo'q.",
+            refundNeeded: "Qaytarish kerak",
+            refundDesc: (amount: number) => `Mijozga ${amount.toLocaleString('en-US')} so'm qaytarilishi kerak.`,
+            som: "so'm",
+            eventLabels: {
+                deposit_recorded: (amount: number, by: string) => `${by} avans yozdi: ${amount.toLocaleString('en-US')} so'm`,
+                deposit_edited: (amount: number, prev: number, by: string) => `${by} avansni tahrirladi: ${prev.toLocaleString('en-US')} → ${amount.toLocaleString('en-US')} so'm`,
+                final_payment_recorded: (amount: number, by: string) => `${by} yakuniy to'lovni yozdi: ${amount.toLocaleString('en-US')} so'm`,
+            }
+        },
+        ru: {
+            title: "История оплат",
+            backToOrder: "Вернуться к заказу",
+            orderSummary: "Сводка по заказу",
+            total: "Итого:",
+            deposit: "Аванс:",
+            remaining: "Остаток:",
+            fullyPaid: "Полностью оплачено",
+            noLogs: "Записей об оплате пока нет.",
+            refundNeeded: "Необходим возврат",
+            refundDesc: (amount: number) => `Клиенту необходимо вернуть ${amount.toLocaleString('en-US')} сум.`,
+            som: "сум",
+            eventLabels: {
+                deposit_recorded: (amount: number, by: string) => `${by} записал аванс: ${amount.toLocaleString('en-US')} сум`,
+                deposit_edited: (amount: number, prev: number, by: string) => `${by} изменил аванс: ${prev.toLocaleString('en-US')} → ${amount.toLocaleString('en-US')} сум`,
+                final_payment_recorded: (amount: number, by: string) => `${by} записал итоговый платёж: ${amount.toLocaleString('en-US')} сум`,
+            }
+        }
+    }[lang as 'uz' | 'ru'] ?? {
+        title: "Payment History",
+        backToOrder: "Back to Order",
+        orderSummary: "Order Summary",
+        total: "Total:", deposit: "Deposit:", remaining: "Remaining:",
+        fullyPaid: "Fully paid", noLogs: "No payment records yet.",
+        refundNeeded: "Refund needed",
+        refundDesc: (amount: number) => `Return ${amount.toLocaleString('en-US')} to customer.`,
+        som: "so'm",
+        eventLabels: {
+            deposit_recorded: (amount: number, by: string) => `${by} recorded deposit: ${amount.toLocaleString('en-US')} so'm`,
+            deposit_edited: (amount: number, prev: number, by: string) => `${by} edited deposit: ${prev.toLocaleString('en-US')} → ${amount.toLocaleString('en-US')} so'm`,
+            final_payment_recorded: (amount: number, by: string) => `${by} recorded final payment: ${amount.toLocaleString('en-US')} so'm`,
+        }
+    };
+
+    const eventDotColor = (type: PaymentLog['event_type']) => {
+        if (type === 'deposit_recorded') return '#16A34A';
+        if (type === 'deposit_edited') return '#D97706';
+        return '#2563EB';
+    };
+
+    const renderLogLine = (log: PaymentLog) => {
+        const labels = copy.eventLabels;
+        if (log.event_type === 'deposit_recorded') {
+            return labels.deposit_recorded(log.amount, log.recorded_by_name);
+        }
+        if (log.event_type === 'deposit_edited') {
+            return labels.deposit_edited(log.amount, log.previous_amount ?? 0, log.recorded_by_name);
+        }
+        return labels.final_payment_recorded(log.amount, log.recorded_by_name);
+    };
+
+    const remaining = order ? Math.max(0, order.total_price - order.deposit_amount) : 0;
+
+    return (
+        <div className={styles.container}>
+            <header className={styles.header}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <button onClick={() => router.back()} className={styles.modalClose} style={{ width: '40px', height: '40px' }}>
+                        <ArrowLeft size={20} />
+                    </button>
+                    <div>
+                        <h1 className={styles.title} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <Receipt size={22} color="#BE185D" /> {copy.title}
+                        </h1>
+                        <Link
+                            href={`/admin/orders/${id}`}
+                            style={{ fontSize: '13px', color: '#BE185D', fontWeight: 700, textDecoration: 'none' }}
+                        >
+                            ← {copy.backToOrder} #{id.slice(0, 8)}
+                        </Link>
+                    </div>
+                </div>
+            </header>
+
+            {loading ? (
+                <div style={{ textAlign: 'center', padding: '80px', color: '#6B7280' }}>
+                    {lang === 'uz' ? 'Yuklanmoqda...' : 'Загрузка...'}
+                </div>
+            ) : error ? (
+                <div style={{ textAlign: 'center', padding: '80px' }}>
+                    <AlertCircle size={40} color="#EF4444" style={{ marginBottom: '12px' }} />
+                    <p style={{ color: '#6B7280' }}>{error}</p>
+                </div>
+            ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '680px' }}>
+
+                    {/* Refund needed banner */}
+                    {order?.refund_needed && (
+                        <div style={{
+                            padding: '14px 18px', background: '#FEF2F2',
+                            border: '1.5px solid #FCA5A5', borderRadius: '14px',
+                            display: 'flex', alignItems: 'flex-start', gap: '12px'
+                        }}>
+                            <AlertCircle size={18} color="#DC2626" style={{ flexShrink: 0, marginTop: '1px' }} />
+                            <div>
+                                <div style={{ fontWeight: 800, color: '#991B1B', fontSize: '14px' }}>{copy.refundNeeded}</div>
+                                <div style={{ fontSize: '13px', color: '#B91C1C', marginTop: '2px' }}>
+                                    {copy.refundDesc(order.deposit_amount)}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Order summary card */}
+                    {order && (
+                        <div className={styles.section} style={{ background: 'white', border: '1px solid #E5E7EB' }}>
+                            <h3 style={{ fontSize: '13px', color: '#9CA3AF', textTransform: 'uppercase', marginBottom: '14px' }}>
+                                {copy.orderSummary}
+                            </h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px' }}>
+                                    <span style={{ color: '#6B7280' }}>{copy.total}</span>
+                                    <span style={{ fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
+                                        {order.total_price.toLocaleString('en-US')} {copy.som}
+                                    </span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px' }}>
+                                    <span style={{ color: '#6B7280' }}>{copy.deposit}</span>
+                                    <span style={{ fontWeight: 800, color: '#16A34A', fontVariantNumeric: 'tabular-nums' }}>
+                                        {order.deposit_amount.toLocaleString('en-US')} {copy.som}
+                                    </span>
+                                </div>
+                                <div style={{ height: '1px', background: '#F3F4F6', margin: '4px 0' }} />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px' }}>
+                                    <span style={{ fontWeight: 700 }}>{copy.remaining}</span>
+                                    {remaining === 0 ? (
+                                        <span style={{ background: '#D1FAE5', color: '#065F46', padding: '2px 10px', borderRadius: '6px', fontSize: '13px', fontWeight: 700 }}>
+                                            {copy.fullyPaid}
+                                        </span>
+                                    ) : (
+                                        <span style={{ fontWeight: 900, color: '#BE185D', fontVariantNumeric: 'tabular-nums' }}>
+                                            {remaining.toLocaleString('en-US')} {copy.som}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Payment log */}
+                    <div className={styles.section} style={{ background: 'white', border: '1px solid #E5E7EB' }}>
+                        <h3 style={{ fontSize: '13px', color: '#9CA3AF', textTransform: 'uppercase', marginBottom: '20px' }}>
+                            {copy.title}
+                        </h3>
+
+                        {logs.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '32px', color: '#9CA3AF', fontSize: '14px' }}>
+                                {copy.noLogs}
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                                {logs.map((log, i) => (
+                                    <div key={log.id} style={{ display: 'flex', gap: '16px', paddingBottom: i < logs.length - 1 ? '20px' : '0' }}>
+                                        {/* Timeline dot + line */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+                                            <div style={{
+                                                width: '12px', height: '12px', borderRadius: '50%',
+                                                background: eventDotColor(log.event_type),
+                                                marginTop: '3px', flexShrink: 0
+                                            }} />
+                                            {i < logs.length - 1 && (
+                                                <div style={{ width: '2px', flex: 1, background: '#F3F4F6', marginTop: '4px' }} />
+                                            )}
+                                        </div>
+                                        {/* Content */}
+                                        <div style={{ flex: 1, paddingBottom: '4px' }}>
+                                            <div style={{ fontSize: '14px', fontWeight: 600, color: '#111827', lineHeight: '1.4' }}>
+                                                {renderLogLine(log)}
+                                            </div>
+                                            <div style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '3px' }}>
+                                                {format(new Date(log.created_at), 'd MMM yyyy, HH:mm', { locale: lang === 'uz' ? uz : ru })}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}

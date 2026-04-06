@@ -188,17 +188,33 @@ export default function ProfilPage() {
 
     if (!user) {
         return (
-            <div className={styles.container}>
-                <div className={styles.header}>
-                    <h1 className={styles.title}>{t('profileTitle')}</h1>
-                    <p className={styles.subtitle}>{t('loginPrompt')}</p>
+            <div className={styles.guestContainer}>
+                <div className={styles.guestHeader}>
+                    <h1 className={styles.guestTitle}>{t('profileTitle')}</h1>
+                    <p className={styles.guestSubtitle}>{t('loginPrompt')}</p>
                 </div>
-                <button
-                    className={styles.loginBtn}
-                    onClick={() => router.push('/profil/login')}
-                >
-                    {t('login')}
-                </button>
+                <div className={styles.guestBody}>
+                    <div className={styles.guestIconWrap}>
+                        <div className={styles.guestIconRing} />
+                        <div className={styles.guestIconCircle}>
+                            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                <circle cx="12" cy="7" r="4" />
+                            </svg>
+                        </div>
+                    </div>
+                    <h2 className={styles.guestBodyTitle}>
+                        {lang === 'ru' ? 'Войдите в аккаунт' : 'Hisobingizga kiring'}
+                    </h2>
+                    <p className={styles.guestBodyDesc}>
+                        {lang === 'ru'
+                            ? 'Следите за заказами, накапливайте бонусы и управляйте профилем'
+                            : "Buyurtmalaringizni kuzating, bonus yig'ing va profilingizni boshqaring"}
+                    </p>
+                    <button className={styles.loginBtn} onClick={() => router.push('/profil/login')}>
+                        {t('login')}
+                    </button>
+                </div>
             </div>
         );
     }

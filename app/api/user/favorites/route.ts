@@ -40,9 +40,10 @@ export async function GET(request: NextRequest) {
 
         if (error) throw error;
 
-        return NextResponse.json({
-            favorites: data?.map(f => f.product_id) || []
-        });
+        return NextResponse.json(
+            { favorites: data?.map(f => f.product_id) || [] },
+            { headers: { 'Cache-Control': 'private, no-cache' } }
+        );
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }

@@ -24,6 +24,7 @@ export default function HomepageShell({ categories, productsByCategory, children
     const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
     const lastScrollY = useRef(0);
     const isScrollingRef = useRef(false);
+    const isCollapsedRef = useRef(false);
 
     // --- Category click → smooth scroll ---
     const handleCategorySelect = (id: string) => {
@@ -107,20 +108,23 @@ export default function HomepageShell({ categories, productsByCategory, children
     useEffect(() => {
         const handleScroll = () => {
             const currentScrollY = window.scrollY;
-            
-            // Simple threshold-based collapse for better performance than continuous delta checks
-            if (currentScrollY > 150) {
-                setIsHeaderCollapsed(true);
-            } else {
-                setIsHeaderCollapsed(false);
+            const collapsed = isCollapsedRef.current;
+
+            // Hysteresis: collapse past 150px, only expand once back below 120px.
+            // Prevents rapid state toggling when scrolling near the threshold.
+            const next = collapsed ? currentScrollY > 120 : currentScrollY > 150;
+
+            if (next !== collapsed) {
+                isCollapsedRef.current = next;
+                setIsHeaderCollapsed(next);
             }
-            
+
             lastScrollY.current = currentScrollY;
         };
 
         window.addEventListener('scroll', handleScroll, { passive: true });
         return () => window.removeEventListener('scroll', handleScroll);
-    }, []); // Removed dependency to avoid re-registering listener
+    }, []);
 
     return (
         <SearchContext.Provider value={{ searchTerm }}>

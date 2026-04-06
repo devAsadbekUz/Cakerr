@@ -2,7 +2,7 @@
 
 import React, { useRef, useState } from 'react';
 import { useCustomCake } from '@/app/context/CustomCakeContext';
-import { useCart } from '@/app/context/CartContext';
+import { useCartActions } from '@/app/context/CartContext';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
 import styles from './PhotoUploadForm.module.css';
@@ -13,9 +13,15 @@ import PhotoPreview from './PhotoPreview';
 
 interface PhotoUploadFormProps {
     onItemComplete?: (item: any) => void;
+    onClose?: () => void;
 }
 
-export default function PhotoUploadForm({ onItemComplete }: PhotoUploadFormProps) {
+// Placeholder starting price for photo-based custom cakes.
+// Final price is agreed with the customer and updated by admin before confirmation.
+// Price is 0 — the real agreed price is set by admin after calling the customer.
+const PHOTO_CAKE_BASE_PRICE = 0;
+
+export default function PhotoUploadForm({ onItemComplete, onClose }: PhotoUploadFormProps) {
     const {
         uploadedImage,
         setUploadedImage,
@@ -24,7 +30,7 @@ export default function PhotoUploadForm({ onItemComplete }: PhotoUploadFormProps
         setMode
     } = useCustomCake();
     
-    const { addItem } = useCart();
+    const { addItem } = useCartActions();
     const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement>(null);
     
@@ -119,7 +125,7 @@ export default function PhotoUploadForm({ onItemComplete }: PhotoUploadFormProps
             const item = {
                 id: '00000000-0000-0000-0000-000000000000',
                 name: 'Maxsus tort (Rasm asosida)',
-                price: 350000,
+                price: PHOTO_CAKE_BASE_PRICE,
                 image: publicUrl, 
                 portion: 'Kelishilgan holda',
                 flavor: 'Mijoz tanlovi',
@@ -130,7 +136,7 @@ export default function PhotoUploadForm({ onItemComplete }: PhotoUploadFormProps
                     uploaded_photo_url: publicUrl,
                     custom_note: uploadComment,
                     pricing_type: 'hybrid',
-                    estimated_total: 350000
+                    estimated_total: PHOTO_CAKE_BASE_PRICE
                 }
             };
 
@@ -151,7 +157,7 @@ export default function PhotoUploadForm({ onItemComplete }: PhotoUploadFormProps
 
     return (
         <div className={styles.container}>
-            <button className={styles.backLink} onClick={() => setMode(null)}>
+            <button className={styles.backLink} onClick={() => onClose ? onClose() : setMode(null)}>
                 <ChevronLeft size={20} /> Orqaga
             </button>
 

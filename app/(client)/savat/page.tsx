@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useCart } from '@/app/context/CartContext';
+import { useCart, useCartActions } from '@/app/context/CartContext';
 import { useLanguage } from '@/app/context/LanguageContext';
 import { getLocalized } from '@/app/utils/i18n';
 import styles from './page.module.css';
@@ -13,7 +13,8 @@ import { CartItem } from '@/app/context/CartContext';
 
 export default function SavatPage() {
     const { lang, t } = useLanguage();
-    const { cart, removeItem, updateQuantity, totalItems, subtotal } = useCart();
+    const { cart, totalItems, subtotal } = useCart();
+    const { removeItem, updateQuantity } = useCartActions();
     const [pendingDeleteItem, setPendingDeleteItem] = useState<CartItem | null>(null);
     const deliveryFee = totalItems > 0 ? 40000 : 0;
     const total = subtotal + deliveryFee;
@@ -66,7 +67,10 @@ export default function SavatPage() {
                                     </div>
                                     <div className={styles.itemBottom}>
                                         <p className={styles.itemPrice}>
-                                            {(item.price || 0).toLocaleString('en-US')} {t('som')}
+                                            {item.configuration?.mode === 'upload' && !item.price
+                                                ? <span style={{ color: '#BE185D', fontStyle: 'italic' }}>Kelishiladi</span>
+                                                : <>{(item.price || 0).toLocaleString('en-US')} {t('som')}</>
+                                            }
                                         </p>
                                         <div className={styles.stepper}>
                                             <button

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useCart } from '@/app/context/CartContext';
+import { useCart, useCartActions } from '@/app/context/CartContext';
 import { useLanguage } from '@/app/context/LanguageContext';
 import { getLocalized } from '@/app/utils/i18n';
 import styles from './page.module.css';
@@ -11,7 +11,7 @@ import CalendarModal from '@/app/components/checkout/CalendarModal';
 import AddressesModal from '@/app/components/checkout/AddressesModal';
 import SuccessModal from '@/app/components/checkout/SuccessModal';
 import { useAuth } from '@/app/context/AuthContext';
-import { getAuthHeader } from '@/app/utils/telegram';
+import { getAuthHeader, getStoredSession } from '@/app/utils/telegram';
 import { TELEGRAM_CONFIG } from '@/app/utils/telegramConfig';
 import { createClient } from '@/app/utils/supabase/client';
 import { availabilityService } from '@/app/services/availabilityService';
@@ -46,7 +46,8 @@ interface SuccessOrderSnapshot {
 export default function CheckoutPage() {
     const router = useRouter();
     const { lang, t } = useLanguage();
-    const { cart, subtotal, totalItems, deliveryAddress, deliveryCoords, clearCart } = useCart();
+    const { cart, subtotal, totalItems, deliveryAddress, deliveryCoords } = useCart();
+    const { clearCart } = useCartActions();
     const { user, isTelegram, loginWithTelegram } = useAuth();
     const supabase = createClient();
 
@@ -180,7 +181,9 @@ export default function CheckoutPage() {
         return dayOverrides.some(o => o.slot === null || o.slot === slot);
     };
 
-    const hasPhone = !!(user?.phone_number || user?.phone);
+    // Also check stored session — defensive fallback for the rare case where the context
+    // is momentarily stale right after loginWithTelegram() writes the phone to the session.
+    const hasPhone = !!(user?.phone_number || user?.phone || getStoredSession()?.user?.phone_number);
 
     const handleConfirmOrder = async () => {
         if (!user) {
@@ -729,6 +732,17 @@ export default function CheckoutPage() {
                 </div>
 
                 <div className={styles.summary}>
+                    {cart.some(item => item.configuration?.mode === 'upload') && (
+                        <div style={{
+                            marginBottom: '10px', padding: '10px 12px',
+                            background: '#FFF7ED', border: '1px solid #FED7AA',
+                            borderRadius: '10px', fontSize: '13px', color: '#9A3412', lineHeight: '1.5'
+                        }}>
+                            {lang === 'ru'
+                                ? '📸 Цена торта по фото будет согласована с администратором после размещения заказа.'
+                                : '📸 Rasm asosidagi tort narxi buyurtma berilgandan so\'ng admin bilan kelishiladi.'}
+                        </div>
+                    )}
                     <div className={styles.summaryRow}>
                         <span>{t('items')}:</span>
                         <span>{subtotal.toLocaleString('en-US')} {t('som')}</span>

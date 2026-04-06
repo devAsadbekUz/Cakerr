@@ -157,3 +157,137 @@
     font-weight: 700;
     text-decoration: none;
 }
+
+/* ── Guest / Not-logged-in screen ── */
+.guestContainer {
+    min-height: 100vh;
+    background: #F9FAFB;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 120px;
+}
+
+.guestHeader {
+    background: linear-gradient(135deg, #BE185D 0%, #EC4899 100%);
+    padding: 48px 24px 56px;
+    color: white;
+}
+
+.guestTitle {
+    font-size: 32px;
+    font-weight: 900;
+    margin: 0 0 8px;
+    letter-spacing: -0.5px;
+}
+
+.guestSubtitle {
+    font-size: 15px;
+    opacity: 0.85;
+    margin: 0;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.guestBody {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 32px 48px;
+    text-align: center;
+    gap: 0;
+}
+
+.guestIconWrap {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 28px;
+}
+
+.guestIconRing {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(190, 24, 93, 0.12), rgba(236, 72, 153, 0.06));
+    border: 2px dashed rgba(190, 24, 93, 0.2);
+}
+
+.guestIconCircle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #BE185D, #EC4899);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    box-shadow: 0 12px 32px rgba(190, 24, 93, 0.3);
+}
+
+.guestBodyTitle {
+    font-size: 22px;
+    font-weight: 800;
+    color: #111827;
+    margin: 0 0 10px;
+    letter-spacing: -0.3px;
+}
+
+.guestBodyDesc {
+    font-size: 14px;
+    color: #6B7280;
+    line-height: 1.6;
+    margin: 0 0 36px;
+    max-width: 280px;
+}
+
+.loginBtn {
+    width: 100%;
+    max-width: 320px;
+    padding: 16px 24px;
+    background: linear-gradient(135deg, #BE185D, #EC4899);
+    color: white;
+    border: none;
+    border-radius: 18px;
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(190, 24, 93, 0.35);
+    transition: transform 0.2s, box-shadow 0.2s;
+    letter-spacing: 0.2px;
+}
+
+.loginBtn:active {
+    transform: scale(0.97);
+    box-shadow: 0 4px 12px rgba(190, 24, 93, 0.3);
+}
+
+/* legacy title/subtitle used by old header (keep for safety) */
+.title {
+    font-size: 32px;
+    font-weight: 900;
+    margin: 0 0 8px;
+}
+
+.subtitle {
+    font-size: 15px;
+    opacity: 0.85;
+    margin: 0;
+}
+
+.contactInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.userEmail,
+.userPhone {
+    font-size: 13px;
+    opacity: 0.8;
+    margin: 0;
+}

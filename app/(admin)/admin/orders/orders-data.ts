@@ -50,7 +50,7 @@ export async function fetchAdminOrders(filterDays?: number | null, limit = 500) 
         .select(`
             id, user_id, status, total_price, delivery_time, delivery_slot, created_at, comment, delivery_address,
             delivery_type, branch_id, customer_name, customer_phone, created_by_name,
-            payment_method, coins_spent, promo_discount,
+            payment_method, coins_spent, promo_discount, deposit_amount, final_payment_amount, refund_needed,
             profiles (full_name, phone_number),
             branches (name_uz, name_ru, address_uz, address_ru, location_link),
             order_items (
@@ -82,6 +82,7 @@ export async function fetchAdminOrderSummaries(filterDays?: number | null, limit
         .select(`
             id, status, total_price, delivery_time, delivery_slot, created_at,
             delivery_address, delivery_type, branch_id, customer_name, customer_phone, created_by_name,
+            deposit_amount, final_payment_amount, refund_needed,
             profiles (full_name),
             branches (name_uz, name_ru, address_uz, address_ru, location_link),
             order_items (
@@ -105,8 +106,8 @@ export async function fetchAdminOrderSummaries(filterDays?: number | null, limit
         order_items: order.order_items?.slice(0, 2).map(item => ({
             ...sanitizeOrderItem(item),
             products: undefined,
-            configuration: item.configuration?.portion
-                ? { portion: item.configuration.portion }
+            configuration: (item.configuration?.portion || item.configuration?.mode)
+                ? { portion: item.configuration?.portion ?? undefined, mode: item.configuration?.mode ?? undefined }
                 : null,
         })),
     }));

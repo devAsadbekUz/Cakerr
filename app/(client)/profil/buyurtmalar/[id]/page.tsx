@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
-import { ChevronLeft, Package, Check, Clock, Truck, MapPin, Phone, User, AlertCircle } from 'lucide-react';
+import { ChevronLeft, Package, Check, Clock, Truck, MapPin, AlertCircle, Banknote } from 'lucide-react';
 import styles from './page.module.css';
 import { useLanguage } from '@/app/context/LanguageContext';
 import { getLocalized } from '@/app/utils/i18n';
@@ -88,23 +88,24 @@ export default function TrackingPage() {
                     delivery_type: data.delivery_type,
                     branch: data.branches,
                     currentStep,
-                    totalSteps: filteredStatuses.length + 1, // +1 for Completed
+                    totalSteps: filteredStatuses.length,
                     filteredStatuses,
                     total: data.total_price,
+                    deposit_amount: data.deposit_amount ?? 0,
                     address: {
                         label: data.delivery_address?.label || t('address'),
                         text: data.delivery_address?.street || t('addressNotProvided'),
                         phone: data.delivery_address?.phone || ''
                     },
-                    items: data.order_items.map((item: any) => ({
+                    items: (data.order_items ?? []).map((item: any) => ({
                         id: item.id,
                         name: item.name,
                         qty: item.quantity,
                         price: item.unit_price,
-                        image: item.configuration?.uploaded_photo_url || 
-                               item.configuration?.drawing || 
-                               item.configuration?.image_url || 
-                               item.products?.image_url || 
+                        image: item.configuration?.uploaded_photo_url ||
+                               item.configuration?.drawing ||
+                               item.configuration?.image_url ||
+                               item.products?.image_url ||
                                '/images/cake-placeholder.jpg'
                     }))
                 });
@@ -112,6 +113,7 @@ export default function TrackingPage() {
         } catch (error: any) {
             if (error?.name === 'AbortError') return;
             console.error('[Tracking] Fetch error:', error);
+            setErrorMsg(t('errorOccurred'));
         } finally {
             setLoading(false);
         }
@@ -332,6 +334,94 @@ export default function TrackingPage() {
                         </div>
                     </div>
 
+                    {/* Payment Status Card — shown once order is confirmed or beyond */}
+                    {['confirmed', 'preparing', 'ready', 'delivering', 'completed'].includes(order.status) && (() => {
+                        const depositAmount: number = order.deposit_amount ?? 0;
+                        const totalPrice: number = order.total ?? 0;
+                        const remaining = Math.max(0, totalPrice - depositAmount);
+                        const fullyPaid = remaining === 0;
+                        const noDeposit = depositAmount === 0 && order.status !== 'completed';
+
+                        return (
+                            <div className={styles.card}>
+                                <h2 className={styles.sectionTitle} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <Banknote size={18} color="#BE185D" />
+                                    {lang === 'ru' ? 'Статус оплаты' : "To'lov holati"}
+                                </h2>
+
+                                {noDeposit ? (
+                                    <div style={{
+                                        padding: '12px 14px',
+                                        background: '#FFFBEB',
+                                        border: '1px solid #FDE68A',
+                                        borderRadius: '10px',
+                                        fontSize: '13px',
+                                        color: '#92400E',
+                                        lineHeight: '1.5',
+                                        marginTop: '10px'
+                                    }}>
+                                        {lang === 'ru'
+                                            ? 'Данные об оплате будут обновлены в ближайшее время.'
+                                            : "To'lov ma'lumotlari tez orada yangilanadi."}
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                                            <span style={{ color: '#6B7280' }}>
+                                                {lang === 'ru' ? 'Итого:' : 'Jami:'}
+                                            </span>
+                                            <span style={{ fontWeight: 700, color: '#111827' }}>
+                                                {totalPrice.toLocaleString('en-US')} {t('som')}
+                                            </span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                                            <span style={{ color: '#6B7280' }}>
+                                                {lang === 'ru' ? 'Оплачено:' : "To'langan:"}
+                                            </span>
+                                            <span style={{ fontWeight: 700, color: '#16A34A' }}>
+                                                {depositAmount.toLocaleString('en-US')} {t('som')}
+                                            </span>
+                                        </div>
+                                        <div style={{ height: '1px', background: '#F3F4F6' }} />
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', alignItems: 'center' }}>
+                                            <span style={{ fontWeight: 700, color: '#111827' }}>
+                                                {lang === 'ru' ? 'Остаток:' : 'Qoldiq:'}
+                                            </span>
+                                            {fullyPaid ? (
+                                                <span style={{
+                                                    background: '#D1FAE5', color: '#065F46',
+                                                    padding: '3px 10px', borderRadius: '8px',
+                                                    fontSize: '12px', fontWeight: 700
+                                                }}>
+                                                    {lang === 'ru' ? 'Полностью оплачено' : "To'liq to'langan"}
+                                                </span>
+                                            ) : (
+                                                <span style={{ fontWeight: 800, color: '#BE185D', fontSize: '16px' }}>
+                                                    {remaining.toLocaleString('en-US')} {t('som')}
+                                                </span>
+                                            )}
+                                        </div>
+                                        {!fullyPaid && (
+                                            <p style={{
+                                                margin: 0,
+                                                fontSize: '12px',
+                                                color: '#9CA3AF',
+                                                lineHeight: '1.5',
+                                                padding: '8px 10px',
+                                                background: '#F9FAFB',
+                                                borderRadius: '8px'
+                                            }}>
+                                                {lang === 'ru'
+                                                    ? 'Остаток будет оплачен при получении.'
+                                                    : "Qoldiq buyurtma yetkazilganda to'lanadi."}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })()}
+
                     {/* Order Summary */}
                     <div className={styles.card}>
                         <h2 className={styles.sectionTitle}>{t('items')}</h2>
@@ -345,13 +435,24 @@ export default function TrackingPage() {
                                         <h3 className={styles.productName}>{item.name}</h3>
                                         <span className={styles.productQty}>{t('quantity')}: {item.qty} {t('pieceUnit')}</span>
                                     </div>
-                                    <span className={styles.productPrice}>{item.price.toLocaleString('uz-UZ')} so'm</span>
+                                    <span className={styles.productPrice}>
+                                        {item.price === 0
+                                            ? <span style={{ color: '#BE185D', fontStyle: 'italic' }}>Kelishiladi</span>
+                                            : <>{item.price.toLocaleString('uz-UZ')} so'm</>
+                                        }
+                                    </span>
                                 </div>
                             ))}
 
                             <div className={styles.totalRow}>
                                 <span className={styles.totalLabel}>{t('total')}</span>
-                                <span className={styles.totalValue}>{order.total.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}</span>
+                                {order.items.some((item: any) => item.price === 0) ? (
+                                    <span className={styles.totalValue} style={{ color: '#BE185D', fontStyle: 'italic', fontSize: '14px' }}>
+                                        Kelishiladi
+                                    </span>
+                                ) : (
+                                    <span className={styles.totalValue}>{order.total.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}</span>
+                                )}
                             </div>
                         </div>
                     </div>

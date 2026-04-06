@@ -31,9 +31,14 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Missing required order details' }, { status: 400 });
         }
 
+        // Recalculate total server-side from item prices — never trust client total
+        const DELIVERY_FEE = 40000;
+        const itemsTotal = items.reduce((sum: number, item: any) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 1), 0);
+        const serverTotal = itemsTotal + (deliveryInfo.delivery_type === 'delivery' ? DELIVERY_FEE : 0);
+
         // 1. Prepare data for RPC
         const orderData = {
-            total_price: body.totalPrice,
+            total_price: serverTotal,
             delivery_address: deliveryInfo.delivery_type === 'delivery' ? { street: deliveryInfo.address } : null,
             delivery_time: deliveryInfo.date,
             delivery_slot: deliveryInfo.slot,

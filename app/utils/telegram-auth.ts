@@ -158,18 +158,45 @@ export function verifyTelegramRequest(request: Request): VerifiedTelegramUser | 
     return verifyTelegramInitData(initData);
 }
 
+// In-process cache: maps initData hash → { profileId, expiresAt }
+// Keyed by the hash field in initData (already computed during verification).
+// TTL matches the Telegram auth_date freshness window (30 min in practice; we use 10 min).
+const _authCache = new Map<string, { profileId: string; expiresAt: number }>();
+const AUTH_CACHE_TTL_MS = 10 * 60 * 1000;
+
+function _getCacheKey(request: Request): string | null {
+    const initData = getInitDataFromRequest(request);
+    if (initData) {
+        // The hash field is already the unique fingerprint of this initData
+        const params = new URLSearchParams(initData);
+        const hash = params.get('hash');
+        if (hash) return `tg:${hash}`;
+    }
+    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    if (token) return `bearer:${token}`;
+    return null;
+}
+
 /**
  * Get verified user ID (profile ID) from request.
  * Checks for both X-Telegram-Init-Data (new) and Authorization header (legacy).
+ * Results are cached in-process for 10 minutes to avoid repeated DB lookups on rapid calls.
  */
 export async function getVerifiedUserId(request: Request): Promise<string | null> {
+    // Cache hit — skip all DB work
+    const cacheKey = _getCacheKey(request);
+    if (cacheKey) {
+        const cached = _authCache.get(cacheKey);
+        if (cached && Date.now() < cached.expiresAt) {
+            return cached.profileId;
+        }
+        _authCache.delete(cacheKey);
+    }
+
     const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!.trim(),
         process.env.SUPABASE_SERVICE_ROLE_KEY!.trim()
     );
-
-    // 1. Try Telegram initData (new preferred mechanism)
-    const headerKeys = Array.from(request.headers.keys());
 
     const tgUser = verifyTelegramRequest(request);
     if (tgUser) {
@@ -181,6 +208,7 @@ export async function getVerifiedUserId(request: Request): Promise<string | null
 
         if (error) console.error('[AUTH] Profile lookup DB ERROR:', error.message);
         if (data?.id) {
+            if (cacheKey) _authCache.set(cacheKey, { profileId: data.id, expiresAt: Date.now() + AUTH_CACHE_TTL_MS });
             return data.id;
         }
 
@@ -205,6 +233,7 @@ export async function getVerifiedUserId(request: Request): Promise<string | null
         if (error) console.error('[AUTH] Legacy session DB ERROR:', error.message);
 
         if (data && new Date(data.expires_at) > new Date()) {
+            if (cacheKey) _authCache.set(cacheKey, { profileId: data.profile_id, expiresAt: Date.now() + AUTH_CACHE_TTL_MS });
             return data.profile_id;
         } else if (data) {
             console.error(`[AUTH] FAIL: Legacy session found for ${data.profile_id} but it is EXPIRED.`);

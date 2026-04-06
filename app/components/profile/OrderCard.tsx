@@ -1,7 +1,7 @@
 import React from 'react';
 import styles from './OrderCard.module.css';
 import { RotateCw } from 'lucide-react';
-import { useCart } from '@/app/context/CartContext';
+import { useCartActions } from '@/app/context/CartContext';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useLanguage } from '@/app/context/LanguageContext';
@@ -19,7 +19,7 @@ interface OrderCardProps {
 }
 
 export default function OrderCard({ date, items, price, image, productId, name, portion, flavor }: OrderCardProps) {
-    const { addItem } = useCart();
+    const { addItem } = useCartActions();
     const router = useRouter();
     const { t } = useLanguage();
 

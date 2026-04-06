@@ -5,8 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ShoppingCart, Heart } from 'lucide-react';
 import styles from './ProductCard.module.css';
-import { useCart } from '@/app/context/CartContext';
-import { useFavorites } from '@/app/context/FavoritesContext';
+import { useCartActions } from '@/app/context/CartContext';
+import { useFavorites, useIsFavorite } from '@/app/context/FavoritesContext';
 import { useLanguage } from '@/app/context/LanguageContext';
 import { getLocalized } from '@/app/utils/i18n';
 import { Variant } from '@/app/types';
@@ -26,9 +26,9 @@ interface ProductProps {
 
 function ProductCardComponent({ id, title, price, image, images, tag, isReady, variants, priority }: ProductProps) {
     const { lang, t } = useLanguage();
-    const { addItem } = useCart();
-    const { toggleFavorite, isFavorite } = useFavorites();
-    const favorited = isFavorite(id);
+    const { addItem } = useCartActions();
+    const { toggleFavorite } = useFavorites();
+    const favorited = useIsFavorite(id);
 
     // Primary image fallback
     const displayImage = image || (images && images.length > 0 ? images[0] : '');

@@ -1,46 +1,17 @@
-'use client';
-
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ChevronLeft, Copy, Check, Share2, Gift, Users, Sparkles } from 'lucide-react';
+import { Share2, Gift, Users, Sparkles } from 'lucide-react';
+import { getServerT } from '@/app/utils/getServerLang';
+import BackButton from '@/app/components/shared/BackButton';
+import CopyShareButton from './CopyShareButton';
 import styles from './page.module.css';
-import { useLanguage } from '@/app/context/LanguageContext';
 
-export default function ShareAppPage() {
-    const router = useRouter();
-    const { t } = useLanguage();
-    const [copied, setCopied] = useState(false);
-    const shareUrl =
-        process.env.NEXT_PUBLIC_APP_URL ||
-        (typeof window !== 'undefined' ? window.location.origin : '');
-    const shareText = t('thankYou');
-
-    const handleCopy = async () => {
-        try {
-            await navigator.clipboard.writeText(shareUrl);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-
-            if (navigator.share) {
-                setTimeout(() => {
-                    navigator.share({
-                        title: 'TORTEL\'E',
-                        text: shareText,
-                        url: shareUrl,
-                    }).catch(() => {});
-                }, 300);
-            }
-        } catch (err) {
-            console.error('Failed to copy:', err);
-        }
-    };
+export default async function ShareAppPage() {
+    const t = await getServerT();
+    const shareUrl = process.env.NEXT_PUBLIC_APP_URL || '';
 
     return (
         <div className={styles.container}>
             <header className={styles.header}>
-                <button className={styles.backBtn} onClick={() => router.back()}>
-                    <ChevronLeft size={24} />
-                </button>
+                <BackButton className={styles.backBtn} />
                 <h1 className={styles.title}>{t('shareApp')}</h1>
             </header>
 
@@ -52,18 +23,18 @@ export default function ShareAppPage() {
                 <h2 className={styles.shareTitle}>{t('shareCardTitle')}</h2>
                 <p className={styles.shareDesc}>{t('shareCardDesc')}</p>
 
-                <div className={styles.linkBox}>
-                    <span className={styles.link}>{shareUrl}</span>
-                    <button className={styles.copyBtn} onClick={handleCopy}>
-                        {copied ? <Check size={20} /> : <Copy size={20} />}
-                        <span>{copied ? t('copied2') : t('copy')}</span>
-                    </button>
-                </div>
+                {/* Copy/share interaction lives in client island */}
+                <CopyShareButton
+                    shareUrl={shareUrl}
+                    copyLabel={t('copy')}
+                    copiedLabel={t('copied2')}
+                    shareText={t('thankYou')}
+                />
 
                 <p className={styles.hint}>{t('shareHint')}</p>
             </div>
 
-            {/* Coming Soon Features - Blurred */}
+            {/* Coming Soon Features — purely decorative/static */}
             <div className={styles.comingSoonSection}>
                 <div className={styles.blurOverlay}>
                     <div className={styles.comingSoonBadge}>
@@ -72,7 +43,6 @@ export default function ShareAppPage() {
                     </div>
                 </div>
 
-                {/* Stats - Blurred */}
                 <div className={styles.statsGrid}>
                     <div className={styles.statCard}>
                         <Users size={24} className={styles.statIcon} />
@@ -86,7 +56,6 @@ export default function ShareAppPage() {
                     </div>
                 </div>
 
-                {/* Benefits - Blurred */}
                 <div className={styles.section}>
                     <h3 className={styles.sectionTitle}>{t('whyShare')}</h3>
                     <div className={styles.benefits}>

@@ -57,7 +57,9 @@ export async function GET(request: NextRequest) {
         if (error) throw error;
 
         // Map the joined data to a flatter structure if needed, or return as is
-        return NextResponse.json({ cart: items || [] });
+        return NextResponse.json({ cart: items || [] }, {
+            headers: { 'Cache-Control': 'private, no-cache' },
+        });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
@@ -101,64 +103,41 @@ export async function POST(request: NextRequest) {
         }
         const { product_id, quantity, portion, flavor, custom_note, configuration } = parsed.data;
 
-        // Check if item already exists to merge quantity (Skip for custom cakes)
-        let existing = null;
-        if (product_id !== '00000000-0000-0000-0000-000000000000') {
-            const { data } = await supabase
-                .from('cart_items')
-                .select('*')
-                .eq('user_id', userId)
-                .eq('product_id', product_id)
-                .eq('portion', portion || '')
-                .eq('flavor', flavor || '')
-                .maybeSingle();
-            existing = data;
-        }
+        // Single atomic upsert via RPC — increments quantity if row exists, inserts otherwise.
+        // Custom cakes (nil UUID) are always inserted as new rows (no conflict possible on product_id).
+        const { data: upserted, error: upsertError } = await supabase
+            .rpc('upsert_cart_item', {
+                p_user_id: userId,
+                p_product_id: product_id,
+                p_quantity: quantity,
+                p_portion: portion || '',
+                p_flavor: flavor || '',
+                p_custom_note: custom_note ?? null,
+                p_configuration: configuration ?? null
+            });
 
-        if (existing) {
-            const { data: updated, error } = await supabase
-                .from('cart_items')
-                .update({ 
-                    quantity: existing.quantity + quantity,
-                    custom_note,
-                    configuration
-                })
-                .eq('id', existing.id)
-                .select(`
-                    *,
-                    products (
-                        title,
-                        base_price,
-                        image_url
-                    )
-                `)
-                .single();
-            if (error) throw error;
-            return NextResponse.json({ item: updated });
-        } else {
-            const { data: inserted, error } = await supabase
-                .from('cart_items')
-                .insert({
-                    user_id: userId,
-                    product_id,
-                    quantity,
-                    portion,
-                    flavor,
-                    custom_note,
-                    configuration
-                })
-                .select(`
-                    *,
-                    products (
-                        title,
-                        base_price,
-                        image_url
-                    )
-                `)
-                .single();
-            if (error) throw error;
-            return NextResponse.json({ item: inserted });
-        }
+        if (upsertError) throw upsertError;
+
+        // RPC now returns product fields in the same query — no second round-trip needed.
+        const row = Array.isArray(upserted) ? upserted[0] : upserted;
+        return NextResponse.json({
+            item: {
+                id: row.id,
+                user_id: row.user_id,
+                product_id: row.product_id,
+                quantity: row.quantity,
+                portion: row.portion,
+                flavor: row.flavor,
+                custom_note: row.custom_note,
+                configuration: row.configuration,
+                created_at: row.created_at,
+                products: {
+                    title: row.product_title,
+                    base_price: row.product_base_price,
+                    image_url: row.product_image_url,
+                },
+            },
+        });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }

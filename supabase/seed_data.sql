@@ -1,2 +1,0 @@
--- File intentionally cleared to remove mock product data.
--- Add any persistent seed data here if needed in the future.

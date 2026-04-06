@@ -73,7 +73,7 @@ export default function CategoryFilter({ activeCategory, onSelectCategory, categ
                 >
                     <div className={styles.imageWrapper}>
                         {cat.image_url ? (
-                            <Image src={cat.image_url} alt={getLocalized(cat.label, lang)} fill style={{ objectFit: 'cover' }} sizes="80px" />
+                            <Image src={cat.image_url} alt={getLocalized(cat.label, lang)} fill style={{ objectFit: 'cover' }} sizes="80px" loading="lazy" />
                         ) : (
                             <span style={{ fontSize: '24px' }}>
                                 {cat.icon || '🍰'}

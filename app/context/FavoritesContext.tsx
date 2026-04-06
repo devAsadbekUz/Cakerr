@@ -1,8 +1,26 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, useSyncExternalStore } from 'react';
 import { useSupabase } from './AuthContext';
 import { getAuthHeader } from '@/app/utils/telegram';
+
+// ---------------------------------------------------------------------------
+// Module-level store for selective per-product rerenders.
+// useSyncExternalStore bails out when the snapshot value (true/false) is unchanged,
+// so toggling product A does NOT rerender cards for products B, C, D…
+// ---------------------------------------------------------------------------
+let _favoritesSet = new Set<string>();
+const _listeners = new Set<() => void>();
+
+function _subscribe(listener: () => void) {
+    _listeners.add(listener);
+    return () => { _listeners.delete(listener); };
+}
+
+function _syncStore(favorites: string[]) {
+    _favoritesSet = new Set(favorites);
+    _listeners.forEach(l => l());
+}
 
 interface FavoritesContextType {
     favorites: string[];
@@ -19,6 +37,14 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(true);
     const [initialLoadDone, setInitialLoadDone] = useState(false);
     const { user, loading: authLoading } = useSupabase();
+    // Always-current ref so toggleFavorite doesn't close over stale state
+    const favoritesRef = useRef<string[]>([]);
+
+    // Keep ref and module store in sync whenever favorites changes
+    useEffect(() => {
+        favoritesRef.current = favorites;
+        _syncStore(favorites);
+    }, [favorites]);
 
     // 1. Load favorites on mount or when user/auth state changes
     useEffect(() => {
@@ -75,18 +101,21 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
         loadFavorites();
     }, [user, authLoading]);
 
-    // 2. ALWAYS save to localStorage as backup
+    // 2. Guest only: persist favorites to localStorage.
+    // Logged-in users are server-authoritative; error fallbacks in toggleFavorite handle their edge cases.
     useEffect(() => {
-        if (!loading) {
+        if (!loading && !user) {
             localStorage.setItem('favorites', JSON.stringify(favorites));
         }
-    }, [favorites, loading]);
+    }, [favorites, loading, user]);
 
     const toggleFavorite = useCallback(async (productId: string) => {
-        const isCurrentlyFavorite = favorites.includes(productId);
+        // Use ref so this callback is stable (only recreated on user change, not every favorites change)
+        const previous = favoritesRef.current;
+        const isCurrentlyFavorite = previous.includes(productId);
         const newFavorites = isCurrentlyFavorite
-            ? favorites.filter(id => id !== productId)
-            : [...favorites, productId];
+            ? previous.filter(id => id !== productId)
+            : [...previous, productId];
 
         // Optimistic UI update
         setFavorites(newFavorites);
@@ -113,15 +142,15 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
                         return;
                     }
 
-                    // For other errors, revert the optimistic update
-                    setFavorites(favorites);
+                    // Revert the optimistic update
+                    setFavorites(previous);
                 }
             } catch (error) {
                 console.error('[Favorites] Network error syncing favorite:', error);
                 localStorage.setItem('favorites', JSON.stringify(newFavorites));
             }
         }
-    }, [favorites, user]);
+    }, [user]); // stable — no longer depends on `favorites`
 
     const isFavorite = useCallback((id: string) => favorites.includes(id), [favorites]);
 
@@ -146,4 +175,17 @@ export function useFavorites() {
         throw new Error('useFavorites must be used within a FavoritesProvider');
     }
     return context;
+}
+
+/**
+ * Returns whether a single product is favorited.
+ * Uses useSyncExternalStore so it only rerenders when THIS product's
+ * favorite status flips — not when any other product is toggled.
+ */
+export function useIsFavorite(productId: string): boolean {
+    return useSyncExternalStore(
+        _subscribe,
+        () => _favoritesSet.has(productId),
+        () => false
+    );
 }

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, RotateCcw, Check } from 'lucide-react';
 import styles from './page.module.css';
 import { useLanguage } from '@/app/context/LanguageContext';
-import { useCart } from '@/app/context/CartContext';
+import { useCartActions } from '@/app/context/CartContext';
 import { useSupabase } from '@/app/context/AuthContext';
 import { getAuthHeader } from '@/app/utils/telegram';
 import { getStatusConfig } from '@/app/utils/orderConfig';
@@ -34,7 +34,7 @@ interface Order {
 export default function OrderHistoryPage() {
     const router = useRouter();
     const { lang, t } = useLanguage();
-    const { addItem } = useCart();
+    const { addItem } = useCartActions();
     const { user, loading: authLoading } = useSupabase();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);

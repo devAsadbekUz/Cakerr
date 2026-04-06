@@ -83,10 +83,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (!prev || !newData) return newData;
             
             // Shallow compare key fields that skip re-renders if identical
-            const hasChanged = 
-                prev.id !== newData.id || 
-                prev.coins !== newData.coins || 
+            const hasChanged =
+                prev.id !== newData.id ||
+                prev.coins !== newData.coins ||
                 prev.role !== newData.role ||
+                prev.phone_number !== newData.phone_number ||
+                prev.phone !== newData.phone ||
                 prev.user_metadata?.full_name !== newData.user_metadata?.full_name ||
                 prev.user_metadata?.avatar_url !== newData.user_metadata?.avatar_url;
             
@@ -243,10 +245,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         init();
 
         // On Android/Telegram, WebSocket channels drop when the screen is locked.
-        // Reconnect the coin subscription the moment the app becomes visible again.
+        // Only reconnect if the channel has actually dropped — avoids tearing down
+        // a healthy subscription every time the user switches apps.
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible' && coinUserIdRef.current) {
-                setupCoinSubscription(coinUserIdRef.current);
+                if (subscriptionRef.current?.state !== 'joined') {
+                    setupCoinSubscription(coinUserIdRef.current);
+                }
             }
         };
         document.addEventListener('visibilitychange', handleVisibilityChange);

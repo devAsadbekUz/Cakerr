@@ -312,8 +312,8 @@ export async function POST(request: NextRequest) {
                     .from('orders')
                     .select(`
                         id, status, delivery_address, delivery_time, delivery_slot,
-                        delivery_type, branch_id, total_price, comment, payment_method,
-                        coins_spent, promo_discount, user_id,
+                        delivery_type, branch_id, total_price, deposit_amount, final_payment_amount, comment, payment_method,
+                        coins_spent, promo_discount, created_by_name, user_id,
                         profiles (full_name, phone_number, telegram_id),
                         branches (name_uz, name_ru, address_uz, address_ru, location_link),
                         order_items (*)
@@ -346,13 +346,22 @@ export async function POST(request: NextRequest) {
                     ? `${from.first_name} ${from.last_name.charAt(0)}. (TG)`
                     : `${from.first_name} (TG)`;
 
+                // Fetch deposit_amount first so we can set refund_needed correctly
+                const { data: preCancel } = await supabase
+                    .from('orders')
+                    .select('deposit_amount')
+                    .eq('id', orderId)
+                    .single();
+                const depositBeforeCancel = preCancel?.deposit_amount ?? 0;
+
                 const { error: cancelError } = await supabase
                     .from('orders')
                     .update({
                         status: 'cancelled',
                         cancellation_reason: 'Admin cancelled via Telegram',
                         updated_at: new Date().toISOString(),
-                        last_updated_by_name: adminName
+                        last_updated_by_name: adminName,
+                        refund_needed: depositBeforeCancel > 0
                     })
                     .eq('id', orderId);
 
@@ -366,8 +375,8 @@ export async function POST(request: NextRequest) {
                     .from('orders')
                     .select(`
                         id, status, delivery_address, delivery_time, delivery_slot,
-                        delivery_type, branch_id, total_price, comment, payment_method,
-                        coins_spent, promo_discount, client_tg_message_id, user_id,
+                        delivery_type, branch_id, total_price, deposit_amount, final_payment_amount, comment, payment_method,
+                        coins_spent, promo_discount, created_by_name, client_tg_message_id, user_id,
                         profiles (full_name, phone_number, telegram_id, tg_lang),
                         branches (name_uz, name_ru, address_uz, address_ru, location_link),
                         order_items (*)
@@ -422,16 +431,19 @@ export async function POST(request: NextRequest) {
                 .select(`
                     id,
                     status,
-                    telegram_message_id, 
-                    telegram_chat_id, 
+                    telegram_message_id,
+                    telegram_chat_id,
                     client_tg_message_id,
-                    delivery_address, 
-                    delivery_time, 
+                    delivery_address,
+                    delivery_time,
                     delivery_slot,
                     delivery_type,
                     branch_id,
                     total_price,
+                    deposit_amount,
+                    final_payment_amount,
                     comment,
+                    created_by_name,
                     user_id,
                     profiles (full_name, phone_number, telegram_id, tg_lang),
                     branches (name_uz, name_ru, address_uz, address_ru, location_link),

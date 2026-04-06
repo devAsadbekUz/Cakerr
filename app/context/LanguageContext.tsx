@@ -19,12 +19,15 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const savedLang = localStorage.getItem('client-lang') as Language;
         if (savedLang && (savedLang === 'uz' || savedLang === 'ru')) {
             setLangState(savedLang);
+            // Sync cookie so Server Components can read the correct language
+            document.cookie = `client-lang=${savedLang}; path=/; max-age=31536000; SameSite=Lax`;
         }
     }, []);
 
     const setLang = (newLang: Language) => {
         setLangState(newLang);
         localStorage.setItem('client-lang', newLang);
+        document.cookie = `client-lang=${newLang}; path=/; max-age=31536000; SameSite=Lax`;
     };
 
     const t = (key: string): any => {

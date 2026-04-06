@@ -25,9 +25,9 @@ export async function notifyCustomerStatusChange(orderId: string, newStatus: str
 
     // Get the primary profile attached to the order
     const profile = Array.isArray(order.profiles) ? order.profiles[0] : order.profiles;
-    
-    // If the customer hasn't linked Telegram to their account, there's nobody to notify via Telegram.
-    if (!profile?.telegram_id) {
+
+    // If there's no profile or the customer hasn't linked Telegram, there's nobody to notify.
+    if (!profile || !profile.telegram_id) {
         return;
     }
 
@@ -38,7 +38,7 @@ export async function notifyCustomerStatusChange(orderId: string, newStatus: str
     // 1. Delete previous message if it exists to prevent chat clutter
     if (order.client_tg_message_id) {
         try {
-            await fetch(`${TELEGRAM_API}/deleteMessage`, {
+            const delRes = await fetch(`${TELEGRAM_API}/deleteMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -46,6 +46,10 @@ export async function notifyCustomerStatusChange(orderId: string, newStatus: str
                     message_id: order.client_tg_message_id
                 })
             });
+            if (!delRes.ok) {
+                const errText = await delRes.text();
+                console.error('[notifyCustomerStatusChange] Delete message failed:', delRes.status, errText);
+            }
         } catch (err) {
             console.error('[notifyCustomerStatusChange] Delete client msg error:', err);
         }
@@ -80,6 +84,38 @@ export async function notifyCustomerStatusChange(orderId: string, newStatus: str
 
     let clientMessage = `${clientLabels.title}\n\n${clientLabels.text}\n\n*${tgEscape(statusLabel)}*\n_${tgEscape(statusDesc)}_`;
 
+    // Payment info for confirmed orders
+    if (newStatus === 'confirmed') {
+        const depositAmount = Number(order.deposit_amount ?? 0);
+        const totalPrice = Number(order.total_price ?? 0);
+        if (depositAmount > 0) {
+            const remaining = Math.max(0, totalPrice - depositAmount);
+            const paymentInfo = clientLang === 'uz'
+                ? `\n\n💵 *Avans:* ${depositAmount.toLocaleString()} so'm qabul qilindi\n💰 *Qoldiq:* ${remaining.toLocaleString()} so'm`
+                : `\n\n💵 *Аванс:* ${depositAmount.toLocaleString()} сум получен\n💰 *Остаток:* ${remaining.toLocaleString()} сум`;
+            clientMessage += paymentInfo;
+        } else {
+            const noDepositInfo = clientLang === 'uz'
+                ? `\n\n⚠️ _Avans to'lovi haqida menejer siz bilan bog'lanadi._`
+                : `\n\n⚠️ _Менеджер свяжется с вами по вопросу предоплаты._`;
+            clientMessage += noDepositInfo;
+        }
+    }
+
+    // Payment info for completed orders
+    if (newStatus === 'completed') {
+        const depositAmount = Number(order.deposit_amount ?? 0);
+        const finalPayment = Number(order.final_payment_amount ?? 0);
+        const totalPrice = Number(order.total_price ?? 0);
+        if (finalPayment > 0 || depositAmount > 0) {
+            const paidTotal = depositAmount + finalPayment;
+            const paymentSummary = clientLang === 'uz'
+                ? `\n\n✅ *Jami to'landi:* ${paidTotal.toLocaleString()} so'm / ${totalPrice.toLocaleString()} so'm`
+                : `\n\n✅ *Итого оплачено:* ${paidTotal.toLocaleString()} сум / ${totalPrice.toLocaleString()} сум`;
+            clientMessage += paymentSummary;
+        }
+    }
+
     // Special additive info for Pickup orders once they are Ready
     if (newStatus === 'ready' && order.delivery_type === 'pickup' && order.branches) {
         const branch = order.branches;
@@ -108,6 +144,11 @@ export async function notifyCustomerStatusChange(orderId: string, newStatus: str
                 parse_mode: 'Markdown'
             })
         });
+        if (!res.ok) {
+            const errText = await res.text();
+            console.error('[notifyCustomerStatusChange] Telegram HTTP error:', res.status, errText);
+            return;
+        }
         const result = await res.json();
 
         if (result.ok) {
@@ -199,6 +240,11 @@ export async function notifyAdminNewOrder(orderId: string): Promise<boolean> {
             })
         });
 
+        if (!res.ok) {
+            const errText = await res.text();
+            console.error('[notifyAdminNewOrder] Telegram HTTP error:', res.status, errText);
+            return false;
+        }
         const result = await res.json();
         if (result.ok) {
             // 5. Success! Store the message_id for future edits
