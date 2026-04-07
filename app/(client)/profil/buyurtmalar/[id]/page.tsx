@@ -95,7 +95,9 @@ export default function TrackingPage() {
                     address: {
                         label: data.delivery_address?.label || t('address'),
                         text: data.delivery_address?.street || t('addressNotProvided'),
-                        phone: data.delivery_address?.phone || ''
+                        phone: data.delivery_address?.phone || '',
+                        lat: data.delivery_address?.lat || null,
+                        lng: data.delivery_address?.lng || null,
                     },
                     items: (data.order_items ?? []).map((item: any) => ({
                         id: item.id,
@@ -327,7 +329,19 @@ export default function TrackingPage() {
                                     <>
                                         <span className={styles.addressLabel}>{order.address.label}</span>
                                         <span className={styles.addressText}>{order.address.text}</span>
-                                        <span className={styles.addressText}>{order.address.phone}</span>
+                                        {order.address.phone && (
+                                            <span className={styles.addressText}>{order.address.phone}</span>
+                                        )}
+                                        {order.address.lat && order.address.lng && (
+                                            <a
+                                                href={`https://www.google.com/maps?q=${order.address.lat},${order.address.lng}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                style={{ fontSize: '13px', color: '#BE185D', fontWeight: 600, marginTop: '8px', display: 'inline-block' }}
+                                            >
+                                                {t('openInMaps')}
+                                            </a>
+                                        )}
                                     </>
                                 )}
                             </div>

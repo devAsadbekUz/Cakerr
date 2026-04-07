@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Plus, MapPin, Home, Trash2, CheckCircle2, Circle } from 'lucide-react';
+import { ChevronLeft, Plus, MapPin, Home, Trash2, CheckCircle2, Circle, Edit2 } from 'lucide-react';
 import styles from './page.module.css';
 import { addressService } from '@/app/services/addressService';
 import { UserAddress } from '@/app/types';
@@ -92,6 +92,12 @@ export default function ManzillarPage() {
                                         <span className={styles.label}>{addr.label}</span>
                                     </div>
                                     <div className={styles.actions}>
+                                        <button
+                                            className={styles.editBtn}
+                                            onClick={(e) => { e.stopPropagation(); router.push(`/savat/checkout/map?edit=${addr.id}`); }}
+                                        >
+                                            <Edit2 size={18} />
+                                        </button>
                                         <button className={styles.deleteBtn} onClick={(e) => handleDelete(addr.id, e)}>
                                             <Trash2 size={18} />
                                         </button>

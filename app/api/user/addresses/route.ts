@@ -9,14 +9,15 @@ const supabaseService = createClient(
 );
 
 const AddressSchema = z.object({
-    address: z.string().min(1),
+    label: z.string().optional().default(''),
+    address_text: z.string().min(1),
     apartment: z.string().optional(),
     entrance: z.string().optional(),
     floor: z.string().optional(),
     lat: z.number().optional(),
     lng: z.number().optional(),
     is_default: z.boolean().optional().default(false),
-}).passthrough();
+});
 
 const UpdateAddressSchema = z.object({
     id: z.string().uuid(),

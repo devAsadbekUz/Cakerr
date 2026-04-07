@@ -61,9 +61,9 @@ interface CartContextType {
     deliveryCoords: { lat: number; lng: number } | null;
     setDeliveryCoords: (coords: { lat: number; lng: number } | null) => void;
     savedAddresses: SavedAddress[];
-    addSavedAddress: (address: Omit<SavedAddress, 'id'>) => void;
-    updateSavedAddress: (id: string, updates: Partial<SavedAddress>) => void;
-    removeSavedAddress: (id: string) => void;
+    addSavedAddress: (address: Omit<SavedAddress, 'id'>) => Promise<void>;
+    updateSavedAddress: (id: string, updates: Partial<SavedAddress>) => Promise<void>;
+    removeSavedAddress: (id: string) => Promise<void>;
 }
 
 // Actions context: stable reference — only changes when user changes
@@ -105,12 +105,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
                 const savedList = localStorage.getItem('tortele_saved_addresses');
                 if (savedList) {
-                    try { setSavedAddresses(JSON.parse(savedList)); } catch (e) { console.error(e); }
-                } else {
-                    setSavedAddresses([
-                        { id: 'm1', label: 'Uy', address: 'Mustaqillik shoh ko\'chasi', type: 'home', lat: 41.3110, lng: 69.2405 },
-                        { id: 'm2', label: 'Ish', address: 'Amir Temur ko\'chasi', type: 'work', lat: 41.3323, lng: 69.2123 }
-                    ]);
+                    try {
+                        const parsed = JSON.parse(savedList);
+                        // Filter out old mock addresses that may have been persisted
+                        setSavedAddresses(parsed.filter((a: SavedAddress) => !['m1', 'm2'].includes(a.id)));
+                    } catch (e) { console.error(e); }
                 }
                 setIsInitialized(true);
             }, 0);
@@ -129,8 +128,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                 // Logout case: Clear state or revert to what's in localstorage?
                 if (prevUser.current && prevUser.current.id) {
                     setCart([]);
+                    setSavedAddresses([]);
+                    setDeliveryCoords(null);
                     localStorage.removeItem('tortele_cart');
                     localStorage.removeItem('tortele_cart_owner');
+                    localStorage.removeItem('tortele_saved_addresses');
                 } else {
                     const savedCart = localStorage.getItem('tortele_cart');
                     if (savedCart) {
@@ -446,7 +448,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                 is_default: savedAddresses.length === 0
             });
             if (!error && data) {
-                fetchDBAddresses();
+                const mapped: SavedAddress = {
+                    id: data.id,
+                    label: data.label,
+                    address: data.address_text,
+                    type: data.label?.toLowerCase() === 'uy' ? 'home' : data.label?.toLowerCase() === 'ish' ? 'work' : 'other',
+                    lat: data.lat ? Number(data.lat) : undefined,
+                    lng: data.lng ? Number(data.lng) : undefined,
+                };
+                setSavedAddresses(prev => [...prev, mapped]);
             }
         } else {
             const id = `addr-${Date.now()}`;
@@ -456,13 +466,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     const updateSavedAddress = useCallback(async (id: string, updates: Partial<SavedAddress>) => {
         if (user && !id.startsWith('addr-')) {
-            await addressService.updateAddress(id, {
+            const { error } = await addressService.updateAddress(id, {
                 label: updates.label,
                 address_text: updates.address,
                 lat: updates.lat,
                 lng: updates.lng
             });
-            fetchDBAddresses();
+            if (!error) {
+                setSavedAddresses(prev => prev.map(a => a.id === id ? { ...a, ...updates } : a));
+            }
         } else {
             setSavedAddresses(prev => prev.map(a => a.id === id ? { ...a, ...updates } : a));
         }
@@ -470,8 +482,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     const removeSavedAddress = useCallback(async (id: string) => {
         if (user && !id.startsWith('addr-')) {
-            await addressService.deleteAddress(id);
-            fetchDBAddresses();
+            const { error } = await addressService.deleteAddress(id);
+            if (!error) {
+                setSavedAddresses(prev => prev.filter(a => a.id !== id));
+            }
         } else {
             setSavedAddresses(prev => prev.filter(a => a.id !== id));
         }

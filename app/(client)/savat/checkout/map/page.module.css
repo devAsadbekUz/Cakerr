@@ -118,6 +118,45 @@
     transform: scale(0.98);
 }
 
+.saveBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.labelInput {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid #F3F4F6;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    background: #F9FAFB;
+    margin-bottom: 12px;
+    font-family: inherit;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+
+.labelInput:focus {
+    outline: none;
+    border-color: #BE185D;
+    background: white;
+}
+
+.labelInput::placeholder {
+    color: #9CA3AF;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+.spinning {
+    animation: spin 1s linear infinite;
+}
+
 .locationBtn {
     align-self: flex-end;
     width: 56px;
@@ -139,12 +178,7 @@
     transform: scale(0.92);
 }
 
-/* Leaflet Overrides */
+/* Hide default zoom control (we don't need it on mobile) */
 .map :global(.leaflet-control-zoom) {
     display: none;
-}
-
-.map :global(.leaflet-marker-icon) {
-    filter: hue-rotate(140deg) saturate(2);
-    /* Make blue pin pinkish */
 }
