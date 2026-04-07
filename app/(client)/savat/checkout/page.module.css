@@ -460,6 +460,112 @@ input:checked+.slider:before {
     gap: 12px;
 }
 
+.loyaltyCoinsPreview {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 0 2px;
+    border-top: 1px solid #F3F4F6;
+    margin-top: 4px;
+}
+
+.loyaltyCoinsEmoji {
+    font-size: 22px;
+    flex-shrink: 0;
+}
+
+.loyaltyCoinsText {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.loyaltyCoinsTitle {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1D4ED8;
+}
+
+.loyaltyCoinsSubtitle {
+    font-size: 12px;
+    color: #6B7280;
+    font-weight: 400;
+}
+
+.loyaltyCoinsAmount {
+    font-size: 16px;
+    font-weight: 700;
+    color: #16A34A;
+    font-variant-numeric: tabular-nums;
+}
+
+.promoCollapsedRow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 14px 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    color: #3B82F6;
+    font-family: inherit;
+    text-align: left;
+}
+
+.promoCollapsedIcon {
+    color: #3B82F6;
+    flex-shrink: 0;
+}
+
+.promoCollapsedChevron {
+    color: #3B82F6;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.promoModalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 999;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.promoModalSheet {
+    background: white;
+    width: 100%;
+    max-width: 480px;
+    border-radius: 24px 24px 0 0;
+    padding: 12px 24px calc(36px + env(safe-area-inset-bottom, 0px) + 80px);
+    animation: slideUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.promoModalHandle {
+    width: 40px;
+    height: 4px;
+    background: #E5E7EB;
+    border-radius: 2px;
+    margin: 0 auto 20px;
+}
+
+.promoModalTitle {
+    font-size: 18px;
+    font-weight: 800;
+    color: #111827;
+    margin: 0 0 16px;
+}
+
 .promoInputWrapper {
     position: relative;
     display: flex;

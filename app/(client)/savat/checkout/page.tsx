@@ -88,6 +88,8 @@ export default function CheckoutPage() {
     const [promoDiscount, setPromoDiscount] = useState<number>(0);
     const [promoError, setPromoError] = useState<string | null>(null);
     const [isVerifyingPromo, setIsVerifyingPromo] = useState(false);
+    const [promoModalOpen, setPromoModalOpen] = useState(false);
+    const [loyaltyRate, setLoyaltyRate] = useState(0.05);
 
     const handleApplyPromo = async () => {
         if (!promoInput.trim()) return;
@@ -111,7 +113,8 @@ export default function CheckoutPage() {
                 setActivePromoCode(data.code);
                 setPromoDiscount(data.discount_amount);
                 setPromoError(null);
-                setPromoInput(''); // Clear input on success
+                setPromoInput('');
+                setPromoModalOpen(false);
             }
         } catch (err: any) {
             setPromoError(err.message || 'Tarmoq xatosi');
@@ -166,11 +169,13 @@ export default function CheckoutPage() {
         Promise.all([
             fetchAvailability(),
             fetchBranches(),
-            availabilityService.getGlobalSlots().catch(() => [])
-        ]).then(([,, slots]) => {
+            availabilityService.getGlobalSlots().catch(() => []),
+            fetch('/api/loyalty/rate').then(r => r.json()).catch(() => ({ rate: 0.05 }))
+        ]).then(([,, slots, loyaltyData]) => {
             if (Array.isArray(slots) && slots.length > 0) {
                 setTimeSlots(slots.map((s: any) => s.label));
             }
+            if (loyaltyData?.rate) setLoyaltyRate(loyaltyData.rate);
         });
     }, []);
 
@@ -659,7 +664,7 @@ export default function CheckoutPage() {
 
             {/* Promo Code Section */}
             <div className={styles.card}>
-                <h2 className={styles.cardTitle}>{t('havePromo') || 'Promokod'}</h2>
+                <h2 className={styles.cardTitle}>{t('promoAndBonuses') || 'Promokod va bonuslar'}</h2>
                 {activePromoId ? (
                     <div className={styles.promoSuccessBox}>
                         <div className={styles.promoSuccessIcon}>
@@ -669,7 +674,7 @@ export default function CheckoutPage() {
                             <span className={styles.promoSuccessCode}>{activePromoCode}</span>
                             <span className={styles.promoSuccessAmount}>-{promoDiscount.toLocaleString('en-US')} {t('som')}</span>
                         </div>
-                        <button 
+                        <button
                             className={styles.promoRemoveBtn}
                             onClick={() => {
                                 setActivePromoId(null);
@@ -677,33 +682,66 @@ export default function CheckoutPage() {
                                 setPromoDiscount(0);
                             }}
                         >
-                            {t('remove') || 'Bekor qilish'}
+                            {t('remove') || 'O\'chirish'}
                         </button>
                     </div>
                 ) : (
-                    <div className={styles.promoInputWrapper}>
-                        <div className={styles.promoIcon}>
-                            <Tag size={18} />
+                    <button className={styles.promoCollapsedRow} onClick={() => setPromoModalOpen(true)}>
+                        <Tag size={16} className={styles.promoCollapsedIcon} />
+                        <span>{t('iHavePromo') || 'Menda promokod bor'}</span>
+                        <ChevronRight size={16} className={styles.promoCollapsedChevron} />
+                    </button>
+                )}
+
+                {/* Loyalty coins preview */}
+                <div className={styles.loyaltyCoinsPreview}>
+                    <span className={styles.loyaltyCoinsEmoji}>🙂</span>
+                    <div className={styles.loyaltyCoinsText}>
+                        <span className={styles.loyaltyCoinsTitle}>
+                            {lang === 'uz' ? 'Bonuslar hisoblanadi' : 'Начислим бонусы'}
+                        </span>
+                        <span className={styles.loyaltyCoinsSubtitle}>
+                            {lang === 'uz' ? 'Buyurtmani olgandan 1 kun o\'tib' : 'Через 1 день после получения'}
+                        </span>
+                    </div>
+                    <span className={styles.loyaltyCoinsAmount}>
+                        {Math.floor(total * loyaltyRate).toLocaleString('en-US')}
+                    </span>
+                </div>
+            </div>
+
+            {/* Promo Modal */}
+            {promoModalOpen && (
+                <div className={styles.promoModalOverlay} onClick={() => { setPromoModalOpen(false); setPromoError(null); }}>
+                    <div className={styles.promoModalSheet} onClick={e => e.stopPropagation()}>
+                        <div className={styles.promoModalHandle} />
+                        <h3 className={styles.promoModalTitle}>{t('havePromo') || 'Promokodingiz bormi?'}</h3>
+                        <div className={styles.promoInputWrapper}>
+                            <div className={styles.promoIcon}>
+                                <Tag size={18} />
+                            </div>
+                            <input
+                                type="text"
+                                className={styles.promoInput}
+                                placeholder={t('promoPlaceholder') || 'KODNI KIRITING'}
+                                value={promoInput}
+                                onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                                disabled={isVerifyingPromo}
+                                autoFocus
+                            />
                         </div>
-                        <input
-                            type="text"
-                            className={styles.promoInput}
-                            placeholder={t('promoPlaceholder') || 'Promokod kiriting'}
-                            value={promoInput}
-                            onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
-                            disabled={isVerifyingPromo}
-                        />
-                        <button 
+                        {promoError && <p className={styles.promoErrorText}>{promoError}</p>}
+                        <button
                             className={styles.promoApplyBtn}
+                            style={{ width: '100%', marginTop: '12px', height: '48px', borderRadius: '14px', fontSize: '15px' }}
                             onClick={handleApplyPromo}
                             disabled={isVerifyingPromo || !promoInput.trim()}
                         >
                             {isVerifyingPromo ? '...' : (t('apply') || 'Qo\'llash')}
                         </button>
                     </div>
-                )}
-                {promoError && <p className={styles.promoErrorText}>{promoError}</p>}
-            </div>
+                </div>
+            )}
 
             {/* Payment Method Section */}
             <div className={styles.card}>

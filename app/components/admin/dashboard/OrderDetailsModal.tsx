@@ -108,23 +108,6 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
             {previewImage && (
                 <ImagePreviewModal imageUrl={previewImage} onClose={() => setPreviewImage(null)} />
             )}
-            <DepositModal
-                isOpen={depositModalOpen}
-                onClose={() => setDepositModalOpen(false)}
-                onConfirm={handleDepositConfirm}
-                totalPrice={totalPrice}
-                lang={lang as 'uz' | 'ru'}
-                disabled={disabled}
-            />
-            <FinalPaymentModal
-                isOpen={finalModalOpen}
-                onClose={() => setFinalModalOpen(false)}
-                onConfirm={handleFinalPaymentConfirm}
-                totalPrice={totalPrice}
-                depositAmount={depositAmount}
-                lang={lang as 'uz' | 'ru'}
-                disabled={disabled}
-            />
 
             <div className={styles.modalOverlay} onClick={onClose}>
                 <div className={styles.modalContainer} onClick={(e) => e.stopPropagation()}>
@@ -487,6 +470,23 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                     </footer>
                 </div>
             </div>
+            <DepositModal
+                isOpen={depositModalOpen}
+                onClose={() => setDepositModalOpen(false)}
+                onConfirm={handleDepositConfirm}
+                totalPrice={totalPrice}
+                lang={lang as 'uz' | 'ru'}
+                disabled={disabled}
+            />
+            <FinalPaymentModal
+                isOpen={finalModalOpen}
+                onClose={() => setFinalModalOpen(false)}
+                onConfirm={handleFinalPaymentConfirm}
+                totalPrice={totalPrice}
+                depositAmount={depositAmount}
+                lang={lang as 'uz' | 'ru'}
+                disabled={disabled}
+            />
         </>
     );
 }

@@ -29,6 +29,7 @@ import { Product, Category } from '@/app/types';
 import { getLocalized } from '@/app/utils/i18n';
 import WizardShell from '@/app/components/yaratish/WizardShell';
 import PhotoUploadForm from '@/app/components/yaratish/PhotoUploadForm';
+import { POSProductDetailModal } from '@/app/components/admin/pos/POSProductDetailModal';
 import styles from './page.module.css';
 import Image from 'next/image';
 
@@ -74,6 +75,7 @@ export default function PosPage() {
 
     // Modals
     const [showBuilder, setShowBuilder] = useState<'wizard' | 'upload' | null>(null);
+    const [detailProduct, setDetailProduct] = useState<Product | null>(null);
 
     // ── Effects ───────────────────────────────────────────────────────────────
     useEffect(() => {
@@ -293,16 +295,16 @@ export default function PosPage() {
 
                     {/* Standard Products */}
                     {filteredProducts.map(product => (
-                        <div key={product.id} className={styles.productCard} onClick={() => handleAddStandard(product)}>
-                            <div className={styles.imageWrapper}>
-                                <Image 
-                                    src={product.image_url || '/images/placeholder.jpg'} 
-                                    alt={getLocalized(product.title, lang)} 
-                                    fill 
+                        <div key={product.id} className={styles.productCard}>
+                            <div className={styles.imageWrapper} onClick={() => handleAddStandard(product)} style={{ cursor: 'pointer' }}>
+                                <Image
+                                    src={product.image_url || '/images/placeholder.jpg'}
+                                    alt={getLocalized(product.title, lang)}
+                                    fill
                                     style={{ objectFit: 'cover' }}
                                 />
                             </div>
-                            <div className={styles.productInfo}>
+                            <div className={styles.productInfo} onClick={() => setDetailProduct(product)} style={{ cursor: 'pointer' }}>
                                 <div className={styles.productTitle}>{getLocalized(product.title, lang)}</div>
                                 <div className={styles.productPrice}>{Number(product.base_price).toLocaleString()} so'm</div>
                             </div>
@@ -544,6 +546,13 @@ export default function PosPage() {
             </aside>
 
             {/* 3. Modals */}
+            {detailProduct && (
+                <POSProductDetailModal
+                    product={detailProduct}
+                    onClose={() => setDetailProduct(null)}
+                />
+            )}
+
             {showBuilder && (
                 <div className={styles.modalOverlay}>
                     <div className={styles.modalContent}>

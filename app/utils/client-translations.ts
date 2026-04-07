@@ -211,6 +211,8 @@ const uz: Record<string, string | string[]> = {
     prefFeature3: "Shaxsiy chegirmalar",
     // Promo
     havePromo: "Promokodingiz bormi?",
+    iHavePromo: "Menda promokod bor",
+    promoAndBonuses: "Promokod va bonuslar",
     promoPlaceholder: "KODNI KIRITING",
     apply: "Qo'llash",
     remove: "O'chirish",
@@ -434,6 +436,8 @@ const ru: Record<string, string | string[]> = {
     prefFeature3: "Персональные скидки",
     // Promo
     havePromo: "У вас есть промокод?",
+    iHavePromo: "У меня есть промокод",
+    promoAndBonuses: "Промокод и бонусы",
     promoPlaceholder: "ВВЕДИТЕ КОД",
     apply: "Применить",
     remove: "Удалить",
