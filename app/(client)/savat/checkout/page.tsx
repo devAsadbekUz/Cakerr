@@ -15,6 +15,7 @@ import { getAuthHeader, getStoredSession } from '@/app/utils/telegram';
 import { TELEGRAM_CONFIG } from '@/app/utils/telegramConfig';
 import { createClient } from '@/app/utils/supabase/client';
 import { availabilityService } from '@/app/services/availabilityService';
+import { addressService } from '@/app/services/addressService';
 import { format } from 'date-fns';
 
 const LAST_ORDER_STORAGE_KEY = 'tortele_last_order';
@@ -46,7 +47,7 @@ interface SuccessOrderSnapshot {
 export default function CheckoutPage() {
     const router = useRouter();
     const { lang, t } = useLanguage();
-    const { cart, subtotal, totalItems, deliveryAddress, deliveryCoords } = useCart();
+    const { cart, subtotal, totalItems, deliveryAddress, deliveryCoords, savedAddresses } = useCart();
     const { clearCart } = useCartActions();
     const { user, isTelegram, loginWithTelegram } = useAuth();
     const supabase = createClient();
@@ -345,6 +346,18 @@ export default function CheckoutPage() {
             // Clear cart immediately after confirmed order — before navigation or modal
             // Must await so the DB delete completes before component unmounts
             await clearCart({ rollbackOnError: false, syncServer: true });
+
+            // Mark the used delivery address as default so it auto-selects on next visit
+            if (user && deliveryType === 'delivery' && deliveryCoords) {
+                const match = savedAddresses.find(a =>
+                    a.lat != null && a.lng != null &&
+                    Math.abs(a.lat - deliveryCoords.lat) < 0.001 &&
+                    Math.abs(a.lng - deliveryCoords.lng) < 0.001
+                );
+                if (match) {
+                    addressService.setDefaultAddress(match.id).catch(() => {});
+                }
+            }
 
             setCreatedOrderId(orderId);
             setIsSuccessOpen(true);
@@ -682,7 +695,7 @@ export default function CheckoutPage() {
                                 setPromoDiscount(0);
                             }}
                         >
-                            {t('remove') || 'O\'chirish'}
+                            {t('Remove') || 'O\'chirish'}
                         </button>
                     </div>
                 ) : (
