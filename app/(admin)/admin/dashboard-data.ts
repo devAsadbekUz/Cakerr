@@ -1,4 +1,5 @@
 import 'server-only';
+import { unstable_noStore as noStore } from 'next/cache';
 
 import { isAdminVerified } from '@/app/utils/admin-auth';
 import { serviceClient } from '@/app/utils/supabase/service';
@@ -11,6 +12,7 @@ import {
     startOfWeek,
     subDays,
 } from 'date-fns';
+// isToday is still used in buildWeeklyData / buildDailyOrders30 for the isToday flag
 import type {
     AdminDashboardCategory,
     AdminDashboardData,
@@ -20,6 +22,13 @@ import type {
     AdminDashboardTopProduct,
 } from '@/app/types';
 import { createEmptyDashboardData } from '@/app/types/admin-dashboard';
+
+// Parse a timestamp string as a local Tashkent (UTC+5) date, returning 'YYYY-MM-DD'.
+// Avoids server-side UTC drift that would shift e.g. April 10 00:00 UZT → April 9 on chart.
+const TZ = 'Asia/Tashkent';
+function toLocalDate(isoString: string): string {
+    return new Date(isoString).toLocaleDateString('en-CA', { timeZone: TZ });
+}
 
 type DashboardSourceOrderItem = {
     product_id?: string | null;
@@ -58,49 +67,36 @@ function applyDaysFilter<T>(query: T, filterDays?: number | null) {
 
 function buildRevenueTrend(orders: DashboardSourceOrder[]): AdminDashboardRevenuePoint[] {
     const today = new Date();
+    const todayKey = today.toLocaleDateString('en-CA', { timeZone: TZ });
+
     const points = Array.from({ length: 17 }, (_, index) => {
         const date = addDays(subDays(today, 6), index);
+        const dateKey = date.toLocaleDateString('en-CA', { timeZone: TZ });
         return {
             date,
             label: format(date, 'dd/MM'),
-            dateKey: format(date, 'yyyy-MM-dd'),
+            dateKey,
             revenue: 0,
             sales: 0,
-            isFuture: index > 6,
+            isFuture: dateKey > todayKey,
         };
     });
 
-    // Index past points (0–6) by date key for O(1) lookup
-    const pastIndex = new Map<string, number>();
-    for (let i = 0; i <= 6; i++) {
-        pastIndex.set(points[i].dateKey, i);
-    }
-
-    // Index future points (7–16) by date key for O(1) lookup
-    const futureIndex = new Map<string, number>();
-    for (let i = 7; i < points.length; i++) {
-        futureIndex.set(points[i].dateKey, i);
+    // Single index covering all 17 points — keyed by delivery date
+    const dateIndex = new Map<string, number>();
+    for (let i = 0; i < points.length; i++) {
+        dateIndex.set(points[i].dateKey, i);
     }
 
     for (const order of orders) {
+        if (order.status === 'cancelled') continue;
         const price = Number(order.total_price) || 0;
-
-        if (order.status === 'completed') {
-            const key = format(new Date(order.created_at), 'yyyy-MM-dd');
-            const i = pastIndex.get(key);
-            if (i !== undefined) {
-                points[i].revenue += price;
-                points[i].sales += 1;
-            }
-        }
-
-        if (order.status !== 'cancelled') {
-            const key = format(new Date(order.delivery_time), 'yyyy-MM-dd');
-            const i = futureIndex.get(key);
-            if (i !== undefined) {
-                points[i].revenue += price;
-                points[i].sales += 1;
-            }
+        // Always bucket by delivery_time (Tashkent date) — consistent for past and future
+        const key = toLocalDate(order.delivery_time);
+        const i = dateIndex.get(key);
+        if (i !== undefined) {
+            points[i].revenue += price;
+            points[i].sales += 1;
         }
     }
 
@@ -115,7 +111,8 @@ function buildRevenueTrend(orders: DashboardSourceOrder[]): AdminDashboardRevenu
 function buildDeliveryDateMap(orders: DashboardSourceOrder[]): Map<string, number> {
     const map = new Map<string, number>();
     for (const order of orders) {
-        const key = format(new Date(order.delivery_time), 'yyyy-MM-dd');
+        if (order.status === 'cancelled') continue;
+        const key = toLocalDate(order.delivery_time);
         map.set(key, (map.get(key) || 0) + 1);
     }
     return map;
@@ -129,7 +126,7 @@ function buildWeeklyData(orders: DashboardSourceOrder[]): AdminDashboardDayCount
     return eachDayOfInterval({ start: weekStart, end: weekEnd }).map((day) => ({
         label: format(day, 'EEE'),
         date: format(day, 'd-MMM'),
-        count: byDate.get(format(day, 'yyyy-MM-dd')) ?? 0,
+        count: byDate.get(day.toLocaleDateString('en-CA', { timeZone: TZ })) ?? 0,
         isToday: isToday(day),
     }));
 }
@@ -143,13 +140,14 @@ function buildDailyOrders30(orders: DashboardSourceOrder[]): AdminDashboardDayCo
         return {
             label: format(day, 'dd/MM'),
             date: format(day, 'dd/MM'),
-            count: byDate.get(format(day, 'yyyy-MM-dd')) ?? 0,
+            count: byDate.get(day.toLocaleDateString('en-CA', { timeZone: TZ })) ?? 0,
             isToday: isToday(day),
         };
     });
 }
 
 export async function fetchAdminDashboardData(filterDays: number | null = 30): Promise<AdminDashboardData> {
+    noStore(); // Always fetch fresh data — never serve from Next.js cache
     if (!await isAdminVerified()) {
         throw new Error('Unauthorized');
     }
@@ -208,10 +206,11 @@ export async function fetchAdminDashboardData(filterDays: number | null = 30): P
     const hourCounts = new Array(24).fill(0);
     const productSales = new Map<string, AdminDashboardTopProduct>();
     const categoryRevenue = new Map<string, number>();
+    const todayLocal = new Date().toLocaleDateString('en-CA', { timeZone: TZ });
 
     for (const order of orders) {
         if (order.status === 'new') newOrdersCount++;
-        if (isToday(new Date(order.delivery_time)) && order.status !== 'completed' && order.status !== 'cancelled') todaysOrdersCount++;
+        if (toLocalDate(order.delivery_time) === todayLocal && order.status !== 'completed' && order.status !== 'cancelled') todaysOrdersCount++;
         if (order.user_id) {
             activeBuyerIds.add(order.user_id);
             userOrderCounts.set(order.user_id, (userOrderCounts.get(order.user_id) || 0) + 1);

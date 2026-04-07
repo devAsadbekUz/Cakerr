@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, RotateCcw, Check } from 'lucide-react';
 import styles from './page.module.css';
 import { useLanguage } from '@/app/context/LanguageContext';
-import { useCartActions } from '@/app/context/CartContext';
+import { useCart } from '@/app/context/CartContext';
 import { useSupabase } from '@/app/context/AuthContext';
 import { getAuthHeader } from '@/app/utils/telegram';
 import { getStatusConfig } from '@/app/utils/orderConfig';
@@ -20,6 +20,7 @@ interface OrderItem {
     image: string;
     quantity: number;
     productId: string;
+    configuration?: any;
 }
 
 interface Order {
@@ -34,7 +35,7 @@ interface Order {
 export default function OrderHistoryPage() {
     const router = useRouter();
     const { lang, t } = useLanguage();
-    const { addItem } = useCartActions();
+    const { reorderFromHistory } = useCart();
     const { user, loading: authLoading } = useSupabase();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
@@ -69,8 +70,9 @@ export default function OrderHistoryPage() {
                             portion: item.configuration?.portion || '',
                             flavor: item.configuration?.flavor || '',
                             price: item.unit_price,
-                            image: item.configuration?.uploaded_photo_url || '/images/cake-placeholder.jpg',
-                            quantity: item.quantity
+                            image: item.configuration?.uploaded_photo_url || item.configuration?.image_url || '/images/cake-placeholder.jpg',
+                            quantity: item.quantity,
+                            configuration: item.configuration,
                         }))
                     }));
                     setOrders(mappedOrders);
@@ -85,18 +87,16 @@ export default function OrderHistoryPage() {
         fetchOrders();
     }, [user?.id]);
 
-    const handleReorder = (order: Order) => {
-        order.items.forEach(item => {
-            addItem({
-                id: item.productId,
-                name: item.name,
-                price: item.price,
-                image: item.image,
-                quantity: item.quantity,
-                portion: item.portion,
-                flavor: item.flavor
-            });
-        });
+    const handleReorder = async (order: Order) => {
+        await reorderFromHistory(order.items.map(item => ({
+            productId: item.productId,
+            name: item.name,
+            unitPrice: item.price,
+            quantity: item.quantity,
+            portion: item.portion,
+            flavor: item.flavor,
+            configuration: item.configuration,
+        })));
         router.push('/savat');
     };
 

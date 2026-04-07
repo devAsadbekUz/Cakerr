@@ -52,6 +52,16 @@ interface CartActionsContextType {
     clearCart: (options?: ClearCartOptions) => Promise<void>;
 }
 
+export interface ReorderItem {
+    productId: string | null;
+    name: string;
+    unitPrice: number;      // historical unit_price from order — never 0 for real products
+    quantity: number;
+    portion?: string;
+    flavor?: string;
+    configuration?: any;
+}
+
 interface CartContextType {
     cart: CartItem[];
     totalItems: number;
@@ -64,6 +74,7 @@ interface CartContextType {
     addSavedAddress: (address: Omit<SavedAddress, 'id'>) => Promise<void>;
     updateSavedAddress: (id: string, updates: Partial<SavedAddress>) => Promise<void>;
     removeSavedAddress: (id: string) => Promise<void>;
+    reorderFromHistory: (items: ReorderItem[]) => Promise<{ added: number; skipped: number }>;
 }
 
 // Actions context: stable reference — only changes when user changes
@@ -480,6 +491,71 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         }
     }, [user]);
 
+    const reorderFromHistory = useCallback(async (items: ReorderItem[]): Promise<{ added: number; skipped: number }> => {
+        const CUSTOM_UUID = '00000000-0000-0000-0000-000000000000';
+        let added = 0;
+        let skipped = 0;
+
+        for (const item of items) {
+            const isCustom = !item.productId || item.productId === CUSTOM_UUID;
+            const id = isCustom ? CUSTOM_UUID : item.productId!;
+
+            const image = item.configuration?.image_url
+                || item.configuration?.uploaded_photo_url
+                || '/images/cake-placeholder.jpg';
+
+            // For logged-in users with regular products: persist to DB, but use unitPrice for display
+            if (!isCustom && user) {
+                try {
+                    const { error } = await cartService.addItem({
+                        product_id: id,
+                        quantity: item.quantity,
+                        portion: item.portion || '',
+                        flavor: item.flavor || '',
+                        configuration: item.configuration ?? null,
+                    });
+                    if (error) {
+                        // Product gone from catalog → skip silently
+                        skipped++;
+                        continue;
+                    }
+                } catch {
+                    skipped++;
+                    continue;
+                }
+            }
+
+            // Use unitPrice (historical order price) — base_price from products table is unreliable
+            // for variant-priced products (often 0 or the cheapest tier, not the chosen variant price).
+            const tempId = `temp-${id}-${Date.now()}-${Math.random()}`;
+            setCart(prev => {
+                const existingIndex = prev.findIndex(
+                    c => c.id === id && c.portion === (item.portion || '') && c.flavor === (item.flavor || '')
+                );
+                const newItem = {
+                    cartId: tempId,
+                    id,
+                    name: item.name,
+                    price: item.unitPrice,
+                    image,
+                    portion: item.portion || '',
+                    flavor: item.flavor || '',
+                    quantity: item.quantity,
+                    configuration: item.configuration,
+                };
+                if (existingIndex > -1) {
+                    const updated = [...prev];
+                    updated[existingIndex] = { ...updated[existingIndex], quantity: updated[existingIndex].quantity + item.quantity };
+                    return updated;
+                }
+                return [...prev, newItem];
+            });
+            added++;
+        }
+
+        return { added, skipped };
+    }, [user]);
+
     const removeSavedAddress = useCallback(async (id: string) => {
         if (user && !id.startsWith('addr-')) {
             const { error } = await addressService.deleteAddress(id);
@@ -518,6 +594,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         addSavedAddress,
         updateSavedAddress,
         removeSavedAddress,
+        reorderFromHistory,
     }), [
         cart,
         totalItems,
@@ -527,7 +604,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         savedAddresses,
         addSavedAddress,
         updateSavedAddress,
-        removeSavedAddress
+        removeSavedAddress,
+        reorderFromHistory,
     ]);
 
     return (

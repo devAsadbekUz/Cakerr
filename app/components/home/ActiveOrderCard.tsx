@@ -2,6 +2,7 @@
 
 import { Package, ChevronRight } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
+import { useRouter } from 'next/navigation';
 import styles from './ActiveOrderCard.module.css';
 
 interface ActiveOrderCardProps {
@@ -13,6 +14,7 @@ interface ActiveOrderCardProps {
 
 export default function ActiveOrderCard({ orderId, itemName, status, progress }: ActiveOrderCardProps) {
     const { t } = useLanguage();
+    const router = useRouter();
     return (
         <div className={styles.container}>
             <div className={styles.iconWrapper}>
@@ -42,7 +44,7 @@ export default function ActiveOrderCard({ orderId, itemName, status, progress }:
                 </div>
             </div>
             <button
-                onClick={() => (window.location.href = `/profil/buyurtmalar/${orderId}`)}
+                onClick={() => router.push(`/profil/buyurtmalar/${orderId}`)}
                 className={styles.link}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0 }}
             >

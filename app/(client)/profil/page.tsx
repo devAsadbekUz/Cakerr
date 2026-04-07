@@ -98,7 +98,7 @@ export default function ProfilPage() {
                 const completed = ordersData
                     .filter((o: any) => o.status === 'completed')
                     .map((o: any) => {
-                        const item = o.order_items?.[0];
+                        const firstItem = o.order_items?.[0];
                         const dateObj = new Date(o.created_at);
                         const monthNames = t('months') as unknown as string[];
                         const formattedDate = `${dateObj.getDate()} ${monthNames[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
@@ -106,13 +106,21 @@ export default function ProfilPage() {
                         return {
                             id: o.id,
                             date: formattedDate,
-                            items: `${getLocalized(item?.name, lang) || 'Mahsulot'} (${item?.configuration?.portion || ''})`,
+                            // Display label: first item name + count of remaining
+                            displayName: getLocalized(firstItem?.name, lang) || 'Mahsulot',
+                            extraItemsCount: (o.order_items?.length || 1) - 1,
                             price: o.total_price,
-                            image: item?.configuration?.image_url || item?.configuration?.uploaded_photo_url || '/images/cake-placeholder.jpg',
-                            productId: item?.product_id,
-                            name: getLocalized(item?.name, lang),
-                            portion: item?.configuration?.portion,
-                            flavor: getLocalized(item?.configuration?.flavor, lang)
+                            image: firstItem?.configuration?.image_url || firstItem?.configuration?.uploaded_photo_url || firstItem?.configuration?.image_url || '/images/cake-placeholder.jpg',
+                            // All items for reorder
+                            orderItems: (o.order_items || []).map((item: any) => ({
+                                productId: item.product_id,
+                                name: item.name,
+                                unitPrice: item.unit_price,
+                                quantity: item.quantity,
+                                portion: item.configuration?.portion || '',
+                                flavor: item.configuration?.flavor || '',
+                                configuration: item.configuration,
+                            })),
                         };
                     });
                 setOrders(completed);

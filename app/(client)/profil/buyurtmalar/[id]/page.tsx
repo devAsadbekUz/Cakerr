@@ -9,6 +9,7 @@ import { useLanguage } from '@/app/context/LanguageContext';
 import { getLocalized } from '@/app/utils/i18n';
 import { createClient } from '@/app/utils/supabase/client';
 import { getAuthHeader } from '@/app/utils/telegram';
+import { useSupabase } from '@/app/context/AuthContext';
 
 // This matches the status structure for future backend integration
 import { ORDER_STATUSES as CENTRAL_STATUSES, getStatusConfig } from '@/app/utils/orderConfig';
@@ -46,6 +47,7 @@ export default function TrackingPage() {
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const supabase = React.useMemo(() => createClient(), []);
 
+    const { loading: authLoading } = useSupabase();
     const [realtimeStatus, setRealtimeStatus] = useState<string>('connecting');
 
     const fetchOrder = async (signal?: AbortSignal) => {
@@ -122,6 +124,11 @@ export default function TrackingPage() {
     };
 
     useEffect(() => {
+        // Wait for auth context to finish resolving before fetching.
+        // Without this, getAuthHeader() returns empty headers on first render
+        // (Telegram initData not yet populated) → 401 → spurious auth error.
+        if (authLoading) return;
+
         let abortController = new AbortController();
         let pollInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -184,7 +191,7 @@ export default function TrackingPage() {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             supabase.removeChannel(channel);
         };
-    }, [orderId, supabase]);
+    }, [orderId, supabase, authLoading]);
 
     const [mounted, setMounted] = useState(false);
 
