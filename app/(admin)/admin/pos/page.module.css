@@ -397,3 +397,158 @@
         width: 350px;
     }
 }
+
+/* ── Mobile Layout ──────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+        height: auto;
+        min-height: calc(100vh - 56px);
+        overflow: visible;
+        padding-bottom: 100px; /* room for FAB */
+    }
+
+    .productSection {
+        padding: 12px;
+        gap: 12px;
+        overflow-y: visible;
+    }
+
+    .categoryNav {
+        gap: 6px;
+        padding: 3px;
+        overflow-x: auto;
+        max-width: 100%;
+        scrollbar-width: none;
+    }
+    .categoryNav::-webkit-scrollbar { display: none; }
+
+    .categoryBtn {
+        padding: 8px 14px;
+        font-size: 13px;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .searchContainer {
+        max-width: 100%;
+    }
+
+    .grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        padding-bottom: 16px;
+    }
+
+    .productTitle {
+        font-size: 13px;
+    }
+
+    .productPrice {
+        font-size: 14px;
+    }
+
+    .productInfo {
+        padding: 10px;
+    }
+
+    .specialCard {
+        padding: 16px 10px;
+        gap: 8px;
+    }
+
+    /* Sidebar becomes a bottom sheet on mobile */
+    .sidebar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        height: 88vh;
+        border-left: none;
+        border-top: 1px solid #e2e8f0;
+        border-radius: 20px 20px 0 0;
+        box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.15);
+        transform: translateY(100%);
+        transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 400;
+        overflow: hidden;
+    }
+
+    .sidebar.sidebarOpen {
+        transform: translateY(0);
+    }
+
+    .sidebarForms {
+        max-height: 45vh;
+    }
+
+    .sidebarCloseBtn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #f1f5f9;
+        color: #64748b;
+        border: none;
+        cursor: pointer;
+    }
+
+    /* Mobile backdrop */
+    .mobileBackdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.5);
+        z-index: 399;
+        backdrop-filter: blur(2px);
+    }
+
+    /* Floating cart button */
+    .cartFab {
+        position: fixed;
+        bottom: 80px; /* above AdminBottomNav */
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 398;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: #0ea5e9;
+        color: white;
+        border: none;
+        border-radius: 50px;
+        padding: 14px 24px;
+        font-size: 15px;
+        font-weight: 700;
+        box-shadow: 0 8px 25px rgba(14, 165, 233, 0.45);
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .cartFabBadge {
+        background: white;
+        color: #0ea5e9;
+        border-radius: 50%;
+        width: 22px;
+        height: 22px;
+        font-size: 12px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .cartFabTotal {
+        font-size: 14px;
+    }
+}
+
+/* Hide FAB and backdrop on desktop */
+@media (min-width: 769px) {
+    .cartFab { display: none; }
+    .mobileBackdrop { display: none; }
+    .sidebarCloseBtn { display: none; }
+}

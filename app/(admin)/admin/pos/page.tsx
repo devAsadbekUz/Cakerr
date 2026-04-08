@@ -77,6 +77,9 @@ export default function PosPage() {
     const [showBuilder, setShowBuilder] = useState<'wizard' | 'upload' | null>(null);
     const [detailProduct, setDetailProduct] = useState<Product | null>(null);
 
+    // Mobile: toggle cart panel
+    const [showMobileCart, setShowMobileCart] = useState(false);
+
     // ── Effects ───────────────────────────────────────────────────────────────
     useEffect(() => {
         const loadData = async () => {
@@ -234,6 +237,23 @@ export default function PosPage() {
 
     return (
         <div className={styles.container}>
+            {/* Mobile cart FAB */}
+            {totalItems > 0 && (
+                <button
+                    className={styles.cartFab}
+                    onClick={() => setShowMobileCart(true)}
+                >
+                    <ShoppingCart size={22} />
+                    <span className={styles.cartFabBadge}>{totalItems}</span>
+                    <span className={styles.cartFabTotal}>{(subtotal + (deliveryType === 'delivery' ? DELIVERY_FEE : 0)).toLocaleString()} so'm</span>
+                </button>
+            )}
+
+            {/* Mobile cart backdrop */}
+            {showMobileCart && (
+                <div className={styles.mobileBackdrop} onClick={() => setShowMobileCart(false)} />
+            )}
+
             {/* 1. Main POS Section */}
             <section className={styles.productSection}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -314,10 +334,15 @@ export default function PosPage() {
             </section>
 
             {/* 2. Order Sidebar */}
-            <aside className={styles.sidebar}>
+            <aside className={`${styles.sidebar} ${showMobileCart ? styles.sidebarOpen : ''}`}>
                 <div className={styles.sidebarHeader}>
                     <div className={styles.sidebarTitle}>Current Order</div>
-                    <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>{totalItems} {t('pcs')}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>{totalItems} {t('pcs')}</div>
+                        <button className={styles.sidebarCloseBtn} onClick={() => setShowMobileCart(false)}>
+                            <X size={18} />
+                        </button>
+                    </div>
                 </div>
 
                 <div className={styles.cartList}>
