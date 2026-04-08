@@ -14,7 +14,7 @@ A modern PWA for ordering custom cakes with a realtime Telegram integration for 
 
 ### Vendor Side (Admin)
 - **Dashboard**: Manage orders, products, and prices.
-- **Telegram Bot**: `@shrn_buyurtma_bot`
+- **Telegram Bot**: `@tortele_bot`
   - Receive instant order alerts.
   - View Google Maps location.
   - Update status (Confirm -> Prepare -> Deliver) via buttons.
