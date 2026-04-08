@@ -158,9 +158,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             resolve();
                         }
                     }, 50);
-                    // Also resolve immediately when the script fires its load event
-                    const onReady = () => resolve();
-                    window.addEventListener('telegram-web-app-ready', onReady, { once: true });
                     // Safety timeout — don't block forever
                     setTimeout(() => { clearInterval(interval); resolve(); }, 3000);
                 });
