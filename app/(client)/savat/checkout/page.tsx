@@ -220,6 +220,11 @@ export default function CheckoutPage() {
             return;
         }
 
+        if (deliveryType === 'delivery' && (!deliveryCoords?.lat || !deliveryCoords?.lng)) {
+            alert(t('addressNoLocation'));
+            return;
+        }
+
         setIsSubmitting(true);
 
         try {

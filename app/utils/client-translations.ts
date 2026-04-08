@@ -182,6 +182,10 @@ const uz: Record<string, string | string[]> = {
     errorTitle: "Xatolik yuz berdi",
     errorMessage: "Nimadir noto'g'ri ketdi. Iltimos, qaytadan urinib ko'ring.",
     tryAgain: "Qaytadan urinish",
+    pageNotFound: "Sahifa topilmadi",
+    pageNotFoundDesc: "Afsuski, siz qidirayotgan sahifa mavjud emas yoki nomi o'zgargan.",
+    backToHome: "Asosiy sahifaga qaytish",
+    addressNoLocation: "Iltimos, xaritadan joylashuvni belgilang",
     // OrderCard
     reorderShort: "Qayta buyurtma",
     // Help center (yordam)
@@ -444,6 +448,10 @@ const ru: Record<string, string | string[]> = {
     errorTitle: "Произошла ошибка",
     errorMessage: "Что-то пошло не так. Пожалуйста, попробуйте снова.",
     tryAgain: "Попробовать снова",
+    pageNotFound: "Страница не найдена",
+    pageNotFoundDesc: "К сожалению, страница, которую вы ищете, не существует или была перемещена.",
+    backToHome: "Вернуться на главную",
+    addressNoLocation: "Пожалуйста, выберите местоположение на карте",
     // OrderCard
     reorderShort: "Повторить заказ",
     // Help center (yordam)

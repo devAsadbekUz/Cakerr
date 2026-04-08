@@ -18,8 +18,12 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: getConfiguredAppUrl() ? new URL(getConfiguredAppUrl()!) : undefined,
-  title: "TORTEL'E",
-  description: "TORTEL'E - Eng mazali va sifatli tortlar hamda shirinliklar",
+  title: {
+    default: "TORTEL'E",
+    template: "%s | TORTEL'E"
+  },
+  description: "TORTEL'E - Toshkentdagi eng mazali va sifatli tortlar hamda shirinliklar. O'z didingizga mos tortni buyurtma qiling!",
+  keywords: ["tortlar", "shirinliklar", "zakazga tortlar", "cakes", "desserts", "Tashkent", "Uzbekistan"],
   openGraph: {
     title: "TORTEL'E",
     description: "Eng zo'r tortlar faqat bizda. O'z didingizga mos tortni buyurtma qiling!",
@@ -43,9 +47,25 @@ export const metadata: Metadata = {
     images: getAppPreviewUrl() ? [getAppPreviewUrl()!] : undefined,
   },
   icons: {
-    icon: '/favicon.png',
-    apple: '/favicon.png',
+    icon: '/icon.png',
+    apple: '/icon.png',
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: "TORTEL'E",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+};
+
+export const viewport = {
+  themeColor: '#E298C1',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -54,7 +74,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="uz" suppressHydrationWarning>
       <head>
         <Script
           src="https://telegram.org/js/telegram-web-app.js"

@@ -1,21 +1,38 @@
 {
   "name": "TORTEL'E Personal Pastry Chef",
   "short_name": "TORTEL'E",
-  "description": "Premium Cakes by TORTEL'E",
+  "description": "Premium Cakes and Desserts by TORTEL'E in Tashkent.",
   "start_url": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
   "background_color": "#FBF1F6",
   "theme_color": "#E298C1",
+  "orientation": "portrait",
+  "categories": ["food", "shopping"],
   "icons": [
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/icon.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

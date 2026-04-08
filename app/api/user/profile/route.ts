@@ -68,6 +68,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ success: true, user: profile });
     } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        console.error('[Profile API] error:', error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

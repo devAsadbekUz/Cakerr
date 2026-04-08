@@ -2,9 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { verifyStaffToken } from './app/utils/adminStaffToken';
 
-const OWNER_EMAIL = process.env.ADMIN_EMAIL
-    ? process.env.ADMIN_EMAIL.toLowerCase()
-    : 'moida.buvayda@gmail.com'.toLowerCase();
+const OWNER_EMAIL = (process.env.ADMIN_EMAIL || '').toLowerCase().trim();
 
 // Maps a pathname to the permission slug required to access it.
 // Returns 'owner_only' for paths that are always restricted to the owner.

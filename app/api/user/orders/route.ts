@@ -10,11 +10,19 @@ const supabaseService = createClient(
 
 const CreateOrderSchema = z.object({
     order: z.object({
-        delivery_address: z.any(),
+        delivery_address: z.object({
+            street: z.string().min(1),
+            lat: z.number().nullable().optional(),
+            lng: z.number().nullable().optional(),
+        }),
         delivery_time: z.string(),
         delivery_slot: z.string(),
         total_price: z.number().min(0),
-        comment: z.string().optional(),
+        comment: z.string().optional().nullable(),
+        delivery_type: z.enum(['delivery', 'pickup']),
+        branch_id: z.string().uuid().nullable().optional(),
+        payment_method: z.enum(['cash', 'card']).optional(),
+        promo_discount: z.number().optional(),
     }).passthrough(),
     items: z.array(z.object({
         product_id: z.string().uuid().nullable(),
@@ -25,6 +33,15 @@ const CreateOrderSchema = z.object({
     }).passthrough()).min(1),
     coins_spent: z.number().int().min(0).default(0),
     promo_code_id: z.string().uuid().optional().nullable(),
+}).refine((data) => {
+    if (data.order.delivery_type === 'delivery') {
+        const addr = data.order.delivery_address;
+        return addr && typeof addr.lat === 'number' && typeof addr.lng === 'number';
+    }
+    return true;
+}, {
+    message: "Delivery orders must include valid latitude and longitude coordinates",
+    path: ["order", "delivery_address"]
 });
 
 /**
@@ -78,35 +95,43 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ orders: safeData });
     } catch (error: any) {
         console.error('[Orders API] GET error:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }
 
 // Helper function to upload Base64 images to Supabase Storage
 async function uploadBase64Image(supabase: any, base64String: string, userId: string, prefix: string): Promise<string | null> {
+    const fileName = `${userId}/${prefix}_${Date.now()}.png`; // Defaulting to png if split fails
     try {
         const matches = base64String.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-        if (!matches || matches.length !== 3) return null;
+        if (!matches || matches.length !== 3) {
+            console.error('[Storage] Invalid base64 format received');
+            return null;
+        }
 
         const mimeType = matches[1];
         const base64Data = matches[2];
         const buffer = Buffer.from(base64Data, 'base64');
         const ext = mimeType.split('/')[1] || 'png';
-        const fileName = `${userId}/${prefix}_${Date.now()}.${ext}`;
+        const finalFileName = `${userId}/${prefix}_${Date.now()}.${ext}`;
 
         const { error } = await supabase.storage
             .from('custom-cakes')
-            .upload(fileName, buffer, { contentType: mimeType, upsert: false });
+            .upload(finalFileName, buffer, { 
+                contentType: mimeType, 
+                upsert: false,
+                cacheControl: '3600'
+            });
 
         if (error) {
-            console.error('[Storage Upload Error]', error);
+            console.error('[Storage Upload Error] Bucket: custom-cakes, File:', finalFileName, error);
             return null;
         }
 
-        const { data } = supabase.storage.from('custom-cakes').getPublicUrl(fileName);
+        const { data } = supabase.storage.from('custom-cakes').getPublicUrl(finalFileName);
         return data.publicUrl;
     } catch (err) {
-        console.error('[Storage Upload Exception]', err);
+        console.error('[Storage Upload Exception] Fatal error during upload processing:', err);
         return null;
     }
 }
@@ -256,6 +281,6 @@ export async function POST(request: NextRequest) {
         */
     } catch (error: any) {
         console.error('[Orders API] POST error:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: error.message || 'Order creation failed' }, { status: 500 });
     }
 }

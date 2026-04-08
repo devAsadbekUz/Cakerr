@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/admin/
+Disallow: /api/keep-alive/
+Disallow: /api/cron/
+
+Sitemap: https://tortele.uz/sitemap.xml
