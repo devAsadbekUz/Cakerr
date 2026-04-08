@@ -47,8 +47,14 @@ export const metadata: Metadata = {
     images: getAppPreviewUrl() ? [getAppPreviewUrl()!] : undefined,
   },
   icons: {
-    icon: '/icon.png',
-    apple: '/icon.png',
+    icon: [
+      { url: '/icon.png' },
+      { url: '/icon.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/icon.png' },
+    ],
   },
   appleWebApp: {
     capable: true,
