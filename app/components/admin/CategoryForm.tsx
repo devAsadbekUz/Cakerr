@@ -73,7 +73,7 @@ export default function CategoryForm({ isOpen, onClose, category, onSuccess }: C
             router.refresh();
         } catch (error: any) {
             console.error('Error saving category:', error);
-            alert('Xatolik: ' + (error.message || JSON.stringify(error)));
+            alert(`${t('errorPrefix')}: ` + (error.message || JSON.stringify(error)));
         } finally {
             setLoading(false);
         }
@@ -109,7 +109,7 @@ export default function CategoryForm({ isOpen, onClose, category, onSuccess }: C
                             type="text"
                             value={label[activeTab]}
                             onChange={e => setLabel(prev => ({ ...prev, [activeTab]: e.target.value }))}
-                            placeholder="Masalan: Tug'ilgan kun"
+                            placeholder={t('categoryPlaceholder')}
                             style={{
                                 width: '100%', padding: '10px', borderRadius: '8px',
                                 border: '1px solid #E5E7EB', fontSize: '15px'

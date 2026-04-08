@@ -90,7 +90,7 @@ export default function ActiveOrderSection() {
             <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#1F2937', marginBottom: '12px' }}>{t('activeOrders')}</h3>
             <ActiveOrderCard
                 orderId={activeOrder.id}
-                itemName={getLocalized(activeOrder.order_items?.[0]?.name, lang) || 'Buyurtma'}
+                itemName={getLocalized(activeOrder.order_items?.[0]?.name, lang) || t('order')}
                 status={getStatusConfig(activeOrder.status).labels[lang]}
                 progress={getProgressValue(activeOrder.status, activeOrder.delivery_type === 'pickup')}
             />

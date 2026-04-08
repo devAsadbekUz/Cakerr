@@ -68,8 +68,8 @@ export default function SavatPage() {
                                     <div className={styles.itemBottom}>
                                         <p className={styles.itemPrice}>
                                             {item.configuration?.mode === 'upload' && !item.price
-                                                ? <span style={{ color: '#BE185D', fontStyle: 'italic' }}>Kelishiladi</span>
-                                                : <>{(item.price || 0).toLocaleString('en-US')} {t('som')}</>
+                                                ? <span style={{ color: '#BE185D', fontStyle: 'italic' }}>{t('negotiable')}</span>
+                                                : <>{(item.price || 0).toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}</>
                                             }
                                         </p>
                                         <div className={styles.stepper}>
@@ -102,15 +102,15 @@ export default function SavatPage() {
                     <div className={styles.summary}>
                         <div className={styles.summaryRow}>
                             <span>{t('items')}</span>
-                            <span>{subtotal.toLocaleString('uz-UZ')} {t('som')}</span>
+                            <span>{subtotal.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}</span>
                         </div>
                         <div className={styles.summaryRow}>
                             <span>{t('delivery')}</span>
-                            <span>{deliveryFee.toLocaleString('uz-UZ')} {t('som')}</span>
+                            <span>{deliveryFee.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}</span>
                         </div>
                         <div className={`${styles.summaryRow} ${styles.total}`}>
                             <span>{t('total')}</span>
-                            <span className={styles.totalValue}>{total.toLocaleString('uz-UZ')} {t('som')}</span>
+                            <span className={styles.totalValue}>{total.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}</span>
                         </div>
                     </div>
 

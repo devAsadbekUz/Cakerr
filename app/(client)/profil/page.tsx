@@ -212,12 +212,10 @@ export default function ProfilPage() {
                         </div>
                     </div>
                     <h2 className={styles.guestBodyTitle}>
-                        {lang === 'ru' ? 'Войдите в аккаунт' : 'Hisobingizga kiring'}
+                        {t('loginYourAccount')}
                     </h2>
                     <p className={styles.guestBodyDesc}>
-                        {lang === 'ru'
-                            ? 'Следите за заказами, накапливайте бонусы и управляйте профилем'
-                            : "Buyurtmalaringizni kuzating, bonus yig'ing va profilingizni boshqaring"}
+                        {t('loginFeaturesDesc')}
                     </p>
                     <button className={styles.loginBtn} onClick={() => router.push('/profil/login')}>
                         {t('login')}
@@ -250,7 +248,7 @@ export default function ProfilPage() {
                         )}
                     </div>
                     <div className={styles.userInfo}>
-                        <h2>{user.user_metadata?.full_name || (lang === 'uz' ? 'Mijoz' : 'Клиент')}</h2>
+                        <h2>{user.user_metadata?.full_name || t('defaultCustomerName')}</h2>
                         <div className={styles.contactInfo}>
                             {user.email && <p className={styles.userEmail}>{user.email}</p>}
                             {(user.phone || user.phone_number) && (
@@ -282,7 +280,7 @@ export default function ProfilPage() {
                         <h3 className={styles.sectionTitle}>{t('activeOrders')}</h3>
                         <ActiveOrderCard
                             orderId={activeOrder.id}
-                            itemName={getLocalized(activeOrder.order_items?.[0]?.name, lang) || (lang === 'uz' ? 'Buyurtma' : 'Заказ')}
+                            itemName={getLocalized(activeOrder.order_items?.[0]?.name, lang) || t('order')}
                             status={getStatusLabel(activeOrder.status, t)}
                             progress={getProgressValue(activeOrder.status)}
                         />

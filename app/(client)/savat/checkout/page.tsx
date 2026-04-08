@@ -105,7 +105,7 @@ export default function CheckoutPage() {
             });
             const data = await res.json();
             if (!res.ok) {
-                setPromoError(t(data.error) || data.error || 'Xatolik yuz berdi');
+                setPromoError(t(data.error) || data.error);
                 setActivePromoId(null);
                 setActivePromoCode(null);
                 setPromoDiscount(0);
@@ -118,7 +118,7 @@ export default function CheckoutPage() {
                 setPromoModalOpen(false);
             }
         } catch (err: any) {
-            setPromoError(err.message || 'Tarmoq xatosi');
+            setPromoError(err.message || t('networkError'));
         } finally {
             setIsVerifyingPromo(false);
         }
@@ -209,16 +209,14 @@ export default function CheckoutPage() {
                 }
             } else {
                 alert(
-                    lang === 'ru'
-                        ? `Для оформления заказа необходимо привязать номер телефона.\n\nОткройте бота @${TELEGRAM_CONFIG.botUsername} и поделитесь номером.`
-                        : `Buyurtma berish uchun telefon raqamingizni ulashingiz kerak.\n\n@${TELEGRAM_CONFIG.botUsername} botini oching va raqamingizni ulashing.`
+                    t('phoneNotLinked') + '\n\n' + t('linkPhonePrompt') + '@' + TELEGRAM_CONFIG.botUsername
                 );
             }
             return;
         }
 
         if (!selectedSlot) {
-            alert(t('selectTimeError') || 'Iltimos, yetkazib berish vaqtini tanlang');
+            alert(t('selectTimeError'));
             return;
         }
 
@@ -281,7 +279,8 @@ export default function CheckoutPage() {
             if (!response.ok) {
                 const rawError = await response.text();
                 console.error('[Checkout] API Fail:', response.status, rawError);
-                throw new Error(`Xatolik: ${rawError || 'Buyurtma yaratilmadi'}`);
+                const errPrefix = lang === 'ru' ? 'Ошибка' : 'Xatolik';
+                throw new Error(`${errPrefix}: ${rawError || t('orderCreationError')}`);
             }
 
             const result = await response.json();
@@ -296,7 +295,7 @@ export default function CheckoutPage() {
             const monthNames = t('months') as unknown as string[];
             const deliveryDateFormatted = selectedDateObj
                 ? `${selectedDateObj.getDate()}-${monthNames[selectedDateObj.getMonth()]}`
-                : 'Noma\'lum';
+                : t('unknown');
             const locationUrl = deliveryCoords?.lat && deliveryCoords?.lng
                 ? `https://www.google.com/maps?q=${deliveryCoords.lat},${deliveryCoords.lng}`
                 : undefined;
@@ -306,8 +305,8 @@ export default function CheckoutPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     orderId: orderId,
-                    customerName: user.user_metadata?.full_name || 'Mijoz',
-                    customerPhone: user.phone_number || user.phone || 'Noma\'lum',
+                    customerName: user.user_metadata?.full_name || t('profileTitle'),
+                    customerPhone: user.phone_number || user.phone || t('unknown'),
                     address: deliveryAddress,
                     locationUrl,
                     deliveryDate: deliveryDateFormatted,
@@ -363,7 +362,7 @@ export default function CheckoutPage() {
             setIsSuccessOpen(true);
         } catch (error) {
             console.error('Error creating order:', error);
-            alert(`Xatolik: ${(error as any).message || JSON.stringify(error)}`);
+            alert(`${t('errorOccurred')}: ${(error as any).message || JSON.stringify(error)}`);
         } finally {
             setIsSubmitting(false);
         }
@@ -392,11 +391,9 @@ export default function CheckoutPage() {
                     color: '#9A3412',
                     lineHeight: '1.5'
                 }}>
-                    <strong>⚠️ {lang === 'ru' ? 'Телефон не привязан' : 'Telefon raqam ulanmagan'}</strong>
+                    <strong>⚠️ {t('phoneNotLinked')}</strong>
                     <p style={{ margin: '4px 0 0' }}>
-                        {lang === 'ru'
-                            ? 'Для оформления заказа привяжите номер через бота: '
-                            : 'Buyurtma berish uchun botda raqamingizni ulang: '}
+                        {t('linkPhonePrompt')}
                         <a
                             href={TELEGRAM_CONFIG.botLink}
                             target="_blank"
@@ -591,7 +588,7 @@ export default function CheckoutPage() {
                         <div className={styles.loyaltyTitleGroup}>
                             <h2 className={styles.cardTitle}>{t('shirinTangalar')}</h2>
                             <p className={styles.loyaltyBalance}>
-                                {t('balance')}: <strong>{(user.coins || 0).toLocaleString('en-US')}</strong>
+                                {t('balance')}: <strong>{(user.coins || 0).toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')}</strong>
                             </p>
                             <p style={{ fontSize: '10px', color: '#9CA3AF', marginTop: '2px' }}>
                                 {t('coinExpiryNotice')}
@@ -667,7 +664,7 @@ export default function CheckoutPage() {
                             )}
                             {!coinInputError && (
                                 <p className={styles.discountHelp}>
-                                    -{(Number(coinsToSpend) || 0).toLocaleString('en-US')} {t('som')} {t('discount')}
+                                    -{(Number(coinsToSpend) || 0).toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')} {t('discount')}
                                 </p>
                             )}
                         </div>
@@ -677,7 +674,7 @@ export default function CheckoutPage() {
 
             {/* Promo Code Section */}
             <div className={styles.card}>
-                <h2 className={styles.cardTitle}>{t('promoAndBonuses') || 'Promokod va bonuslar'}</h2>
+                <h2 className={styles.cardTitle}>{t('promoAndBonuses')}</h2>
                 {activePromoId ? (
                     <div className={styles.promoSuccessBox}>
                         <div className={styles.promoSuccessIcon}>
@@ -685,7 +682,7 @@ export default function CheckoutPage() {
                         </div>
                         <div className={styles.promoSuccessDetails}>
                             <span className={styles.promoSuccessCode}>{activePromoCode}</span>
-                            <span className={styles.promoSuccessAmount}>-{promoDiscount.toLocaleString('en-US')} {t('som')}</span>
+                            <span className={styles.promoSuccessAmount}>-{promoDiscount.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}</span>
                         </div>
                         <button
                             className={styles.promoRemoveBtn}
@@ -695,13 +692,13 @@ export default function CheckoutPage() {
                                 setPromoDiscount(0);
                             }}
                         >
-                            {t('Remove') || 'O\'chirish'}
+                            {t('remove')}
                         </button>
                     </div>
                 ) : (
                     <button className={styles.promoCollapsedRow} onClick={() => setPromoModalOpen(true)}>
                         <Tag size={16} className={styles.promoCollapsedIcon} />
-                        <span>{t('iHavePromo') || 'Menda promokod bor'}</span>
+                        <span>{t('iHavePromo')}</span>
                         <ChevronRight size={16} className={styles.promoCollapsedChevron} />
                     </button>
                 )}
@@ -711,14 +708,14 @@ export default function CheckoutPage() {
                     <span className={styles.loyaltyCoinsEmoji}>🙂</span>
                     <div className={styles.loyaltyCoinsText}>
                         <span className={styles.loyaltyCoinsTitle}>
-                            {lang === 'uz' ? 'Bonuslar hisoblanadi' : 'Начислим бонусы'}
+                            {t('bonusPoints')}
                         </span>
                         <span className={styles.loyaltyCoinsSubtitle}>
-                            {lang === 'uz' ? 'Buyurtmani olgandan 1 kun o\'tib' : 'Через 1 день после получения'}
+                            {t('afterOneDay')}
                         </span>
                     </div>
                     <span className={styles.loyaltyCoinsAmount}>
-                        {Math.floor(total * loyaltyRate).toLocaleString('en-US')}
+                        {Math.floor(total * loyaltyRate).toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')}
                     </span>
                 </div>
             </div>
@@ -728,7 +725,7 @@ export default function CheckoutPage() {
                 <div className={styles.promoModalOverlay} onClick={() => { setPromoModalOpen(false); setPromoError(null); }}>
                     <div className={styles.promoModalSheet} onClick={e => e.stopPropagation()}>
                         <div className={styles.promoModalHandle} />
-                        <h3 className={styles.promoModalTitle}>{t('havePromo') || 'Promokodingiz bormi?'}</h3>
+                        <h3 className={styles.promoModalTitle}>{t('havePromoTitle')}</h3>
                         <div className={styles.promoInputWrapper}>
                             <div className={styles.promoIcon}>
                                 <Tag size={18} />
@@ -736,7 +733,7 @@ export default function CheckoutPage() {
                             <input
                                 type="text"
                                 className={styles.promoInput}
-                                placeholder={t('promoPlaceholder') || 'KODNI KIRITING'}
+                                placeholder={t('promoPlaceholder')}
                                 value={promoInput}
                                 onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
                                 disabled={isVerifyingPromo}
@@ -750,7 +747,7 @@ export default function CheckoutPage() {
                             onClick={handleApplyPromo}
                             disabled={isVerifyingPromo || !promoInput.trim()}
                         >
-                            {isVerifyingPromo ? '...' : (t('apply') || 'Qo\'llash')}
+                            {isVerifyingPromo ? '...' : t('apply')}
                         </button>
                     </div>
                 </div>
@@ -789,34 +786,32 @@ export default function CheckoutPage() {
                             background: '#FFF7ED', border: '1px solid #FED7AA',
                             borderRadius: '10px', fontSize: '13px', color: '#9A3412', lineHeight: '1.5'
                         }}>
-                            {lang === 'ru'
-                                ? '📸 Цена торта по фото будет согласована с администратором после размещения заказа.'
-                                : '📸 Rasm asosidagi tort narxi buyurtma berilgandan so\'ng admin bilan kelishiladi.'}
+                            {t('photoPriceNote')}
                         </div>
                     )}
                     <div className={styles.summaryRow}>
                         <span>{t('items')}:</span>
-                        <span>{subtotal.toLocaleString('en-US')} {t('som')}</span>
+                        <span>{subtotal.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}</span>
                     </div>
                     <div className={styles.summaryRow}>
                         <span>{t('delivery')}:</span>
-                        <span>{deliveryFee.toLocaleString('en-US')} {t('som')}</span>
+                        <span>{deliveryFee.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}</span>
                     </div>
                     {promoDiscount > 0 && (
                         <div className={`${styles.summaryRow} ${styles.discountRow}`}>
-                            <span>{t('promoDiscount') || 'Promokod chegirmasi'}:</span>
-                            <span>-{promoDiscount.toLocaleString('en-US')} {t('som')}</span>
+                            <span>{t('promoDiscount')}:</span>
+                            <span>-{promoDiscount.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}</span>
                         </div>
                     )}
                     {useCoins && (Number(coinsToSpend) || 0) > 0 && (
                         <div className={`${styles.summaryRow} ${styles.discountRow}`}>
                             <span>{t('shirinTangalar')} {t('discount')}:</span>
-                            <span>-{(Number(coinsToSpend) || 0).toLocaleString('en-US')} {t('som')}</span>
+                            <span>-{(Number(coinsToSpend) || 0).toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}</span>
                         </div>
                     )}
                     <div className={styles.totalRow}>
                         <span>{t('total')}:</span>
-                        <span>{total.toLocaleString('en-US')} {t('som')}</span>
+                        <span>{total.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}</span>
                     </div>
                 </div>
 

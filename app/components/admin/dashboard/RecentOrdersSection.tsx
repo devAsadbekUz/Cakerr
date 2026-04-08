@@ -30,7 +30,7 @@ export function RecentOrdersSection({ data, statusColors, onExpand, onShowABC }:
                         {data.analytics.topProducts.map((product, idx) => (
                             <div key={product.name} className={styles.topProductItem}>
                                 <div className={styles.topProductName}>{product.name}</div>
-                                <div className={styles.topProductStats}>{product.quantity} {t('pcs')} • {product.revenue.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}</div>
+                                <div className={styles.topProductStats}>{product.quantity} {t('pcs')} • {product.revenue.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}</div>
                                 <div className={styles.topProductBarOuter}><div className={styles.topProductBar} style={{ width: `${(product.quantity / maxProductQty) * 100}%` }} /></div>
                             </div>
                         ))}
@@ -50,7 +50,7 @@ export function RecentOrdersSection({ data, statusColors, onExpand, onShowABC }:
                             <div key={order.id} className={styles.statusCard} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px' }}>
                                 <div style={{ minWidth: 0 }}>
                                     <div style={{ fontWeight: 700, fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>#{order.id.slice(0, 6)} — {order.profiles?.full_name}</div>
-                                    <div style={{ fontSize: '12px', color: '#6B7280' }}>{format(new Date(order.created_at), 'HH:mm')} · {order.total_price.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}</div>
+                                    <div style={{ fontSize: '12px', color: '#6B7280' }}>{format(new Date(order.created_at), 'HH:mm')} · {order.total_price.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}</div>
                                 </div>
                                 <div style={{ fontSize: '10px', fontWeight: 700, padding: '4px 8px', borderRadius: '6px', background: statusColors[order.status]?.bg || '#F3F4F6', color: statusColors[order.status]?.text || '#6B7280', textTransform: 'uppercase', height: 'fit-content' }}>
                                     {statusColors[order.status]?.label || order.status}

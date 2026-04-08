@@ -131,7 +131,7 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                                         fontSize: '12px', fontWeight: 700,
                                         textTransform: 'uppercase', border: '1px solid #BAE6FD'
                                     }}>
-                                        🖥️ POS
+                                        🖥️ {t('pos')}
                                     </span>
                                 )}
                             </div>
@@ -178,7 +178,7 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                                 <div className={styles.infoLabel}>{t('acceptedBy')}</div>
                                 <div style={{ fontSize: '14px', fontWeight: 700, color: '#374151', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <PackageCheck size={18} color="#6B7280" />
-                                    {order.created_by_name === 'Owner' ? (lang === 'uz' ? 'Asosiy rahbar' : 'Владелец') : order.created_by_name}
+                                    {order.created_by_name === 'Owner' ? t('owner') : order.created_by_name}
                                 </div>
                             </div>
                         )}
@@ -246,13 +246,13 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                                     {(order.promo_discount ?? 0) > 0 && (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#BE185D' }}>
                                             <Tag size={14} />
-                                            {t('promoDiscount')}: <strong>-{(order.promo_discount ?? 0).toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}</strong>
+                                            {t('promoDiscount')}: <strong>-{(order.promo_discount ?? 0).toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}</strong>
                                         </div>
                                     )}
                                     {(order.coins_spent ?? 0) > 0 && (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#D97706' }}>
                                             <Coins size={14} />
-                                            {t('coinsUsed')}: <strong>-{(order.coins_spent ?? 0).toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}</strong>
+                                            {t('coinsUsed')}: <strong>-{(order.coins_spent ?? 0).toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}</strong>
                                         </div>
                                     )}
                                 </div>
@@ -269,7 +269,7 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                             }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                                     <div className={styles.infoLabel} style={{ color: noDepositWarning ? '#92400E' : '#065F46' }}>
-                                        {lang === 'uz' ? "To'lov holati" : "Статус оплаты"}
+                                        {t('paymentStatus')}
                                     </div>
                                     <Link
                                         href={`/admin/orders/${order.id}/payments`}
@@ -277,7 +277,7 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                                         style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 700, color: '#BE185D', textDecoration: 'none' }}
                                     >
                                         <Receipt size={13} />
-                                        {lang === 'uz' ? "Tarix" : "История"}
+                                        {t('tarix')}
                                     </Link>
                                 </div>
 
@@ -285,36 +285,36 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', padding: '8px 10px', background: '#FEF3C7', borderRadius: '8px' }}>
                                         <AlertTriangle size={14} color="#92400E" />
                                         <span style={{ fontSize: '12px', fontWeight: 700, color: '#92400E' }}>
-                                            {lang === 'uz' ? "Avans qabul qilinmagan" : "Аванс не получен"}
+                                            {t('noDepositWarning')}
                                         </span>
                                     </div>
                                 )}
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#6B7280' }}>
-                                        <span>{lang === 'uz' ? "Jami:" : "Итого:"}</span>
+                                        <span>{t('total')}:</span>
                                         <span style={{ fontWeight: 700, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>
-                                            {totalPrice.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}
+                                            {totalPrice.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}
                                         </span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#6B7280' }}>
-                                        <span>{lang === 'uz' ? "Avans:" : "Аванс:"}</span>
+                                        <span>{lang === 'uz' ? 'Avans' : 'Аванс'}:</span>
                                         <span style={{ fontWeight: 700, color: '#16A34A', fontVariantNumeric: 'tabular-nums' }}>
-                                            {depositAmount.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}
+                                            {depositAmount.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}
                                         </span>
                                     </div>
                                     <div style={{ height: '1px', background: '#E5E7EB' }} />
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
                                         <span style={{ fontWeight: 700, color: '#111827' }}>
-                                            {lang === 'uz' ? "Qoldiq:" : "Остаток:"}
+                                            {t('remaining')}:
                                         </span>
                                         {remaining === 0 ? (
                                             <span style={{ background: '#D1FAE5', color: '#065F46', padding: '2px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 700 }}>
-                                                {lang === 'uz' ? "To'liq to'langan" : "Полностью оплачено"}
+                                                {t('paid')}
                                             </span>
                                         ) : (
                                             <span style={{ fontWeight: 800, color: '#BE185D', fontVariantNumeric: 'tabular-nums' }}>
-                                                {remaining.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}
+                                                {remaining.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}
                                             </span>
                                         )}
                                     </div>
@@ -355,7 +355,7 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                                             )}
                                         </div>
                                         <div className={styles.itemInfo}>
-                                            <h3 className={styles.itemName} style={{ fontSize: '15px', fontWeight: 700 }}>{item.name || (lang === 'uz' ? 'Tort' : 'Торт')}</h3>
+                                            <h3 className={styles.itemName} style={{ fontSize: '15px', fontWeight: 700 }}>{item.name || t('cake')}</h3>
                                             <div className={styles.itemConfig} style={{ fontSize: '12px' }}>
                                                 {item.configuration?.mode === 'upload' ? (
                                                     <div style={{ color: 'hsl(var(--color-primary-dark))', fontWeight: 700, fontSize: '10px', marginBottom: '2px', textTransform: 'uppercase' }}>📸 {t('basedOnPhoto')}</div>
@@ -381,7 +381,7 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                                             </div>
                                             <div className={styles.itemPriceQty}>
                                                 <div className={styles.itemPrice} style={{ fontVariantNumeric: 'tabular-nums' }}>
-                                                    {((item.unit_price || 0) * item.quantity).toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}
+                                                    {((item.unit_price || 0) * item.quantity).toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}
                                                 </div>
                                                 <div className={styles.itemQtyBadge} style={{ fontVariantNumeric: 'tabular-nums' }}>{item.quantity} {t('pcs')}</div>
                                             </div>
@@ -392,7 +392,7 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 0', borderTop: '2px solid #F3F4F6', marginTop: '16px' }}>
                                 <span style={{ fontWeight: 800, fontSize: '18px' }}>{t('totalPayment')}:</span>
                                 <span style={{ fontWeight: 800, fontSize: '20px', color: 'hsl(var(--color-primary-dark))', fontVariantNumeric: 'tabular-nums' }}>
-                                    {totalPrice.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}
+                                    {totalPrice.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}
                                 </span>
                             </div>
                         </div>
@@ -411,12 +411,10 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                                 <>
                                     {hasUnpricedPhotoItem && (
                                         <div style={{ width: '100%', marginBottom: '8px', padding: '10px 12px', background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: '10px', fontSize: '13px', color: '#92400E', lineHeight: '1.5' }}>
-                                            {lang === 'uz'
-                                                ? '📸 Tasdiqlash uchun avval rasm asosidagi tort narxini belgilang.'
-                                                : '📸 Для подтверждения сначала установите цену торта по фото.'}
+                                            {t('confirmPriceFirst')}
                                             {' '}
                                             <button onClick={() => router.push(`/admin/orders/${order.id}`)} style={{ background: 'none', border: 'none', color: '#BE185D', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', fontSize: '13px', padding: 0 }}>
-                                                {lang === 'uz' ? 'Narxni belgilash →' : 'Установить цену →'}
+                                                {t('setPrice')}
                                             </button>
                                         </div>
                                     )}
@@ -445,7 +443,7 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                                     className={`${styles.orderActionBtn} ${isPickup ? styles.orderActionBtnSuccess : styles.orderActionBtnDelivering}`}
                                 >
                                     {isPickup ? <CheckCircle size={18} /> : <Truck size={18} />}
-                                    {isPickup ? (t('finish' as any) || 'Finish') : t('startDelivery')}
+                                    {isPickup ? (t('finish') || 'Finish') : t('startDelivery')}
                                 </button>
                             )}
                             {order.status === 'delivering' && (
@@ -454,7 +452,7 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                                 </button>
                             )}
                             <button onClick={() => router.push(`/admin/orders/${order.id}`)} className={styles.orderActionBtn} style={{ background: 'white', color: '#BE185D', border: '1.5px solid #F9A8D4' }}>
-                                <History size={18} /> {t('viewFull' as any)}
+                                <History size={18} /> {t('viewFull')}
                             </button>
                             <button onClick={onClose} className={styles.orderActionBtn} style={{ background: '#F3F4F6', color: '#374151' }}>
                                 {t('close')}

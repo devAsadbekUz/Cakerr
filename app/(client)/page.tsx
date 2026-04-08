@@ -5,10 +5,16 @@ import HomepageShell from '@/app/components/home/HomepageShell';
 import ActiveOrderSection from '@/app/components/home/ActiveOrderSection';
 import { Product } from '@/app/types';
 import LocalizedText from '@/app/components/LocalizedText';
+import { cookies } from 'next/headers';
+import { clientTranslations, Language } from '@/app/utils/client-translations';
 
 export const revalidate = 60; // Revalidate cached data every 60 seconds
 
 export default async function HomePage() {
+  const cookieStore = await cookies();
+  const lang = (cookieStore.get('client-lang')?.value as Language) || 'uz';
+  const t = (key: string) => (clientTranslations[lang] as any)[key] || key;
+
   const supabase = await createClient();
 
   // --- Server-side data fetching (parallel) ---
@@ -45,7 +51,7 @@ export default async function HomePage() {
       image: item.image_url || '',
       images: Array.isArray(item.images) ? item.images : (item.image_url ? [item.image_url] : []),
       category_id: item.category_id,
-      category: 'Boshqa',
+      category: t('other'),
       categoryId: item.category_id,
       is_available: item.is_available,
       is_ready: item.is_ready || false,
@@ -85,7 +91,7 @@ export default async function HomePage() {
                     <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#1F2937' }}>
                       <LocalizedText data={cat.label || cat.name} />
                     </h2>
-                    <span style={{ fontSize: '14px', color: '#9CA3AF' }}>{productsInCategory.length} tortlar</span>
+                    <span style={{ fontSize: '14px', color: '#9CA3AF' }}>{productsInCategory.length} {t('cakesCount')}</span>
                   </div>
                   {/* Passing search and priority to components handled by HomepageShell clone element pattern or context */}
                   <ProductGrid 

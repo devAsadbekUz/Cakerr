@@ -160,7 +160,7 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
 
         setLoading(true);
 
-        const categoryLabel = categories.find(c => c.id === categoryId)?.label || 'Boshqa';
+        const categoryLabel = categories.find(c => c.id === categoryId)?.label || t('other');
 
         const productData = {
             title,
@@ -196,7 +196,7 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
             router.refresh(); // Refresh server components
         } catch (error: any) {
             console.error('Error saving product:', error);
-            alert('Xatolik: ' + error.message);
+            alert(`${t('errorPrefix')}: ` + error.message);
         } finally {
             setLoading(false);
         }
@@ -251,7 +251,7 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
                             />
                             {showErrors && !title.uz.trim() && !title.ru.trim() && (
                                 <p style={{ color: '#EF4444', fontSize: '12px', marginTop: '4px', fontWeight: 500 }}>
-                                    {t('titleLabel')} UZ yoki RU da kiritilishi shart
+                                    {t('titleRequired')}
                                 </p>
                             )}
                         </div>
@@ -359,7 +359,7 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
                         {/* Attributes Section */}
                         <div style={{ background: '#FFF7ED', padding: '16px', borderRadius: '12px', marginBottom: '16px', border: '1px solid #FFEDD5' }}>
                             <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#9A3412', marginBottom: '12px' }}>
-                                {t('attributesLabel')} ({t('commaSeparated') || 'Vergul bilan ajrating'})
+                                {t('attributesLabel')} ({t('commaSeparated')})
                             </label>
 
                             <div style={{ marginBottom: '12px' }}>
@@ -414,7 +414,7 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
                                 <div key={index} style={{ marginBottom: '12px' }}>
                                     <div style={{ display: 'flex', gap: '8px' }}>
                                         <input
-                                            placeholder="Nomi (Masalan: Kichik)"
+                                            placeholder={t('placeholderName')}
                                             value={variant.label}
                                             onChange={e => handleVariantChange(index, 'label', e.target.value)}
                                             style={{
@@ -427,7 +427,7 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
                                         />
                                         <input
                                             type="number"
-                                            placeholder="Narx"
+                                            placeholder={t('placeholderPrice')}
                                             value={variant.price === 0 ? '' : variant.price}
                                             onChange={e => handleVariantChange(index, 'price', e.target.value)}
                                             style={{
@@ -448,14 +448,14 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
                                     </div>
                                     {showErrors && (Number(variant.price) <= 0 || !variant.label) && (
                                         <p style={{ color: '#EF4444', fontSize: '11px', marginTop: '4px', fontWeight: 500 }}>
-                                            {!variant.label ? 'Nomini kiriting' : 'Narxini kiriting'}
+                                            {!variant.label ? t('titleError') : t('priceError')}
                                         </p>
                                     )}
                                 </div>
                             ))}
                             {variants.length === 0 && (
                                 <p style={{ fontSize: '12px', color: '#9CA3AF', fontStyle: 'italic' }}>
-                                    Variantlar yo'q (Asosiy narx ishlatiladi)
+                                    {t('noVariants')}
                                 </p>
                             )}
                         </div>

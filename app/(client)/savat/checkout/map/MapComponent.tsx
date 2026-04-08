@@ -198,7 +198,7 @@ export default function MapComponent() {
                         }
                         <p className={styles.addressText}>
                             {isGeocoding
-                                ? (lang === 'ru' ? 'Определяем адрес…' : 'Manzil aniqlanmoqda…')
+                                ? t('addressDetermining')
                                 : (address || '—')}
                         </p>
                     </div>
@@ -208,7 +208,7 @@ export default function MapComponent() {
                         type="text"
                         value={label}
                         onChange={e => setLabel(e.target.value)}
-                        placeholder={lang === 'ru' ? 'Название (Дом, Работа…)' : 'Nom (Uy, Ish…)'}
+                        placeholder={t('addressLabelPlaceholder')}
                         maxLength={30}
                     />
 
@@ -219,7 +219,7 @@ export default function MapComponent() {
                         type="button"
                     >
                         {isSaving
-                            ? (lang === 'ru' ? 'Сохранение…' : 'Saqlanmoqda…')
+                            ? t('loading')
                             : t('saveAddress')}
                     </button>
                 </div>

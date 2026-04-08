@@ -103,7 +103,7 @@ function ProductCardComponent({ id, title, price, image, images, tag, isReady, v
                 <div className={styles.bottomRow}>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <p className={styles.price}>
-                            {displayPrice.toLocaleString('en-US')} {t('som')}
+                            {displayPrice.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}
                         </p>
                         <p className={styles.subText}>{t('danBoshlab')}</p>
                     </div>

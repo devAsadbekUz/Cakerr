@@ -367,7 +367,7 @@ export default function TrackingPage() {
                             <div className={styles.card}>
                                 <h2 className={styles.sectionTitle} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <Banknote size={18} color="#BE185D" />
-                                    {lang === 'ru' ? 'Статус оплаты' : "To'lov holati"}
+                                    {t('paymentStatus')}
                                 </h2>
 
                                 {noDeposit ? (
@@ -381,32 +381,30 @@ export default function TrackingPage() {
                                         lineHeight: '1.5',
                                         marginTop: '10px'
                                     }}>
-                                        {lang === 'ru'
-                                            ? 'Данные об оплате будут обновлены в ближайшее время.'
-                                            : "To'lov ma'lumotlari tez orada yangilanadi."}
+                                        {t('paymentInfoPending')}
                                     </div>
                                 ) : (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
                                             <span style={{ color: '#6B7280' }}>
-                                                {lang === 'ru' ? 'Итого:' : 'Jami:'}
+                                                {t('total')}:
                                             </span>
                                             <span style={{ fontWeight: 700, color: '#111827' }}>
-                                                {totalPrice.toLocaleString('en-US')} {t('som')}
+                                                {totalPrice.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}
                                             </span>
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
                                             <span style={{ color: '#6B7280' }}>
-                                                {lang === 'ru' ? 'Оплачено:' : "To'langan:"}
+                                                {t('paid')}:
                                             </span>
                                             <span style={{ fontWeight: 700, color: '#16A34A' }}>
-                                                {depositAmount.toLocaleString('en-US')} {t('som')}
+                                                {depositAmount.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}
                                             </span>
                                         </div>
                                         <div style={{ height: '1px', background: '#F3F4F6' }} />
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', alignItems: 'center' }}>
                                             <span style={{ fontWeight: 700, color: '#111827' }}>
-                                                {lang === 'ru' ? 'Остаток:' : 'Qoldiq:'}
+                                                {t('remainingBalance')}:
                                             </span>
                                             {fullyPaid ? (
                                                 <span style={{
@@ -414,11 +412,11 @@ export default function TrackingPage() {
                                                     padding: '3px 10px', borderRadius: '8px',
                                                     fontSize: '12px', fontWeight: 700
                                                 }}>
-                                                    {lang === 'ru' ? 'Полностью оплачено' : "To'liq to'langan"}
+                                                    {t('fullyPaid')}
                                                 </span>
                                             ) : (
                                                 <span style={{ fontWeight: 800, color: '#BE185D', fontSize: '16px' }}>
-                                                    {remaining.toLocaleString('en-US')} {t('som')}
+                                                    {remaining.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}
                                                 </span>
                                             )}
                                         </div>
@@ -432,9 +430,7 @@ export default function TrackingPage() {
                                                 background: '#F9FAFB',
                                                 borderRadius: '8px'
                                             }}>
-                                                {lang === 'ru'
-                                                    ? 'Остаток будет оплачен при получении.'
-                                                    : "Qoldiq buyurtma yetkazilganda to'lanadi."}
+                                                {t('remainingBalanceNote')}
                                             </p>
                                         )}
                                     </div>
@@ -458,8 +454,8 @@ export default function TrackingPage() {
                                     </div>
                                     <span className={styles.productPrice}>
                                         {item.price === 0
-                                            ? <span style={{ color: '#BE185D', fontStyle: 'italic' }}>Kelishiladi</span>
-                                            : <>{item.price.toLocaleString('uz-UZ')} so'm</>
+                                            ? <span style={{ color: '#BE185D', fontStyle: 'italic' }}>{t('negotiable')}</span>
+                                            : <>{item.price.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}</>
                                         }
                                     </span>
                                 </div>
@@ -469,7 +465,7 @@ export default function TrackingPage() {
                                 <span className={styles.totalLabel}>{t('total')}</span>
                                 {order.items.some((item: any) => item.price === 0) ? (
                                     <span className={styles.totalValue} style={{ color: '#BE185D', fontStyle: 'italic', fontSize: '14px' }}>
-                                        Kelishiladi
+                                        {t('negotiable')}
                                     </span>
                                 ) : (
                                     <span className={styles.totalValue}>{order.total.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}</span>

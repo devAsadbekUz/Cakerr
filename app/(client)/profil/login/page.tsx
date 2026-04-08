@@ -7,7 +7,9 @@ import { ChevronLeft, Send, Phone, ArrowRight, Loader2 } from 'lucide-react';
 import { useTelegram } from '@/app/context/AuthContext';
 import { storeSession } from '@/app/utils/telegram';
 import { TELEGRAM_CONFIG } from '@/app/utils/telegramConfig';
+import { useLanguage } from '@/app/context/LanguageContext';
 import styles from './page.module.css';
+
 
 type LoginStep = 'phone' | 'otp' | 'telegram';
 
@@ -22,6 +24,8 @@ function LoginContent() {
     const [otpCode, setOtpCode] = useState('');
     const [countdown, setCountdown] = useState(0);
     const { login, isTelegram } = useTelegram();
+    const { t } = useLanguage();
+
 
     // Set initial step based on environment
     useEffect(() => {
@@ -48,7 +52,7 @@ function LoginContent() {
             router.push(redirectTo);
         } catch (err: any) {
             console.error('[Login] Error:', err);
-            setError(err.message || 'Xatolik yuz berdi');
+            setError(err.message || t('errorOccurred'));
         } finally {
             setLoading(false);
         }
@@ -58,7 +62,7 @@ function LoginContent() {
     const handleRequestOTP = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!phone || phone.length < 9) {
-            setError('Telefon raqamini kiriting');
+            setError(t('titleError'));
             return;
         }
 
@@ -83,7 +87,7 @@ function LoginContent() {
             const data = await response.json();
 
             if (data.error === 'not_linked') {
-                setError(`Bu raqam Telegram botga ulanmagan. Avval @${TELEGRAM_CONFIG.botUsername} ni oching va telefon raqamingizni ulashing.`);
+                setError(t('loginErrNotLinked').replace('{bot}', TELEGRAM_CONFIG.botUsername));
                 return;
             }
 
@@ -99,7 +103,7 @@ function LoginContent() {
 
         } catch (err: any) {
             console.error('[Login] Request OTP error:', err);
-            setError('Xatolik yuz berdi. Qaytadan urinib ko\'ring.');
+            setError(t('errorMessage'));
         } finally {
             setLoading(false);
         }
@@ -109,7 +113,7 @@ function LoginContent() {
     const handleVerifyOTP = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!otpCode || otpCode.length !== 6) {
-            setError('6 xonali kodni kiriting');
+            setError(t('enterCode'));
             return;
         }
 
@@ -128,7 +132,7 @@ function LoginContent() {
             if (data.error) {
                 // Show debug info for troubleshooting
                 const debugInfo = data.debug ? ` [DEBUG: ${data.debug}]` : '';
-                setError(`${data.message || 'Noto\'g\'ri kod'}${debugInfo}`);
+                setError(`${data.message || t('invalidCode')}${debugInfo}`);
                 return;
             }
 
@@ -144,7 +148,7 @@ function LoginContent() {
 
         } catch (err: any) {
             console.error('[Login] Verify OTP error:', err);
-            setError('Xatolik yuz berdi. Qaytadan urinib ko\'ring.');
+            setError(t('errorMessage'));
         } finally {
             setLoading(false);
         }
@@ -166,8 +170,8 @@ function LoginContent() {
 
                 <div className={styles.contentCard}>
                     <div className={styles.titleSection}>
-                        <h1 className={styles.title}>Xush kelibsiz</h1>
-                        <p className={styles.subtitle}>Eng shirin lahzalar shu yerdan boshlanadi ✨</p>
+                        <h1 className={styles.title}>{t('welcomeTitle')}</h1>
+                        <p className={styles.subtitle}>{t('welcomeSubtitle')}</p>
                     </div>
 
                     <div className={styles.authOptions}>
@@ -178,17 +182,16 @@ function LoginContent() {
                             onClick={handleTelegramLogin}
                             disabled={loading}
                         >
-                            <Send size={20} />
-                            {loading ? 'Kutilmoqda...' : 'Telegram bilan kirish'}
+                            {loading ? t('processing') : t('telegramLogin')}
                         </button>
 
                         <p className={styles.hint}>
-                            Tugmani bosing va telefon raqamingizni ulashing
+                            {t('telegramLinkHint')}
                         </p>
                     </div>
 
                     <footer className={styles.footer}>
-                        <p>Kirish orqali siz bizning <span>Foydalanish shartlarimizga</span> rozilik bildirasiz</p>
+                        <p dangerouslySetInnerHTML={{ __html: t('loginTerms') }} />
                     </footer>
                 </div>
             </div>
@@ -211,12 +214,12 @@ function LoginContent() {
             <div className={styles.contentCard}>
                 <div className={styles.titleSection}>
                     <h1 className={styles.title}>
-                        {step === 'phone' ? 'Xush kelibsiz' : 'Kodni kiriting'}
+                        {step === 'phone' ? t('welcomeTitle') : t('enterCode')}
                     </h1>
                     <p className={styles.subtitle}>
                         {step === 'phone'
-                            ? 'Telefon raqamingiz orqali kiring'
-                            : `Kod ${phone} raqamiga Telegram orqali yuborildi`
+                            ? t('phoneLoginPrompt')
+                            : t('codeSentTo').replace('{phone}', phone)
                         }
                     </p>
                 </div>
@@ -249,7 +252,7 @@ function LoginContent() {
                                     <Loader2 size={20} className={styles.spinner} />
                                 ) : (
                                     <>
-                                        Kod olish
+                                    {t('getCode')}
                                         <ArrowRight size={20} />
                                     </>
                                 )}
@@ -280,13 +283,13 @@ function LoginContent() {
                                 {loading ? (
                                     <Loader2 size={20} className={styles.spinner} />
                                 ) : (
-                                    'Tasdiqlash'
+                                    t('verify')
                                 )}
                             </button>
 
                             <div className={styles.resendRow}>
                                 {countdown > 0 ? (
-                                    <p className={styles.hint}>Qayta yuborish: {countdown}s</p>
+                                    <p className={styles.hint}>{t('resendCode').replace('{countdown}', countdown.toString())}</p>
                                 ) : (
                                     <button
                                         type="button"
@@ -297,7 +300,7 @@ function LoginContent() {
                                             setError(null);
                                         }}
                                     >
-                                        Qayta yuborish
+                                        {t('resendCode').split(':')[0]}
                                     </button>
                                 )}
                             </div>
@@ -306,17 +309,17 @@ function LoginContent() {
 
                     <p className={styles.hint}>
                         {step === 'phone' ? (
-                            <>
-                                📱 Avval <a href={TELEGRAM_CONFIG.botLink} target="_blank" rel="noopener noreferrer" style={{ color: '#0088cc' }}>@{TELEGRAM_CONFIG.botUsername}</a> da raqamingizni ulang
-                            </>
+                            <span dangerouslySetInnerHTML={{ 
+                                __html: t('telegramBotLinkHint').replace('{bot}', `<a href="${TELEGRAM_CONFIG.botLink}" target="_blank" rel="noopener noreferrer" style={{ color: '#0088cc' }}>@${TELEGRAM_CONFIG.botUsername}</a>`) 
+                            }} />
                         ) : (
-                            'Telegram ilovasini oching va kodni kiriting'
+                            t('telegramOpenHint')
                         )}
                     </p>
                 </div>
 
                 <footer className={styles.footer}>
-                    <p>Kirish orqali siz bizning <span>Foydalanish shartlarimizga</span> rozilik bildirasiz</p>
+                    <p dangerouslySetInnerHTML={{ __html: t('loginTerms') }} />
                 </footer>
             </div>
         </div>
@@ -325,8 +328,14 @@ function LoginContent() {
 
 export default function LoginPage() {
     return (
-        <Suspense fallback={<div>Yuklanmoqda...</div>}>
+        <Suspense fallback={<LoadingFallback />}>
             <LoginContent />
         </Suspense>
     );
 }
+
+function LoadingFallback() {
+    const { t } = useLanguage();
+    return <div style={{ padding: '40px', textAlign: 'center' }}>{t('loading')}</div>;
+}
+

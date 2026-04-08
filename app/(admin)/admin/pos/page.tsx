@@ -245,7 +245,7 @@ export default function PosPage() {
                 >
                     <ShoppingCart size={22} />
                     <span className={styles.cartFabBadge}>{totalItems}</span>
-                    <span className={styles.cartFabTotal}>{(subtotal + (deliveryType === 'delivery' ? DELIVERY_FEE : 0)).toLocaleString()} so'm</span>
+                    <span className={styles.cartFabTotal}>{(subtotal + (deliveryType === 'delivery' ? DELIVERY_FEE : 0)).toLocaleString()} {t('som')}</span>
                 </button>
             )}
 
@@ -296,7 +296,7 @@ export default function PosPage() {
                             </div>
                             <div>
                                 <div style={{ fontWeight: 800, fontSize: 16 }}>{t('viaBuilder')}</div>
-                                <div style={{ fontSize: 12, opacity: 0.9 }}>Step-by-step</div>
+                                <div style={{ fontSize: 12, opacity: 0.9 }}>{lang === 'uz' ? 'Bosqichma-bosqich' : 'Пошагово'}</div>
                             </div>
                         </div>
                     </div>
@@ -308,7 +308,7 @@ export default function PosPage() {
                             </div>
                             <div>
                                 <div style={{ fontWeight: 800, fontSize: 16 }}>{t('basedOnPhoto')}</div>
-                                <div style={{ fontSize: 12, opacity: 0.9 }}>Mijoz rasmi</div>
+                                <div style={{ fontSize: 12, opacity: 0.9 }}>{lang === 'uz' ? 'Mijoz rasmi' : 'Фото клиента'}</div>
                             </div>
                         </div>
                     </div>
@@ -326,7 +326,7 @@ export default function PosPage() {
                             </div>
                             <div className={styles.productInfo} onClick={() => setDetailProduct(product)} style={{ cursor: 'pointer' }}>
                                 <div className={styles.productTitle}>{getLocalized(product.title, lang)}</div>
-                                <div className={styles.productPrice}>{Number(product.base_price).toLocaleString()} so'm</div>
+                                <div className={styles.productPrice}>{Number(product.base_price).toLocaleString()} {t('som')}</div>
                             </div>
                         </div>
                     ))}
@@ -336,7 +336,7 @@ export default function PosPage() {
             {/* 2. Order Sidebar */}
             <aside className={`${styles.sidebar} ${showMobileCart ? styles.sidebarOpen : ''}`}>
                 <div className={styles.sidebarHeader}>
-                    <div className={styles.sidebarTitle}>Current Order</div>
+                    <div className={styles.sidebarTitle}>{t('posCurrentOrder')}</div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>{totalItems} {t('pcs')}</div>
                         <button className={styles.sidebarCloseBtn} onClick={() => setShowMobileCart(false)}>
@@ -349,7 +349,7 @@ export default function PosPage() {
                     {cart.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '60px 20px', color: '#94a3b8' }}>
                             <ShoppingCart size={48} style={{ margin: '0 auto 16px', opacity: 0.2 }} />
-                            <p style={{ fontWeight: 500 }}>Savat bo'sh</p>
+                            <p style={{ fontWeight: 500 }}>{t('emptyCart')}</p>
                         </div>
                     ) : (
                         cart.map(item => (
@@ -359,7 +359,7 @@ export default function PosPage() {
                                     <div className={styles.itemMeta}>
                                         {item.portion} {item.flavor ? `• ${item.flavor}` : ''}
                                     </div>
-                                    <div className={styles.itemPrice}>{(Number(item.price) * item.quantity).toLocaleString()} so'm</div>
+                                    <div className={styles.itemPrice}>{(Number(item.price) * item.quantity).toLocaleString()} {t('som')}</div>
                                 </div>
                                 <div className={styles.itemQuantity}>
                                     <button 
@@ -419,13 +419,13 @@ export default function PosPage() {
 
                     <div className={styles.formRow}>
                         <div className={styles.formControl}>
-                            <label className={styles.label}><User size={12} style={{ display: 'inline', marginRight: 4 }} /> Ismi</label>
+                            <label className={styles.label}><User size={12} style={{ display: 'inline', marginRight: 4 }} /> {t('customerName')}</label>
                             <input 
                                 type="text" 
                                 value={customerInfo.name}
                                 onChange={(e) => setCustomerInfo({ name: e.target.value })}
                                 className={styles.input} 
-                                placeholder="Mijoz ismi"
+                                placeholder={t('customerName')}
                             />
                         </div>
                         <div className={styles.formControl}>
@@ -452,13 +452,13 @@ export default function PosPage() {
 
                     {deliveryType === 'delivery' ? (
                         <div className={styles.formControl}>
-                            <label className={styles.label}><MapPin size={12} style={{ display: 'inline', marginRight: 4 }} /> Manzil</label>
+                            <label className={styles.label}><MapPin size={12} style={{ display: 'inline', marginRight: 4 }} /> {t('address')}</label>
                             <textarea 
                                 value={deliveryInfo.address}
                                 onChange={(e) => setDeliveryInfo({ address: e.target.value })}
                                 className={styles.textarea} 
                                 rows={2}
-                                placeholder="Manzilni kiriting..."
+                                placeholder={t('enterAddress')}
                             />
                         </div>
                     ) : (
@@ -492,7 +492,7 @@ export default function PosPage() {
                                         return;
                                     }
                                     if (isDateFullyBlocked(dateVal)) {
-                                        setError('Bu sana yopiq (jadval bo\'yicha)');
+                                        setError(lang === 'uz' ? 'Bu sana yopiq' : 'Эта дата закрыта');
                                         setDeliveryInfo({ date: null });
                                         return;
                                     }
@@ -512,12 +512,12 @@ export default function PosPage() {
                                 value={deliveryInfo.slot}
                                 onChange={(e) => setDeliveryInfo({ slot: e.target.value })}
                             >
-                                <option value="">Tanlang</option>
+                                <option value="">{t('selectTime')}</option>
                                 {slots.map(s => {
                                     const blocked = isSlotBlocked(s.label);
                                     return (
                                         <option key={s.id} value={s.label} disabled={blocked}>
-                                            {s.label}{blocked ? ' — yopiq' : ''}
+                                            {s.label}{blocked ? ` — ${t('closed')}` : ''}
                                         </option>
                                     );
                                 })}
@@ -526,31 +526,31 @@ export default function PosPage() {
                     </div>
 
                     <div className={styles.formControl}>
-                        <label className={styles.label}>📝 Izoh (ixtiyoriy)</label>
+                        <label className={styles.label}>📝 {t('orderComment')}</label>
                         <textarea
                             value={orderNote}
                             onChange={(e) => setOrderNote(e.target.value)}
                             className={styles.textarea}
                             rows={2}
-                            placeholder="Buyurtma bo'yicha qo'shimcha izoh..."
+                            placeholder={t('orderNotePlaceholder')}
                         />
                     </div>
 
                     <div className={styles.totalSection}>
                         <div className={styles.totalRow}>
-                            <span className={styles.totalLabel}>{t('totalLabel')}</span>
-                            <span className={styles.totalAmount}>{(subtotal + (deliveryType === 'delivery' ? DELIVERY_FEE : 0)).toLocaleString()} so'm</span>
+                            <span className={styles.totalLabel}>{t('total')}</span>
+                            <span className={styles.totalAmount}>{(subtotal + (deliveryType === 'delivery' ? DELIVERY_FEE : 0)).toLocaleString()} {t('som')}</span>
                         </div>
                         {deliveryType === 'delivery' && (
                             <div style={{ fontSize: '11px', color: '#64748b', textAlign: 'right', marginTop: '2px' }}>
-                                (Inc. {DELIVERY_FEE.toLocaleString()} delivery fee)
+                                (Inc. {DELIVERY_FEE.toLocaleString()} {t('deliveryFee')})
                             </div>
                         )}
                     </div>
 
                     {orderSuccess && (
                         <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', padding: 12, borderRadius: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <CheckCircle2 size={18} /> Buyurtma #{(orderSuccess as string).substring(0, 8)} tasdiqlandi!
+                            <CheckCircle2 size={18} /> {t('orderConfirmedNum').replace('{id}', (orderSuccess as string).substring(0, 8))}
                         </div>
                     )}
 

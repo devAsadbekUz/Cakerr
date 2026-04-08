@@ -154,10 +154,10 @@ function SuccessContent() {
     const branch = (order as any)?.branches || (order as any)?.branch_snapshot;
 
     const displayData = {
-        id: order?.id || orderId || 'Noma\'lum',
+        id: order?.id || orderId || t('unknown'),
         deliveryDate: order?.delivery_time
             ? formattedDateWithSlot(order.delivery_time, monthNames, order.delivery_slot)
-            : t('today') || 'Bugun',
+            : t('today'),
         deliveryTime: '', // Combined into deliveryDate
         address: isPickup 
             ? (lang === 'uz' ? branch?.name_uz : branch?.name_ru) || t('pickup')
@@ -218,7 +218,7 @@ function SuccessContent() {
                                 target="_blank" rel="noopener noreferrer"
                                 style={{ fontSize: '12px', color: '#3B82F6', marginTop: '4px', textDecoration: 'none', fontWeight: 600 }}
                             >
-                                {t('openInMaps') || "Xaritada ko'rish"}
+                                {t('openInMaps')}
                             </a>
                         )}
                     </div>
@@ -250,14 +250,14 @@ function SuccessContent() {
             </div>
 
             <div className={styles.summarySection}>
-                <h2 className={styles.summaryTitle}>{t('summary') || "Xulosa"}</h2>
+                <h2 className={styles.summaryTitle}>{t('summary')}</h2>
                 <div className={styles.summaryRow}>
                     <span className={styles.summaryLabel}>{t('items')}</span>
                     <span className={styles.summaryValue}>{Math.max(0, displayData.subtotal).toLocaleString('uz-UZ')} {t('som')}</span>
                 </div>
                 <div className={styles.summaryRow}>
                     <span className={styles.summaryLabel}>{t('delivery')}</span>
-                    <span className={styles.summaryValue}>{displayData.deliveryFee > 0 ? `${displayData.deliveryFee.toLocaleString('uz-UZ')} ${t('som')}` : t('tayyor') || 'Bepul'}</span>
+                    <span className={styles.summaryValue}>{displayData.deliveryFee > 0 ? `${displayData.deliveryFee.toLocaleString('uz-UZ')} ${t('som')}` : t('tayyor')}</span>
                 </div>
                 <div className={`${styles.summaryRow} ${styles.totalRow}`}>
                     <span>{t('total')}</span>
@@ -279,12 +279,10 @@ function SuccessContent() {
                 <AlertCircle size={18} color="#92400E" style={{ flexShrink: 0, marginTop: '1px' }} />
                 <div>
                     <div style={{ fontWeight: 700, fontSize: '14px', color: '#78350F', marginBottom: '4px' }}>
-                        {lang === 'ru' ? 'Требуется предоплата' : 'Avans to\'lovi talab qilinadi'}
+                        {t('prepaymentRequired')}
                     </div>
                     <div style={{ fontSize: '13px', color: '#92400E', lineHeight: '1.5' }}>
-                        {lang === 'ru'
-                            ? 'После подтверждения заказа потребуется минимум 50% предоплата. Менеджер свяжется с вами для уточнения деталей.'
-                            : 'Buyurtmangiz tasdiqlanganidan so\'ng kamida 50% avans to\'lovi talab qilinadi. Menejer siz bilan bog\'lanadi.'}
+                        {t('prepaymentNotice')}
                     </div>
                 </div>
             </div>
@@ -309,8 +307,14 @@ function SuccessContent() {
 
 export default function OrderSuccessPage() {
     return (
-        <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>}>
+        <Suspense fallback={<LoadingFallback />}>
             <SuccessContent />
         </Suspense>
     );
 }
+
+function LoadingFallback() {
+    const { t } = useLanguage();
+    return <div style={{ padding: '40px', textAlign: 'center' }}>{t('loading')}</div>;
+}
+

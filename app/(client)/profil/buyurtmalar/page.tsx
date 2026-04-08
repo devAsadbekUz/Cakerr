@@ -59,7 +59,7 @@ export default function OrderHistoryPage() {
                 if (data) {
                     const mappedOrders: Order[] = data.map((o: any) => ({
                         id: o.id,
-                        date: new Date(o.created_at).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' }),
+                        date: new Date(o.created_at).toLocaleDateString(lang === 'uz' ? 'uz-UZ' : 'ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }),
                         total: o.total_price,
                         status: o.status,
                         statusLabel: getStatusConfig(o.status).labels[lang],
@@ -107,7 +107,7 @@ export default function OrderHistoryPage() {
     });
 
     if (authLoading || (user && loading)) {
-        return <div className={styles.container} style={{ padding: '40px', textAlign: 'center' }}>Yuklanmoqda...</div>;
+        return <div className={styles.container} style={{ padding: '40px', textAlign: 'center' }}>{t('loading')}</div>;
     }
 
     if (!user) {
@@ -181,7 +181,7 @@ export default function OrderHistoryPage() {
                                     <p className={styles.productMeta}>{t('portion')}: {item.portion}</p>
                                 </div>
                                 <div className={styles.productPrice}>
-                                    {item.price.toLocaleString('uz-UZ')} so'm
+                                    {item.price.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}
                                 </div>
                             </div>
                         ))}

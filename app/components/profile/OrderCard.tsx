@@ -45,7 +45,7 @@ export default function OrderCard({ date, displayName, extraItemsCount, price, i
                         {displayName}
                         {extraItemsCount > 0 && <span className={styles.extraItems}> +{extraItemsCount}</span>}
                     </h4>
-                    <p className={styles.price}>{price.toLocaleString('uz-UZ')} so'm</p>
+                    <p className={styles.price}>{price.toLocaleString(t('som') === "so'm" ? 'uz-UZ' : 'ru-RU')} {t('som')}</p>
                 </div>
             </div>
             <button className={styles.reorderBtn} onClick={handleReorder} disabled={isLoading}>

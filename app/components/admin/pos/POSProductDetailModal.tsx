@@ -14,7 +14,7 @@ type Props = {
 };
 
 export function POSProductDetailModal({ product, onClose }: Props) {
-    const { lang } = useAdminI18n();
+    const { t, lang } = useAdminI18n();
     const { addItem } = useAdminCart();
 
     const variants: Variant[] = Array.isArray(product.variants) ? product.variants : [];
@@ -23,7 +23,7 @@ export function POSProductDetailModal({ product, onClose }: Props) {
     );
 
     const currentPrice = selectedVariant?.price ?? Number(product.base_price);
-    const currentPortion = selectedVariant?.label ?? 'Standart';
+    const currentPortion = selectedVariant?.label ?? (lang === 'uz' ? 'Standart' : 'Стандарт');
 
     const handleAddToCart = () => {
         addItem({
@@ -108,7 +108,7 @@ export function POSProductDetailModal({ product, onClose }: Props) {
                             {title}
                         </h2>
                         <span style={{ fontSize: '18px', fontWeight: 800, color: '#0ea5e9', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-                            {currentPrice.toLocaleString()} so'm
+                            {currentPrice.toLocaleString()} {t('som')}
                         </span>
                     </div>
 
@@ -133,7 +133,7 @@ export function POSProductDetailModal({ product, onClose }: Props) {
                     {variants.length > 0 && (
                         <div style={{ marginBottom: '16px' }}>
                             <div style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>
-                                {lang === 'uz' ? 'Hajm / Portsiya' : 'Размер / Порция'}
+                                {t('portionSize')}
                             </div>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                                 {variants.map((v) => {
@@ -154,7 +154,7 @@ export function POSProductDetailModal({ product, onClose }: Props) {
                                         >
                                             <span>{v.label ?? v.value}</span>
                                             <span style={{ fontSize: '11px', fontWeight: 600, color: isSelected ? '#0ea5e9' : '#94a3b8', fontVariantNumeric: 'tabular-nums' }}>
-                                                {v.price.toLocaleString()} so'm
+                                                {v.price.toLocaleString()} {t('som')}
                                             </span>
                                         </button>
                                     );
@@ -167,19 +167,19 @@ export function POSProductDetailModal({ product, onClose }: Props) {
                     {hasDetails && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
                             {details.shapes && details.shapes.length > 0 && (
-                                <ChipRow label={lang === 'uz' ? 'Shakllar' : 'Формы'} items={details.shapes} color="#e0f2fe" textColor="#0369a1" lang={lang} />
+                                <ChipRow label={t('shapesLabel')} items={details.shapes} color="#e0f2fe" textColor="#0369a1" lang={lang} />
                             )}
                             {details.flavors && details.flavors.length > 0 && (
-                                <ChipRow label={lang === 'uz' ? 'Ta\'mlar' : 'Вкусы'} items={details.flavors} color="#fce7f3" textColor="#be185d" lang={lang} />
+                                <ChipRow label={t('flavorsLabel')} items={details.flavors} color="#fce7f3" textColor="#be185d" lang={lang} />
                             )}
                             {details.coating && details.coating.length > 0 && (
-                                <ChipRow label={lang === 'uz' ? 'Qoplama' : 'Покрытие'} items={details.coating} color="#dbeafe" textColor="#1e40af" lang={lang} />
+                                <ChipRow label={t('coatingLabel')} items={details.coating} color="#dbeafe" textColor="#1e40af" lang={lang} />
                             )}
                             {details.innerCoating && details.innerCoating.length > 0 && (
-                                <ChipRow label={lang === 'uz' ? 'Ichki qoplama' : 'Внутр. покрытие'} items={details.innerCoating} color="#ffedd5" textColor="#c2410c" lang={lang} />
+                                <ChipRow label={t('flavorCream')} items={details.innerCoating} color="#ffedd5" textColor="#c2410c" lang={lang} />
                             )}
                             {details.decorations && details.decorations.length > 0 && (
-                                <ChipRow label={lang === 'uz' ? 'Bezaklar' : 'Декор'} items={details.decorations} color="#f3e8ff" textColor="#7e22ce" lang={lang} />
+                                <ChipRow label={t('decorations')} items={details.decorations} color="#f3e8ff" textColor="#7e22ce" lang={lang} />
                             )}
                         </div>
                     )}
@@ -199,7 +199,7 @@ export function POSProductDetailModal({ product, onClose }: Props) {
                         <ShoppingCart size={18} />
                         {lang === 'uz' ? 'Savatga qo\'shish' : 'Добавить в корзину'}
                         {' — '}
-                        <span style={{ fontVariantNumeric: 'tabular-nums' }}>{currentPrice.toLocaleString()} so'm</span>
+                        <span style={{ fontVariantNumeric: 'tabular-nums' }}>{currentPrice.toLocaleString()} {t('som')}</span>
                     </button>
                 </div>
             </div>
