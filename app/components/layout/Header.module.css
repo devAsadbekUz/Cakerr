@@ -9,29 +9,40 @@
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
-.collapsed {
-    transform: translateY(-129px);
-    /* Title (64px) + Search (65px) */
-}
 
 .headerSection {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
-    padding: 20px 20px 10px 20px;
-    height: 64px;
+    padding: 12px 20px;
+    height: 96px;
+    position: relative;
 }
 
-.title {
-    font-size: 24px;
-    font-weight: 800;
-    color: hsl(var(--color-primary));
-    margin: 0;
+.headerButtons {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    gap: 8px;
+    align-items: center;
 }
 
 .searchWrapper {
     padding: 0 20px 15px 20px;
     height: 65px;
+    overflow: hidden;
+    transition: height 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                padding 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.3s ease;
+    opacity: 1;
+}
+
+.searchCollapsed {
+    height: 0;
+    padding: 0;
+    opacity: 0;
 }
 
 .filterWrapper {

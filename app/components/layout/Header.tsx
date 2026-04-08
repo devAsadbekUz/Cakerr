@@ -30,10 +30,10 @@ export default function Header({
     };
 
     return (
-        <div className={`${styles.fixedContainer} ${isCollapsed ? styles.collapsed : ''}`}>
+        <div className={styles.fixedContainer}>
             <div className={styles.headerSection}>
-                <h1 className={styles.title}>TORTEL'E</h1>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <img src="/logo.png" alt="TORTEL'E" style={{ height: '72px', width: 'auto', objectFit: 'contain' }} />
+                <div className={styles.headerButtons}>
                     <button
                         className={styles.langBtn}
                         onClick={toggleLanguage}
@@ -73,7 +73,7 @@ export default function Header({
                 </div>
             </div>
 
-            <div className={styles.searchWrapper}>
+            <div className={`${styles.searchWrapper} ${isCollapsed ? styles.searchCollapsed : ''}`}>
                 <SearchBar value={searchTerm} onChange={onSearchChange} placeholder={t('searchPlaceholder')} />
             </div>
 
