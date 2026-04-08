@@ -60,3 +60,37 @@ export const formatUserDataForExcel = (users: any[]) => {
         'Rol': u.role
     }));
 };
+
+const ACTIVE_STATUSES = ['new', 'confirmed'];
+
+export const formatActiveOrderDataForExcel = (orders: any[]) => {
+    const active = orders.filter(o => ACTIVE_STATUSES.includes(o.status));
+    return formatOrderDataForExcel(active);
+};
+
+export const formatProductStatsForExcel = (orders: any[]) => {
+    const active = orders.filter(o => ACTIVE_STATUSES.includes(o.status));
+
+    const statsMap: Record<string, { orderCount: number; totalQty: number }> = {};
+
+    for (const order of active) {
+        const seen = new Set<string>();
+        for (const item of order.order_items ?? []) {
+            const key = item.name || 'Noma\'lum';
+            if (!statsMap[key]) statsMap[key] = { orderCount: 0, totalQty: 0 };
+            if (!seen.has(key)) {
+                statsMap[key].orderCount += 1;
+                seen.add(key);
+            }
+            statsMap[key].totalQty += item.quantity ?? 1;
+        }
+    }
+
+    return Object.entries(statsMap)
+        .sort((a, b) => b[1].totalQty - a[1].totalQty)
+        .map(([name, { orderCount, totalQty }]) => ({
+            'Mahsulot nomi': name,
+            'Buyurtmalar soni': orderCount,
+            'Jami miqdor': totalQty,
+        }));
+};

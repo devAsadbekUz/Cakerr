@@ -185,12 +185,14 @@ export default function AdminSettingsPage() {
             const { data: products } = await supabase.from('products').select('*').is('deleted_at', null);
             const { data: profiles } = await supabase.from('profiles').select('*');
 
-            const { exportToExcel, formatOrderDataForExcel, formatProductDataForExcel, formatUserDataForExcel } = await import('@/app/utils/admin/excelUtils');
+            const { exportToExcel, formatOrderDataForExcel, formatProductDataForExcel, formatUserDataForExcel, formatActiveOrderDataForExcel, formatProductStatsForExcel } = await import('@/app/utils/admin/excelUtils');
 
             const dataSets = [
                 { sheetName: t('sheetOrders'), data: formatOrderDataForExcel(orders || []) },
                 { sheetName: t('sheetProducts'), data: formatProductDataForExcel(products || []) },
-                { sheetName: t('sheetCustomers'), data: formatUserDataForExcel(profiles || []) }
+                { sheetName: t('sheetCustomers'), data: formatUserDataForExcel(profiles || []) },
+                { sheetName: t('sheetActiveOrders'), data: formatActiveOrderDataForExcel(orders || []) },
+                { sheetName: t('sheetProductStats'), data: formatProductStatsForExcel(orders || []) },
             ];
 
             const fromFormatted = format(new Date(exportFrom), 'dd-MM-yyyy');
