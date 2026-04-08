@@ -59,6 +59,11 @@ export default function RootLayout({
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
           strategy="afterInteractive"
+          onLoad={() => {
+            // Dispatch an event so AuthContext can react as soon as the SDK is ready
+            // instead of relying on polling timeout.
+            window.dispatchEvent(new Event('telegram-web-app-ready'));
+          }}
         />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>

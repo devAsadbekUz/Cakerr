@@ -142,6 +142,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         let isMounted = true;
 
         const init = async () => {
+            // Telegram WebApp script loads with `afterInteractive` strategy — it may not be
+            // ready when this useEffect fires. Detect Telegram early via URL hash (Telegram
+            // always appends `#tgWebAppData=...`) and wait up to 3 s for the SDK to populate
+            // window.Telegram.WebApp before we decide we're "not in Telegram".
+            const looksLikeTelegram =
+                typeof window !== 'undefined' &&
+                window.location.hash.includes('tgWebAppData');
+
+            if (looksLikeTelegram && !window.Telegram?.WebApp?.initData) {
+                await new Promise<void>((resolve) => {
+                    const interval = setInterval(() => {
+                        if (window.Telegram?.WebApp?.initData) {
+                            clearInterval(interval);
+                            resolve();
+                        }
+                    }, 50);
+                    // Also resolve immediately when the script fires its load event
+                    const onReady = () => resolve();
+                    window.addEventListener('telegram-web-app-ready', onReady, { once: true });
+                    // Safety timeout — don't block forever
+                    setTimeout(() => { clearInterval(interval); resolve(); }, 3000);
+                });
+            }
+
             // 1. Parallel Check: Telegram vs Supabase
             const inTelegram = isTelegramWebApp();
             const storedTgSession = getStoredSession();
