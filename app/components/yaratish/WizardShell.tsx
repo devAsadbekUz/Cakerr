@@ -19,15 +19,7 @@ import PhotoUploadForm from './PhotoUploadForm';
 
 import { useEffect } from 'react';
 import { customCakeService } from '@/app/services/customCakeService';
-
-const STEPS = [
-    { title: 'Shakl', component: ShapeStep },
-    { title: 'Hajm', component: SizeStep },
-    { title: 'Biskvit', component: SpongeStep },
-    { title: 'Krem', component: CreamStep },
-    { title: 'Bezak', component: DecorationStep },
-    { title: 'Tekshirish', component: ReviewStep },
-];
+import { useLanguage } from '@/app/context/LanguageContext';
 
 interface WizardShellProps {
     onItemComplete?: (item: any) => void;
@@ -57,7 +49,17 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
     } = useCustomCake();
     const { addItem } = useCartActions();
     const router = useRouter();
+    const { t } = useLanguage();
     const [optionsError, setOptionsError] = React.useState<string | null>(null);
+
+    const STEPS = [
+        { title: t('stepShape'), component: ShapeStep },
+        { title: t('stepSize'), component: SizeStep },
+        { title: t('stepSponge'), component: SpongeStep },
+        { title: t('stepCream'), component: CreamStep },
+        { title: t('stepDecoration'), component: DecorationStep },
+        { title: t('stepReview'), component: ReviewStep },
+    ];
 
     useEffect(() => {
         const load = async () => {
@@ -66,7 +68,7 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
                 setOptions(opts);
             } catch (err) {
                 console.error('[WizardShell] Failed to load cake options:', err);
-                setOptionsError('Variantlarni yuklashda xatolik yuz berdi. Sahifani yangilang.');
+                setOptionsError(t('optionsLoadError'));
             }
         };
         load();
@@ -86,10 +88,10 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
                 <div style={{ textAlign: 'center', color: '#991B1B', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '12px', padding: '24px' }}>
                     <p style={{ fontWeight: 700, marginBottom: '12px' }}>{optionsError}</p>
                     <button
-                        onClick={() => { setOptionsError(null); customCakeService.getOptions().then(setOptions).catch(() => setOptionsError('Variantlarni yuklashda xatolik yuz berdi. Sahifani yangilang.')); }}
+                        onClick={() => { setOptionsError(null); customCakeService.getOptions().then(setOptions).catch(() => setOptionsError(t('optionsLoadError'))); }}
                         style={{ padding: '8px 20px', borderRadius: '8px', background: '#BE185D', color: 'white', border: 'none', fontWeight: 700, cursor: 'pointer' }}
                     >
-                        Qayta urinish
+                        {t('retry')}
                     </button>
                 </div>
             </div>
@@ -114,13 +116,13 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
         const item: any = {
             id: '00000000-0000-0000-0000-000000000000',
             productId: '00000000-0000-0000-0000-000000000000',
-            name: 'Maxsus tort',
+            name: t('customCake'),
             price: total,
             quantity: 1,
             image: '/images/custom-cake-placeholder.jpg',
             // Portsiya and flavor are required by CartItem type
-            portion: options.find(o => o.id === size)?.label || 'Maxsus',
-            flavor: options.find(o => o.id === cream)?.label || 'Maxsus',
+            portion: options.find(o => o.id === size)?.label || t('custom'),
+            flavor: options.find(o => o.id === cream)?.label || t('custom'),
             configuration: {
                 mode,
                 // Shape is now stored by DB UUID — look it up from options
@@ -163,7 +165,7 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
     return (
         <div className={styles.container}>
             <header className={styles.header}>
-                <h1 className={styles.title}>Tort Yaratish</h1>
+                <h1 className={styles.title}>{t('createCake')}</h1>
                 <p>{STEPS[step - 1]?.title} - {step}/{STEPS.length}</p>
                 <div className={styles.progressContainer}>
                     <div
@@ -179,14 +181,14 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
 
             <footer className={styles.footer}>
                 <div className={styles.priceBar}>
-                    <span className={styles.priceLabel}>Taxminiy narxi*</span>
-                    <span className={styles.priceValue}>{calculateTotal().toLocaleString()} so'm</span>
+                    <span className={styles.priceLabel}>{t('estimatedPrice')}</span>
+                    <span className={styles.priceValue}>{calculateTotal().toLocaleString()} {t('som')}</span>
                 </div>
 
                 <div className={styles.buttonGroup}>
                     <button className={styles.prevBtn} onClick={handleBack}>
                         <ChevronLeft size={20} style={{ marginRight: 4 }} />
-                        Orqaga
+                        {t('back')}
                     </button>
 
                     {step < STEPS.length ? (
@@ -195,12 +197,12 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
                             onClick={nextStep}
                             disabled={isNextDisabled()}
                         >
-                            Davom etish
+                            {t('continue')}
                             <ChevronRight size={20} style={{ marginLeft: 4 }} />
                         </button>
                     ) : (
                         <button className={styles.nextBtn} onClick={handleComplete}>
-                            Savatga qo'shish
+                            {t('addToCart')}
                         </button>
                     )}
                 </div>

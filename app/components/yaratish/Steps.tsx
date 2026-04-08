@@ -11,6 +11,7 @@ import {
     Star, Triangle, Hexagon
 } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
+import { useLanguage } from '@/app/context/LanguageContext';
 // CAKE_OPTIONS no longer used for shapes — shapes are DB-driven via custom_cake_options
 
 // Icon mappings by shape label (DB-driven)
@@ -49,15 +50,16 @@ const CREAM_ICONS: Record<string, any> = {
 
 export function ShapeStep() {
     const { shape, setShape, options } = useCustomCake();
+    const { t } = useLanguage();
     // Only show shapes that are available (RLS also enforces this, but filter client-side too)
     const shapes = options.filter(o => o.type === 'shape' && o.is_available);
 
     return (
         <div className={styles.stepContainer}>
-            <h2 className={styles.stepTitle}>Tort shaklini tanlang</h2>
+            <h2 className={styles.stepTitle}>{t('selectShape')}</h2>
             {shapes.length === 0 ? (
                 <p style={{ color: '#9CA3AF', textAlign: 'center', padding: '32px 0' }}>
-                    Shakllar mavjud emas
+                    {t('noShapes')}
                 </p>
             ) : (
                 <div className={styles.grid}>
@@ -87,11 +89,12 @@ export function ShapeStep() {
 
 export function SizeStep() {
     const { size, setSize, options } = useCustomCake();
+    const { t } = useLanguage();
     const sizes = options.filter(o => o.type === 'size');
 
     return (
         <div className={styles.stepContainer}>
-            <h2 className={styles.stepTitle}>O'lchamini tanlang</h2>
+            <h2 className={styles.stepTitle}>{t('selectSize')}</h2>
             <div className={styles.sizeGrid}>
                 {sizes.map((s) => (
                     <div
@@ -101,20 +104,20 @@ export function SizeStep() {
                     >
                         <div className={styles.sizeCircle}>
                             <span>{s.sub_label || 'Ø'}</span>
-                            <small>diametr</small>
+                            <small>{t('diameter')}</small>
                         </div>
                         <div className={styles.sizeInfo}>
                             <span className={styles.sizeLabel}>{s.label}</span>
                         </div>
                         <div className={styles.sizePrice}>
-                            {s.price.toLocaleString()} so'm
+                            {s.price.toLocaleString()} {t('som')}
                         </div>
                     </div>
                 ))}
             </div>
             <div className={styles.pricingNote}>
                 <Info size={18} />
-                <span>Tanlangan o'lchamga qarab yakuniy narx turlicha bo'lishi mumkin.</span>
+                <span>{t('sizePriceNote')}</span>
             </div>
         </div>
     );
@@ -122,11 +125,12 @@ export function SizeStep() {
 
 export function SpongeStep() {
     const { sponge, setSponge, options } = useCustomCake();
+    const { t } = useLanguage();
     const sponges = options.filter(o => o.type === 'sponge');
 
     return (
         <div className={styles.stepContainer}>
-            <h2 className={styles.stepTitle}>Biskvit (Asos) turini tanlang</h2>
+            <h2 className={styles.stepTitle}>{t('selectSponge')}</h2>
             <div className={styles.grid}>
                 {sponges.map((s) => (
                     <div
@@ -138,7 +142,7 @@ export function SpongeStep() {
                             <Cookie size={32} />
                         </div>
                         <span className={styles.label}>{s.label}</span>
-                        {s.price > 0 && <span className={styles.price}>+{s.price.toLocaleString()} so'm</span>}
+                        {s.price > 0 && <span className={styles.price}>+{s.price.toLocaleString()} {t('som')}</span>}
                     </div>
                 ))}
             </div>
@@ -148,11 +152,12 @@ export function SpongeStep() {
 
 export function CreamStep() {
     const { cream, setCream, options } = useCustomCake();
+    const { t } = useLanguage();
     const creams = options.filter(o => o.type === 'cream');
 
     return (
         <div className={styles.stepContainer}>
-            <h2 className={styles.stepTitle}>Krem turini tanlang</h2>
+            <h2 className={styles.stepTitle}>{t('selectCream')}</h2>
             <div className={styles.grid}>
                 {creams.map((c) => (
                     <div
@@ -168,7 +173,7 @@ export function CreamStep() {
                             </div>
                         )}
                         <span className={styles.label}>{c.label}</span>
-                        {c.price > 0 && <span className={styles.price}>+{c.price.toLocaleString()} so'm</span>}
+                        {c.price > 0 && <span className={styles.price}>+{c.price.toLocaleString()} {t('som')}</span>}
                     </div>
                 ))}
             </div>
@@ -178,6 +183,7 @@ export function CreamStep() {
 
 export function DecorationStep() {
     const { decorations, toggleDecoration, text, setText, drawingData, setDrawingData, options } = useCustomCake();
+    const { t } = useLanguage();
     const decors = options.filter(o => o.type === 'decoration');
     const [mode, setMode] = useState<'text' | 'drawing'>('text');
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -280,7 +286,7 @@ export function DecorationStep() {
 
     return (
         <div className={styles.stepContainer}>
-            <h2 className={styles.stepTitle}>Bezaklarni qo'shing</h2>
+            <h2 className={styles.stepTitle}>{t('addDecorations')}</h2>
             <div className={styles.list}>
                 {decors.map((d) => (
                     <div
@@ -290,7 +296,7 @@ export function DecorationStep() {
                     >
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                             <span className={styles.label}>{d.label}</span>
-                            {d.price > 0 && <span style={{ fontSize: 13, color: '#BE185D', fontWeight: 600 }}>+{d.price.toLocaleString()} so'm</span>}
+                            {d.price > 0 && <span style={{ fontSize: 13, color: '#BE185D', fontWeight: 600 }}>+{d.price.toLocaleString()} {t('som')}</span>}
                         </div>
                         {decorations.includes(d.id) && <Check size={20} color="#BE185D" />}
                     </div>
@@ -298,7 +304,7 @@ export function DecorationStep() {
             </div>
 
             <div className={styles.textInputSection}>
-                <h3 className={styles.subTitle}>Maxsus xabar</h3>
+                <h3 className={styles.subTitle}>{t('specialMessage')}</h3>
 
                 <div className={styles.toggleContainer}>
                     <button
@@ -306,14 +312,14 @@ export function DecorationStep() {
                         onClick={() => setMode('text')}
                     >
                         <Type size={18} />
-                        Matn
+                        {t('textMode')}
                     </button>
                     <button
                         className={`${styles.toggleBtn} ${mode === 'drawing' ? styles.toggleBtnActive : ''}`}
                         onClick={() => setMode('drawing')}
                     >
                         <Pencil size={18} />
-                        Chizish
+                        {t('drawingMode')}
                     </button>
                 </div>
 
@@ -324,7 +330,7 @@ export function DecorationStep() {
                             type="text"
                             value={text}
                             onChange={(e) => setText(e.target.value)}
-                            placeholder="Masalan: Tug'ilgan kuning bilan!"
+                            placeholder={t('messagePlaceholder')}
                             className={styles.input}
                         />
                     </div>
@@ -356,7 +362,7 @@ export function DecorationStep() {
                             </div>
                             <button className={styles.clearBtn} onClick={clearCanvas}>
                                 <Trash2 size={16} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-                                Tozalash
+                                {t('clearCanvas')}
                             </button>
                         </div>
                     </div>
@@ -368,20 +374,21 @@ export function DecorationStep() {
 
 export function ReviewStep() {
     const { shape, size, sponge, cream, decorations, text, drawingData, options, calculateTotal } = useCustomCake();
+    const { t } = useLanguage();
 
     // Helper to find label by ID from DB (works for all types including shapes)
-    const getOptionLabel = (id: string | null) => options.find(o => o.id === id)?.label || 'Tanlanmagan';
+    const getOptionLabel = (id: string | null) => options.find(o => o.id === id)?.label || t('notSelected');
 
     const summaryItems = [
-        { label: 'Shakl', value: getOptionLabel(shape) },
-        { label: 'Hajm', value: getOptionLabel(size) },
-        { label: 'Biskvit', value: getOptionLabel(sponge) },
-        { label: 'Krem', value: getOptionLabel(cream) },
+        { label: t('stepShape'), value: getOptionLabel(shape) },
+        { label: t('stepSize'), value: getOptionLabel(size) },
+        { label: t('stepSponge'), value: getOptionLabel(sponge) },
+        { label: t('stepCream'), value: getOptionLabel(cream) },
     ];
 
     return (
         <div className={styles.stepContainer}>
-            <h2 className={styles.stepTitle}>Sizning tanlovingiz</h2>
+            <h2 className={styles.stepTitle}>{t('yourSelection')}</h2>
             <div className={styles.summaryCard}>
                 <div className={styles.summaryTable}>
                     {summaryItems.map((item) => (
@@ -394,7 +401,7 @@ export function ReviewStep() {
 
                 {decorations.length > 0 && (
                     <div className={styles.summarySection}>
-                        <h4 className={styles.summarySubTitle}>Bezaklar:</h4>
+                        <h4 className={styles.summarySubTitle}>{t('decorations')}:</h4>
                         <div className={styles.tagCloud}>
                             {decorations.map(dId => (
                                 <span key={dId} className={styles.tag}>{getOptionLabel(dId)}</span>
@@ -405,14 +412,14 @@ export function ReviewStep() {
 
                 {text && (
                     <div className={styles.summarySection}>
-                        <h4 className={styles.summarySubTitle}>Yozuv:</h4>
+                        <h4 className={styles.summarySubTitle}>{t('inscriptionLabel')}:</h4>
                         <p className={styles.summaryText}>"{text}"</p>
                     </div>
                 )}
 
                 {drawingData && (
                     <div className={styles.summarySection}>
-                        <h4 className={styles.summarySubTitle}>Chizilgan Rasm:</h4>
+                        <h4 className={styles.summarySubTitle}>{t('drawingLabel')}:</h4>
                         <div className={styles.summaryDrawingWrapper}>
                             <Image src={drawingData} alt="Custom Drawing" fill unoptimized style={{ objectFit: 'contain' }} />
                         </div>
@@ -421,10 +428,10 @@ export function ReviewStep() {
 
                 <div className={styles.totalEstimated}>
                     <div>
-                        <span className={styles.totalLabel}>Taxminiy narxi*</span>
-                        <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>Admin tomonidan o'zgartirilishi mumkin</div>
+                        <span className={styles.totalLabel}>{t('estimatedPrice')}</span>
+                        <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{t('adminMayChange')}</div>
                     </div>
-                    <div className={styles.totalValue}>{calculateTotal().toLocaleString()} so'm</div>
+                    <div className={styles.totalValue}>{calculateTotal().toLocaleString()} {t('som')}</div>
                 </div>
             </div>
         </div>

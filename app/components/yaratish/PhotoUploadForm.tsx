@@ -6,6 +6,7 @@ import { useCartActions } from '@/app/context/CartContext';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
 import styles from './PhotoUploadForm.module.css';
+import { useLanguage } from '@/app/context/LanguageContext';
 
 // Sub-components (Architecture Decomposition)
 import PhotoDropZone from './PhotoDropZone';
@@ -32,6 +33,7 @@ export default function PhotoUploadForm({ onItemComplete, onClose }: PhotoUpload
     
     const { addItem } = useCartActions();
     const router = useRouter();
+    const { t } = useLanguage();
     const fileInputRef = useRef<HTMLInputElement>(null);
     
     const [isDragging, setIsDragging] = useState(false);
@@ -48,14 +50,14 @@ export default function PhotoUploadForm({ onItemComplete, onClose }: PhotoUpload
 
     const processFile = (file: File) => {
         if (!file.type.startsWith('image/')) {
-            alert('Iltimos, rasm yuklang (Please upload an image)');
+            alert(t('pleaseUploadImage'));
             return;
         }
 
         // 10MB Limit for stability
         const MAX_SIZE = 10 * 1024 * 1024;
         if (file.size > MAX_SIZE) {
-            alert('Rasm hajmi juda katta (maksimal 10MB). Iltimos, kichikroq rasm tanlang.');
+            alert(t('imageTooLarge'));
             return;
         }
 
@@ -124,11 +126,11 @@ export default function PhotoUploadForm({ onItemComplete, onClose }: PhotoUpload
 
             const item = {
                 id: '00000000-0000-0000-0000-000000000000',
-                name: 'Maxsus tort (Rasm asosida)',
+                name: t('photoCakeName'),
                 price: PHOTO_CAKE_BASE_PRICE,
-                image: publicUrl, 
-                portion: 'Kelishilgan holda',
-                flavor: 'Mijoz tanlovi',
+                image: publicUrl,
+                portion: t('asAgreed'),
+                flavor: t('customerChoice'),
                 quantity: 1,
                 customNote: uploadComment,
                 configuration: {
@@ -149,7 +151,7 @@ export default function PhotoUploadForm({ onItemComplete, onClose }: PhotoUpload
             router.push('/savat');
         } catch (err: any) {
             console.error('[PhotoUploadForm] Critical failure:', err);
-            alert('Rasm yuklashda xatolik yuz berdi. Iltimos qayta urinib ko\'ring.');
+            alert(t('uploadError'));
         } finally {
             setIsUploading(false);
         }
@@ -158,12 +160,12 @@ export default function PhotoUploadForm({ onItemComplete, onClose }: PhotoUpload
     return (
         <div className={styles.container}>
             <button className={styles.backLink} onClick={() => onClose ? onClose() : setMode(null)}>
-                <ChevronLeft size={20} /> Orqaga
+                <ChevronLeft size={20} /> {t('back')}
             </button>
 
-            <h2 className={styles.title}>Rasm yuklash</h2>
+            <h2 className={styles.title}>{t('uploadPhoto')}</h2>
             <p className={styles.description}>
-                O'zingizga yoqqan tort rasmini yuklang va bizga qanday tort kerakligini yozib qoldiring.
+                {t('uploadPhotoFormDesc')}
             </p>
 
             <div className={styles.uploadSection}>
@@ -186,12 +188,12 @@ export default function PhotoUploadForm({ onItemComplete, onClose }: PhotoUpload
             </div>
 
             <div className={styles.commentSection}>
-                <label htmlFor="comment">Qo'shimcha izoh</label>
+                <label htmlFor="comment">{t('additionalNote')}</label>
                 <textarea
                     id="comment"
                     value={uploadComment}
                     onChange={(e) => setUploadComment(e.target.value)}
-                    placeholder="Masalan: Shokaladli biskvit, ustiga tabrik so'zlari yoki tort o'lchamlari..."
+                    placeholder={t('photoCommentPlaceholder')}
                     className={styles.textarea}
                     rows={4}
                 />
@@ -203,7 +205,7 @@ export default function PhotoUploadForm({ onItemComplete, onClose }: PhotoUpload
                     disabled={!uploadedImage || isUploading}
                     onClick={handleAddToCart}
                 >
-                    {isUploading ? 'Yuklanmoqda...' : 'Savatga qo\'shish'}
+                    {isUploading ? t('loading') : t('addToCart')}
                 </button>
             </div>
         </div>
