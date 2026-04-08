@@ -1,0 +1,327 @@
+/* ── Page Shell ─────────────────────────────────────────────────────────── */
+.page {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 0 20px 40px;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.backBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #F3F4F6;
+    color: #6B7280;
+    flex-shrink: 0;
+    transition: background 0.2s;
+}
+.backBtn:hover { background: #E5E7EB; color: #111827; }
+
+.title {
+    font-size: 24px;
+    font-weight: 800;
+    color: #111827;
+    margin: 0;
+    letter-spacing: -0.4px;
+}
+
+.count {
+    margin-left: auto;
+    font-size: 13px;
+    font-weight: 600;
+    color: #9CA3AF;
+    white-space: nowrap;
+}
+
+/* ── Filter Bar ─────────────────────────────────────────────────────────── */
+.filterBar {
+    background: white;
+    border: 1px solid #E5E7EB;
+    border-radius: 16px;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.searchWrap {
+    flex: 1;
+    position: relative;
+    min-width: 0;
+}
+
+.searchIcon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9CA3AF;
+    pointer-events: none;
+}
+
+.searchInput {
+    width: 100%;
+    padding: 10px 12px 10px 38px;
+    border-radius: 10px;
+    border: 1px solid #E5E7EB;
+    font-size: 14px;
+    background: #F9FAFB;
+    color: #111827;
+    transition: border-color 0.2s;
+}
+.searchInput:focus {
+    outline: none;
+    border-color: #BE185D;
+    background: white;
+}
+
+.statusSelect {
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid #E5E7EB;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    background: #F9FAFB;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.refreshBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: 1px solid #E5E7EB;
+    background: #F9FAFB;
+    color: #6B7280;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+.refreshBtn:hover { background: #F3F4F6; color: #111827; }
+
+/* ── Empty / Loading ────────────────────────────────────────────────────── */
+.empty {
+    text-align: center;
+    padding: 80px 24px;
+    background: white;
+    border-radius: 20px;
+    border: 1px solid #E5E7EB;
+    color: #9CA3AF;
+}
+.empty p { margin: 12px 0 0; font-size: 14px; }
+
+.loading {
+    text-align: center;
+    padding: 60px;
+    color: #6B7280;
+    font-size: 14px;
+}
+
+/* ── Order Grid (desktop) ───────────────────────────────────────────────── */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
+    gap: 16px;
+}
+
+/* ── Order Card ─────────────────────────────────────────────────────────── */
+.card {
+    background: white;
+    border-radius: 18px;
+    padding: 18px;
+    border: 1px solid #E5E7EB;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    text-decoration: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+
+.cardTop {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.cardId {
+    font-size: 12px;
+    font-weight: 700;
+    color: #9CA3AF;
+    letter-spacing: 0.5px;
+}
+
+.statusBadge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-top: 4px;
+}
+
+.cardRight {
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.cardPrice {
+    font-size: 16px;
+    font-weight: 800;
+    color: #BE185D;
+}
+
+.cardDate {
+    font-size: 11px;
+    color: #9CA3AF;
+    margin-top: 2px;
+}
+
+.divider {
+    height: 1px;
+    background: #F3F4F6;
+    border: none;
+    margin: 0;
+}
+
+.cardCustomer {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.cardRow {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 13px;
+    color: #374151;
+}
+
+.cardRowPhone { color: #6B7280; }
+
+.cardFooter {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #BE185D;
+}
+
+/* ── Mobile ─────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .page {
+        padding: 0 12px 32px;
+    }
+
+    .header {
+        margin-bottom: 16px;
+    }
+
+    .title {
+        font-size: 20px;
+    }
+
+    /* Stack filter bar: search full width, then select + refresh in a row */
+    .filterBar {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 12px;
+        border-radius: 14px;
+        margin-bottom: 14px;
+    }
+
+    .searchWrap {
+        width: 100%;
+        flex: none;
+    }
+
+    .statusSelect {
+        flex: 1;
+        min-width: 0;
+    }
+
+    /* Cards become a vertical list — no grid gap overhead */
+    .grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    /* Compact card for list-style display */
+    .card {
+        padding: 14px;
+        border-radius: 16px;
+        gap: 10px;
+        /* Horizontal list-item layout */
+        flex-direction: column;
+    }
+
+    /* On mobile: top row = ID+status left, price right */
+    .cardTop {
+        align-items: center;
+    }
+
+    .cardId {
+        font-size: 11px;
+    }
+
+    .statusBadge {
+        font-size: 10px;
+        padding: 2px 7px;
+    }
+
+    .cardPrice {
+        font-size: 15px;
+    }
+
+    .cardDate {
+        font-size: 10px;
+    }
+
+    .cardRow {
+        font-size: 13px;
+    }
+
+    .cardFooter {
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 480px) {
+    .backBtn {
+        width: 36px;
+        height: 36px;
+    }
+
+    .title {
+        font-size: 18px;
+    }
+
+    .count {
+        display: none;
+    }
+}
