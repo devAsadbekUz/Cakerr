@@ -7,7 +7,7 @@ import { adminTranslations, type AdminLang } from "@/app/lib/admin-i18n";
 import styles from "./AdminLayout.module.css";
 
 export const metadata: Metadata = {
-    title: 'Admin Dashboard | TORTEL\'E',
+    title: 'Admin | TORTEL\'E',
     description: 'Management panel for TORTEL\'E orders and operations.',
     robots: 'noindex, nofollow',
 };

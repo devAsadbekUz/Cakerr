@@ -472,15 +472,37 @@
         transform: translateY(100%);
         transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         z-index: 400;
-        overflow: hidden;
+        overflow-y: auto;
+        overflow-x: hidden;
+        /* Let everything scroll as one unit so the confirm btn is always reachable */
+        display: block;
     }
 
     .sidebar.sidebarOpen {
         transform: translateY(0);
     }
 
+    /* Cart list doesn't need its own scroll — sidebar scrolls as a whole */
+    .cartList {
+        overflow-y: visible;
+        min-height: unset;
+    }
+
+    /* Forms panel: no height cap, no internal scroll */
     .sidebarForms {
-        max-height: 45vh;
+        max-height: none;
+        overflow-y: visible;
+        /* Extra bottom padding so confirm btn clears the bottom nav */
+        padding-bottom: calc(82px + env(safe-area-inset-bottom, 0px));
+    }
+
+    /* Stick the header to the top of the scrollable sheet */
+    .sidebarHeader {
+        position: sticky;
+        top: 0;
+        background: white;
+        z-index: 1;
+        border-bottom: 1px solid #f1f5f9;
     }
 
     .sidebarCloseBtn {
@@ -508,7 +530,7 @@
     /* Floating cart button */
     .cartFab {
         position: fixed;
-        bottom: 80px; /* above AdminBottomNav */
+        bottom: calc(82px + env(safe-area-inset-bottom, 0px) + 12px);
         left: 50%;
         transform: translateX(-50%);
         z-index: 398;
