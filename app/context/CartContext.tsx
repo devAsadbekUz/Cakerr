@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useSupabase } from './AuthContext';
 import { addressService } from '../services/addressService';
 import { cartService } from '../services/cartService';
+import { UserAddress } from '@/app/types';
 
 const mapDBCartItemToCartItem = (dbItem: any): CartItem => ({
     cartId: dbItem.id,
@@ -211,9 +212,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         }
 
         // If user logged in and has local guest addresses, migrate them!
-        const actualGuestAddresses = savedAddresses.filter(a => a.id.startsWith('addr-'));
+        const actualGuestAddresses = savedAddresses.filter(a => a.id && String(a.id).startsWith('addr-'));
         if (actualGuestAddresses.length > 0) {
-            await migrateGuestAddresses(actualGuestAddresses);
+            await migrateGuestAddresses(actualGuestAddresses, dbAddresses);
             return;
         }
 
@@ -241,7 +242,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const migrateGuestAddresses = async (actualGuestAddresses: SavedAddress[]) => {
+    const migrateGuestAddresses = async (actualGuestAddresses: SavedAddress[], existingDBAddresses: UserAddress[]) => {
         // Single batch request — use returned data directly, no extra re-fetch needed
         const inserted = await addressService.addAddressBatch(
             actualGuestAddresses.map(addr => ({
@@ -255,18 +256,29 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
         localStorage.removeItem('tortele_saved_addresses');
 
-        if (inserted.length > 0) {
-            const mapped: SavedAddress[] = inserted.map((addr: any) => ({
-                id: addr.id,
-                label: addr.label,
-                address: addr.address_text,
-                type: addr.label.toLowerCase() === 'uy' ? 'home' :
-                    addr.label.toLowerCase() === 'ish' ? 'work' : 'other',
-                lat: Number(addr.lat),
-                lng: Number(addr.lng)
-            }));
-            setSavedAddresses(mapped);
-        }
+        const migratedMapped: SavedAddress[] = inserted.map((addr: any) => ({
+            id: addr.id,
+            label: addr.label,
+            address: addr.address_text,
+            type: addr.label?.toLowerCase() === 'uy' ? 'home' :
+                addr.label?.toLowerCase() === 'ish' ? 'work' : 'other',
+            lat: Number(addr.lat),
+            lng: Number(addr.lng)
+        }));
+
+        const existingMapped: SavedAddress[] = existingDBAddresses.map(addr => ({
+            id: addr.id,
+            label: addr.label || '',
+            address: addr.address_text,
+            type: addr.label?.toLowerCase() === 'uy' ? 'home' :
+                addr.label?.toLowerCase() === 'ish' ? 'work' : 'other',
+            lat: addr.lat ? Number(addr.lat) : undefined,
+            lng: addr.lng ? Number(addr.lng) : undefined
+        }));
+
+        // Deduplicate: If an existing address is very close to a migrated one, prefer the migrated (or existing) 
+        // For simplicity, we just merge them all, identifying DB ones by UUID
+        setSavedAddresses([...existingMapped, ...migratedMapped]);
     };
 
     // Save to localStorage on change with QuotaExceededError protection
