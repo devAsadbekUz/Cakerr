@@ -115,12 +115,19 @@ export async function POST(request: NextRequest) {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {
+            console.error('[Addresses API] POST DB Error:', error.message, 'Code:', error.code, 'Details:', error.details);
+            throw error;
+        }
 
         return NextResponse.json({ address: data });
     } catch (error: any) {
         console.error('[Addresses API] POST error:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ 
+            error: 'Internal Server Error',
+            // Provide a slightly more descriptive error in dev/logging context
+            message: error.message || 'Database operation failed'
+        }, { status: 500 });
     }
 }
 
