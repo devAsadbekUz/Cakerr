@@ -42,6 +42,8 @@ export default function AdminSettingsPage() {
     const { lang, t } = useAdminI18n();
     const [banners, setBanners] = useState<Banner[]>([]);
     const [loading, setLoading] = useState(true);
+    const [exportFrom, setExportFrom] = useState(format(subDays(new Date(), 100), 'yyyy-MM-dd'));
+    const [exportTo, setExportTo] = useState(format(new Date(), 'yyyy-MM-dd'));
     const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
     const [isAdding, setIsAdding] = useState(false);
     const [userRole, setUserRole] = useState<string | null>(null);
@@ -168,9 +170,18 @@ export default function AdminSettingsPage() {
     };
 
     const handleExport = async () => {
+        if (exportFrom > exportTo) {
+            alert(t('exportDateError'));
+            return;
+        }
         setLoading(true);
         try {
-            const { data: orders } = await supabase.from('orders').select('*, profiles(full_name, phone_number), order_items(*)');
+            const { data: orders } = await supabase
+                .from('orders')
+                .select('*, profiles(full_name, phone_number), order_items(*)')
+                .gte('created_at', `${exportFrom}T00:00:00`)
+                .lte('created_at', `${exportTo}T23:59:59`)
+                .order('created_at', { ascending: false });
             const { data: products } = await supabase.from('products').select('*').is('deleted_at', null);
             const { data: profiles } = await supabase.from('profiles').select('*');
 
@@ -182,7 +193,9 @@ export default function AdminSettingsPage() {
                 { sheetName: t('sheetCustomers'), data: formatUserDataForExcel(profiles || []) }
             ];
 
-            exportToExcel(dataSets, `TORTELE_Eksport_${format(new Date(), 'dd-MM-yyyy')}`);
+            const fromFormatted = format(new Date(exportFrom), 'dd-MM-yyyy');
+            const toFormatted = format(new Date(exportTo), 'dd-MM-yyyy');
+            exportToExcel(dataSets, `TORTELE_Eksport_${fromFormatted}_${toFormatted}`);
         } catch (error) {
             console.error('Export failed:', error);
             alert(t('error'));
@@ -279,19 +292,35 @@ export default function AdminSettingsPage() {
 
             {/* ==================== DATA EXPORT ==================== */}
             <section className={styles.section} style={{ background: 'white', border: '1px solid #E5E7EB', marginTop: '32px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
-                    <div style={{ flex: 1, minWidth: '300px' }}>
-                        <h2 style={{ fontSize: '20px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                            <Download size={24} color="hsl(var(--color-primary-dark))" />
-                            {t('exportTitle')}
-                        </h2>
-                        <p style={{ color: '#6B7280', margin: 0 }}>{t('exportSubtitle')}</p>
+                <h2 style={{ fontSize: '20px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                    <Download size={24} color="hsl(var(--color-primary-dark))" />
+                    {t('exportTitle')}
+                </h2>
+                <p style={{ color: '#6B7280', margin: '0 0 20px' }}>{t('exportSubtitle')}</p>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '16px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <label style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>{t('exportFrom')}</label>
+                        <input
+                            type="date"
+                            value={exportFrom}
+                            onChange={e => setExportFrom(e.target.value)}
+                            style={{ height: '40px', padding: '0 12px', border: '1px solid #D1D5DB', borderRadius: '10px', fontSize: '14px', color: '#111827', outline: 'none' }}
+                        />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <label style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>{t('exportTo')}</label>
+                        <input
+                            type="date"
+                            value={exportTo}
+                            onChange={e => setExportTo(e.target.value)}
+                            style={{ height: '40px', padding: '0 12px', border: '1px solid #D1D5DB', borderRadius: '10px', fontSize: '14px', color: '#111827', outline: 'none' }}
+                        />
                     </div>
                     <button
                         onClick={handleExport}
                         disabled={loading}
                         className={styles.miniBtn}
-                        style={{ height: '48px', padding: '0 24px', background: '#059669', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 700, cursor: 'pointer', opacity: loading ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: '8px' }}
+                        style={{ height: '40px', padding: '0 24px', background: '#059669', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 700, cursor: 'pointer', opacity: loading ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: '8px' }}
                     >
                         <Download size={18} />
                         {loading ? t('exportLoading') : t('exportButton')}

@@ -94,6 +94,8 @@ export default function TrackingPage() {
                     filteredStatuses,
                     total: data.total_price,
                     deposit_amount: data.deposit_amount ?? 0,
+                    delivery_time: data.delivery_time ?? null,
+                    delivery_slot: typeof data.delivery_slot === 'string' ? data.delivery_slot.trim() : '',
                     address: {
                         label: data.delivery_address?.label || t('address'),
                         text: data.delivery_address?.street || t('addressNotProvided'),
@@ -301,6 +303,34 @@ export default function TrackingPage() {
                                     </div>
                                 );
                             })}
+                        </div>
+                    </div>
+
+                    {/* Delivery Date */}
+                    <div className={styles.card}>
+                        <h2 className={styles.sectionTitle}>{t('deliveryTime')}</h2>
+                        <div className={styles.addressCard}>
+                            <div className={styles.iconBox}>
+                                <Clock size={20} />
+                            </div>
+                            <div className={styles.addressDetails}>
+                                <span className={styles.addressLabel}>
+                                    {(() => {
+                                        if (!order.delivery_time) return '—';
+                                        try {
+                                            const d = new Date(order.delivery_time);
+                                            if (isNaN(d.getTime())) return '—';
+                                            const formatted = d.toLocaleDateString(
+                                                lang === 'uz' ? 'uz-UZ' : 'ru-RU',
+                                                { day: 'numeric', month: 'long', year: 'numeric' }
+                                            );
+                                            return order.delivery_slot ? `${formatted}, ${order.delivery_slot}` : formatted;
+                                        } catch {
+                                            return '—';
+                                        }
+                                    })()}
+                                </span>
+                            </div>
                         </div>
                     </div>
 
