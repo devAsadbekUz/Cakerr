@@ -47,7 +47,15 @@ interface SuccessOrderSnapshot {
 export default function CheckoutPage() {
     const router = useRouter();
     const { lang, t } = useLanguage();
-    const { cart, subtotal, totalItems, deliveryAddress, deliveryCoords, savedAddresses } = useCart();
+    const {
+        cart,
+        subtotal,
+        totalItems,
+        deliveryAddress,
+        deliveryCoords,
+        savedAddresses,
+        addSavedAddress
+    } = useCart();
     const { clearCart } = useCartActions();
     const { user, isTelegram, loginWithTelegram } = useAuth();
     const supabase = createClient();
@@ -294,6 +302,25 @@ export default function CheckoutPage() {
 
             if (!orderId) {
                 throw new Error('Order was created but ID is missing from response');
+            }
+
+            // Auto-save this address if it's a new delivery location
+            if (deliveryType === 'delivery' && deliveryCoords) {
+                const isNew = !savedAddresses.some(a => 
+                    a.lat && a.lng && 
+                    Math.abs(a.lat - deliveryCoords.lat) < 0.0001 && 
+                    Math.abs(a.lng - deliveryCoords.lng) < 0.0001
+                );
+                
+                if (isNew) {
+                    addSavedAddress({
+                        address: deliveryAddress,
+                        label: t('address'), // Generic label for auto-saved addresses
+                        type: 'other',
+                        lat: deliveryCoords.lat,
+                        lng: deliveryCoords.lng
+                    }).catch((e: any) => console.error('[AutoSave Address] Failed:', e));
+                }
             }
 
             // 3. Send Telegram notification — fire-and-forget, never block the success screen

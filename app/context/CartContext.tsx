@@ -211,12 +211,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         }
 
         // If user logged in and has local guest addresses, migrate them!
-        if (dbAddresses.length === 0 && savedAddresses.length > 0) {
-            const actualGuestAddresses = savedAddresses.filter(a => !['m1', 'm2'].includes(a.id));
-            if (actualGuestAddresses.length > 0) {
-                await migrateGuestAddresses(actualGuestAddresses);
-                return;
-            }
+        const actualGuestAddresses = savedAddresses.filter(a => a.id.startsWith('addr-'));
+        if (actualGuestAddresses.length > 0) {
+            await migrateGuestAddresses(actualGuestAddresses);
+            return;
         }
 
         if (dbAddresses.length > 0) {
@@ -231,11 +229,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             }));
             setSavedAddresses(mapped);
 
-            // Auto-select default address if needed
-            const defaultAddr = dbAddresses.find(a => a.is_default);
-            if (defaultAddr) {
-                setDeliveryAddress(defaultAddr.address_text);
-                setDeliveryCoords({ lat: Number(defaultAddr.lat), lng: Number(defaultAddr.lng) });
+            // Auto-select default address if needed, but prioritize current session address if already set
+            const hasSpecificAddress = deliveryAddress && deliveryAddress !== 'Toshkent';
+            if (!hasSpecificAddress) {
+                const defaultAddr = dbAddresses.find(a => a.is_default);
+                if (defaultAddr) {
+                    setDeliveryAddress(defaultAddr.address_text);
+                    setDeliveryCoords({ lat: Number(defaultAddr.lat), lng: Number(defaultAddr.lng) });
+                }
             }
         }
     };
