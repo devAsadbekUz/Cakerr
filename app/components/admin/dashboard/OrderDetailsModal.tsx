@@ -415,11 +415,6 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                                                 {(item.configuration as any)?.type_uz && <div>{lang === 'uz' ? 'Turi' : 'Тип'}: {(item.configuration as any)[lang === 'uz' ? 'type_uz' : 'type_ru'] || (item.configuration as any).type_uz}</div>}
                                                 {(item.configuration as any)?.nachinka_uz && <div>{lang === 'uz' ? 'Nachinka' : 'Начинка'}: {(item.configuration as any)[lang === 'uz' ? 'nachinka_uz' : 'nachinka_ru'] || (item.configuration as any).nachinka_uz}</div>}
                                                 {(item.configuration as any)?.size_uz && <div>{lang === 'uz' ? "O'lcham" : 'Размер'}: {(item.configuration as any)[lang === 'uz' ? 'size_uz' : 'size_ru'] || (item.configuration as any).size_uz}</div>}
-                                                {item.configuration?.shape && <div>Shakl: {item.configuration.shape}</div>}
-                                                {item.configuration?.size && !(item.configuration as any)?.size_uz && <div>O&apos;lcham: {item.configuration.size}</div>}
-                                                {item.configuration?.sponge && <div>{t('sponge')}: {item.configuration.sponge}</div>}
-                                                {item.configuration?.flavor && !(item.configuration as any)?.nachinka_uz && <div>{t('flavorCream')}: {item.configuration.flavor}</div>}
-                                                {item.configuration?.decorations && <div>Bezaklar: {item.configuration.decorations}</div>}
                                                 {item.configuration?.portion && !item.configuration?.size && !(item.configuration as any)?.size_uz && <div>{t('portionSize')}: {item.configuration.portion}</div>}
                                                 {(item.configuration?.custom_note || item.configuration?.order_note) && (
                                                     <div style={{ marginTop: '4px', padding: '6px', background: 'hsla(var(--color-primary), 0.05)', borderRadius: '6px', borderLeft: '3px solid hsl(var(--color-primary-dark))' }}>

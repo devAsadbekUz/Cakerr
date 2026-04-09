@@ -14,7 +14,7 @@ import { customCakeService, CustomOption } from '@/app/services/customCakeServic
 import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 import ImageUpload from '@/app/components/admin/ImageUpload';
 
-type TabType = 'cake_type' | 'nachinka' | 'size' | 'decoration';
+type TabType = 'cake_type' | 'nachinka' | 'size';
 
 export default function AdminCustomPage() {
     const { lang, t } = useAdminI18n();
@@ -103,7 +103,6 @@ export default function AdminCustomPage() {
             case 'cake_type':  return <Maximize2 size={18} />;
             case 'nachinka':   return <Cookie size={18} />;
             case 'size':       return <Circle size={18} />;
-            case 'decoration': return <Palette size={18} />;
         }
     };
 
@@ -112,11 +111,10 @@ export default function AdminCustomPage() {
             case 'cake_type':  return t('tabCakeType') || 'Tort turi';
             case 'nachinka':   return t('tabNachinka') || 'Nachinka';
             case 'size':       return t('tabSizes') || "O'lcham";
-            case 'decoration': return t('tabDecoration');
         }
     };
 
-    const TABS: TabType[] = ['cake_type', 'nachinka', 'size', 'decoration'];
+    const TABS: TabType[] = ['cake_type', 'nachinka', 'size'];
 
     return (
         <div className={styles.container}>

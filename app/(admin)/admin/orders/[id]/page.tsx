@@ -500,11 +500,6 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                             {(item.configuration as any)?.type_uz && <div><strong>{lang === 'uz' ? 'Turi' : 'Тип'}:</strong> {(item.configuration as any)[lang === 'uz' ? 'type_uz' : 'type_ru'] || (item.configuration as any).type_uz}</div>}
                                             {(item.configuration as any)?.nachinka_uz && <div><strong>{lang === 'uz' ? 'Nachinka' : 'Начинка'}:</strong> {(item.configuration as any)[lang === 'uz' ? 'nachinka_uz' : 'nachinka_ru'] || (item.configuration as any).nachinka_uz}</div>}
                                             {(item.configuration as any)?.size_uz && <div><strong>{lang === 'uz' ? "O'lcham" : 'Размер'}:</strong> {(item.configuration as any)[lang === 'uz' ? 'size_uz' : 'size_ru'] || (item.configuration as any).size_uz}</div>}
-                                            {item.configuration?.shape && <div><strong>Shakl:</strong> {item.configuration.shape}</div>}
-                                            {item.configuration?.size && !(item.configuration as any)?.size_uz && <div><strong>O&apos;lcham:</strong> {item.configuration.size}</div>}
-                                            {item.configuration?.sponge && <div><strong>Biskvit:</strong> {item.configuration.sponge}</div>}
-                                            {item.configuration?.flavor && !(item.configuration as any)?.nachinka_uz && <div><strong>{t('flavor')}:</strong> {item.configuration.flavor}</div>}
-                                            {item.configuration?.decorations && <div><strong>Bezaklar:</strong> {item.configuration.decorations}</div>}
                                             {item.configuration?.portion && !item.configuration?.size && !(item.configuration as any)?.size_uz && <div><strong>{t('portion')}:</strong> {item.configuration.portion}</div>}
                                             {(item.configuration?.custom_note || item.configuration?.order_note) && (
                                                 <div style={{ marginTop: '4px', fontStyle: 'italic', color: '#BE185D' }}>&quot;{item.configuration.custom_note || item.configuration.order_note}&quot;</div>

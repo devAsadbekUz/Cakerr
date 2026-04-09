@@ -240,12 +240,9 @@ export const buildOrderMessage = (order: any, lang: 'uz' | 'ru' = 'uz') => {
                 const details: string[] = [];
                 const spongeLabel = lang === 'uz' ? (cfg.sponge_uz || cfg.sponge) : (cfg.sponge_ru || cfg.sponge);
                 const flavorLabel = lang === 'uz' ? (cfg.flavor_uz || cfg.flavor) : (cfg.flavor_ru || cfg.flavor);
-                const decorationsLabel = lang === 'uz' ? (cfg.decorations_uz || cfg.decorations) : (cfg.decorations_ru || cfg.decorations);
-
                 if (spongeLabel) details.push(`Biskvit: ${tgEscape(spongeLabel)}`);
                 if (flavorLabel) details.push(`Krem: ${tgEscape(flavorLabel)}`);
                 if (details.length) messageText += `    🔹 ${details.join(' | ')}\n`;
-                if (decorationsLabel) messageText += `    🎀 ${lang === 'uz' ? 'Bezaklar' : 'Декор'}: ${tgEscape(decorationsLabel)}\n`;
             } else {
                 // Standard product — compact format
                 const portionText = cfg.portion ? ` (${tgEscape(cfg.portion)})` : '';

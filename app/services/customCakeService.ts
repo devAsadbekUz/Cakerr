@@ -2,7 +2,7 @@ import { createClient } from '@/app/utils/supabase/client';
 
 export interface CustomOption {
     id: string;
-    type: 'cake_type' | 'nachinka' | 'size' | 'decoration' | 'sponge' | 'cream'; // 'sponge'/'cream' kept for safety but moving to 'nachinka'
+    type: 'cake_type' | 'nachinka' | 'size';
     label_uz: string;
     label_ru?: string;
     sub_label_uz?: string;

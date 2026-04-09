@@ -38,7 +38,6 @@ const uz: Record<string, string | string[]> = {
     flavors: "Ichki ta'mlar",
     coating: "Ustki qoplama",
     innerCoating: "Ichki qoplama",
-    decorations: "Bezaklar",
     description: "Tavsif",
     linkCopied: "Havola nusxalandi!",
     defaultDescription: "Bu tayyor tort. Siz faqat porsiya miqdorini tanlaysiz va buyurtma berasiz!",
@@ -196,7 +195,7 @@ const uz: Record<string, string | string[]> = {
         { question: "Buyurtmani qanday bekor qilsam bo'ladi?", answer: "Buyurtmani tayyorlanish boshlangunga qadar bekor qilishingiz mumkin. Profil bo'limidagi 'Buyurtmalar tarixi'ga o'ting va tegishli buyurtmani toping." },
         { question: "Yetkazib berish qancha vaqt oladi?", answer: "Yetkazib berish odatda 2-4 soat ichida amalga oshiriladi. Tanlangan vaqt oralig'ida tortingiz yetkazib beriladi." },
         { question: "To'lovni qanday amalga oshiraman?", answer: "Siz naqd pul yoki karta orqali to'lov qilishingiz mumkin. Kartadan to'lash uchun Payme yoki Click tizimlaridan foydalanishingiz mumkin." },
-        { question: "Maxsus tort buyurtma qilsam bo'ladimi?", answer: "Albatta! 'Yaratish' bo'limida o'zingizga yoqqan dizaynda tort yaratishingiz mumkin. Shakl, o'lcham, ta'm va bezakni tanlang." },
+        { question: "Maxsus tort buyurtma qilsam bo'ladimi?", answer: "Albatta! 'Yaratish' bo'limida o'zingizga yoqqan dizaynda tort yaratishingiz mumkin. Shakl, o'lcham va ta'mni tanlang." },
         { question: "Tortni sovg'a sifatida yuborishim mumkinmi?", answer: "Ha, buyurtma berish paytida 'Sovg'a rejimi'ni tanlang. Qabul qiluvchining telefon raqamini kiriting va narx yashirin qoladi." }
     ] as any,
     // Share page (ulashish)
@@ -330,7 +329,6 @@ const ru: Record<string, string | string[]> = {
     flavors: "Вкусы (начинка)",
     coating: "Покрытие",
     innerCoating: "Внутреннее покрытие",
-    decorations: "Декор",
     description: "Описание",
     linkCopied: "Ссылка скопирована!",
     defaultDescription: "Это готовый торт. Вы просто выбираете количество порций и заказываете!",
@@ -488,7 +486,7 @@ const ru: Record<string, string | string[]> = {
         { question: "Как отменить заказ?", answer: "Вы можете отменить заказ до начала его приготовления. Перейдите в раздел 'История заказов' в профиле и найдите нужный заказ." },
         { question: "Сколько времени занимает доставка?", answer: "Доставка обычно занимает 2-4 часа. Торт будет доставлен в выбранный временной промежуток." },
         { question: "Как произвести оплату?", answer: "Вы можете оплатить наличными или картой. Для оплаты картой можно использовать системы Payme или Click." },
-        { question: "Можно ли заказать торт на заказ?", answer: "Конечно! В разделе 'Создать' вы можете создать торт в понравившемся дизайне. Выберите форму, размер, вкус и украшения." },
+        { question: "Можно ли заказать торт на заказ?", answer: "Конечно! В разделе 'Создать' вы можете создать торт в понравившемся дизайне. Выберите форму, размер и вкус." },
         { question: "Могу ли я отправить торт в подарок?", answer: "Да, при оформлении заказа выберите 'Режим подарка'. Введите номер телефона получателя — цена останется скрытой." }
     ] as any,
     // Share page (ulashish)

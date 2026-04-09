@@ -15,7 +15,6 @@ interface CustomCakeState {
     comment: string;            // User's instructions
     nachinka: string | null;     // Ingredients
     size: string | null;
-    decorations: string[];
     drawingData: string;
 
     // Options from DB
@@ -29,7 +28,6 @@ interface CustomCakeContextType extends CustomCakeState {
     setComment: (text: string) => void;
     setNachinka: (id: string | null) => void;
     setSize: (id: string | null) => void;
-    toggleDecoration: (decoration: string) => void;
     setDrawingData: (data: string) => void;
 
     setOptions: (options: CustomOption[]) => void;
@@ -48,7 +46,6 @@ const initialState: CustomCakeState = {
     comment: '',
     nachinka: null,
     size: null,
-    decorations: [],
     drawingData: '',
     options: []
 };
@@ -73,14 +70,6 @@ export function CustomCakeProvider({ children }: { children: ReactNode }) {
     const setNachinka = useCallback((nachinka: string | null) => setState(prev => ({ ...prev, nachinka })), []);
     const setSize = useCallback((size: string | null) => setState(prev => ({ ...prev, size })), []);
 
-    const toggleDecoration = useCallback((decoration: string) => {
-        setState(prev => ({
-            ...prev,
-            decorations: prev.decorations.includes(decoration)
-                ? prev.decorations.filter(d => d !== decoration)
-                : [...prev.decorations, decoration]
-        }));
-    }, []);
 
     const setDrawingData = useCallback((drawingData: string) => setState(prev => ({ ...prev, drawingData })), []);
 
@@ -102,7 +91,6 @@ export function CustomCakeProvider({ children }: { children: ReactNode }) {
         setComment,
         setNachinka,
         setSize,
-        toggleDecoration,
         setDrawingData,
         setOptions,
         nextStep,
