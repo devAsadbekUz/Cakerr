@@ -22,19 +22,22 @@ export const customCakeService = {
         const supabase = createClient();
         const { data, error } = await supabase
             .from('custom_cake_options')
-            .select('*')
+            .select(`
+                *,
+                relations:custom_cake_option_relations!custom_cake_option_relations_child_id_fkey(parent_id)
+            `)
             .order('sort_order', { ascending: true });
 
         if (error) {
-            console.error('Error fetching custom options:', {
-                message: error.message,
-                details: error.details,
-                hint: error.hint,
-                code: error.code
-            });
+            console.error('Error fetching custom options:', error);
             return [];
         }
-        return data as CustomOption[];
+
+        // Map parent_ids for the client wizard
+        return (data || []).map(opt => ({
+            ...opt,
+            parent_ids: opt.relations?.map((r: any) => r.parent_id) || []
+        })) as CustomOption[];
     },
 
     /**
