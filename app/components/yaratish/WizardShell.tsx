@@ -96,7 +96,7 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
         const estimated_total = calculateTotal();
 
         const item: any = {
-            id: crypto.randomUUID(),
+            id: '00000000-0000-0000-0000-000000000000',
             productId: '00000000-0000-0000-0000-000000000000',
             name: t('customCake'),
             price: estimated_total,
