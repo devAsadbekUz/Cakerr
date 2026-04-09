@@ -5,7 +5,7 @@ import {
     ArrowLeft, MapPinned, Calendar, Clock, User,
     Package, CheckCircle2, AlertCircle,
     History, ChevronDown, ChevronUp, XCircle,
-    AlertTriangle, Receipt, Pencil, Check, X, Loader2
+    AlertTriangle, Receipt, Pencil, Check, X, Loader2, CheckCircle, Truck, Utensils
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru, uz } from 'date-fns/locale';
@@ -16,7 +16,14 @@ import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 import { orderService } from '@/app/services/orderService';
 import { updateOrderStatusAction } from '@/app/actions/admin-actions';
 import type { AdminOrder, AdminOrderItem } from '@/app/types/admin-order';
+import { DepositModal } from '@/app/components/admin/dashboard/DepositModal';
+import { FinalPaymentModal } from '@/app/components/admin/dashboard/FinalPaymentModal';
 import styles from '../../AdminDashboard.module.css';
+
+type PaymentData = {
+    deposit_amount?: number;
+    final_payment_amount?: number;
+};
 
 type OrderLog = {
     id: string;
@@ -53,6 +60,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [editPriceValue, setEditPriceValue] = useState('');
     const [editPriceLoading, setEditPriceLoading] = useState(false);
     const [editPriceError, setEditPriceError] = useState<string | null>(null);
+
+    // Payment & Status Update Modals
+    const [depositModalOpen, setDepositModalOpen] = useState(false);
+    const [finalModalOpen, setFinalModalOpen] = useState(false);
+    const [actionLoading, setActionLoading] = useState(false);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -136,6 +148,38 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         } finally {
             setCancelLoading(false);
         }
+    };
+
+    const handleUpdateStatus = async (status: string, paymentData?: PaymentData) => {
+        setActionLoading(true);
+        try {
+            const result = await updateOrderStatusAction(
+                order.id, status, lang, undefined,
+                paymentData?.deposit_amount,
+                paymentData?.final_payment_amount
+            );
+
+            if (result?.error) {
+                alert(t('error') + ': ' + result.error);
+            } else {
+                await fetchData();
+            }
+        } catch (err) {
+            console.error('Update status error:', err);
+            alert(t('error'));
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleDepositConfirm = (amount: number) => {
+        setDepositModalOpen(false);
+        handleUpdateStatus('confirmed', { deposit_amount: amount });
+    };
+
+    const handleFinalPaymentConfirm = (amount: number) => {
+        setFinalModalOpen(false);
+        handleUpdateStatus('completed', { final_payment_amount: amount });
     };
 
     const handleEditPrice = async (itemId: string) => {
@@ -573,8 +617,57 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
                 {/* Right Column: Activity log & Metadata */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                    <div className={styles.section} style={{ background: 'white', border: '1px solid #E5E7EB' }}>
-                        <h3 style={{ fontSize: '14px', color: '#9CA3AF', textTransform: 'uppercase', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        
+                        {/* Status Actions */}
+                        <div className={styles.section} style={{ background: 'white', border: '1px solid #E5E7EB' }}>
+                            <h3 style={{ fontSize: '14px', color: '#9CA3AF', textTransform: 'uppercase', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <CheckCircle size={16} /> {lang === 'uz' ? 'Harakatlar' : 'Действия'}
+                            </h3>
+                            <div className={styles.modalActionsGroup} style={{ marginTop: '0' }}>
+                                {order.status === 'new' && (
+                                    <button
+                                        disabled={actionLoading}
+                                        onClick={() => setDepositModalOpen(true)}
+                                        className={`${styles.orderActionBtn} ${styles.orderActionBtnPrimary}`}
+                                    >
+                                        <CheckCircle2 size={18} /> {t('confirmOrder')}
+                                    </button>
+                                )}
+                                {order.status === 'confirmed' && (
+                                    <button disabled={actionLoading} onClick={() => handleUpdateStatus('preparing')} className={`${styles.orderActionBtn} ${styles.orderActionBtnPreparing}`}>
+                                        <Utensils size={18} /> {t('startCooking')}
+                                    </button>
+                                )}
+                                {order.status === 'preparing' && (
+                                    <button disabled={actionLoading} onClick={() => handleUpdateStatus('ready')} className={`${styles.orderActionBtn} ${styles.orderActionBtnReady}`}>
+                                        <CheckCircle size={18} /> {t('finishCooking')}
+                                    </button>
+                                )}
+                                {order.status === 'ready' && (
+                                    <button
+                                        disabled={actionLoading}
+                                        onClick={() => (order.delivery_type === 'pickup' || !!order.branch_id || !!order.branches) ? setFinalModalOpen(true) : handleUpdateStatus('delivering')}
+                                        className={`${styles.orderActionBtn} ${(order.delivery_type === 'pickup' || !!order.branch_id || !!order.branches) ? styles.orderActionBtnSuccess : styles.orderActionBtnDelivering}`}
+                                    >
+                                        {(order.delivery_type === 'pickup' || !!order.branch_id || !!order.branches) ? <CheckCircle size={18} /> : <Truck size={18} />}
+                                        {(order.delivery_type === 'pickup' || !!order.branch_id || !!order.branches) ? (t('finish') || 'Finish') : t('startDelivery')}
+                                    </button>
+                                )}
+                                {order.status === 'delivering' && (
+                                    <button disabled={actionLoading} onClick={() => setFinalModalOpen(true)} className={`${styles.orderActionBtn} ${styles.orderActionBtnSuccess}`}>
+                                        <CheckCircle size={18} /> {t('finishDelivery')}
+                                    </button>
+                                )}
+                                {!['new', 'confirmed', 'preparing', 'ready', 'delivering'].includes(order.status) && (
+                                    <div style={{ fontSize: '13px', color: '#6B7280', textAlign: 'center', padding: '12px 0', width: '100%' }}>
+                                        {lang === 'uz' ? 'Ushbu status uchun harakatlar yo\'q.' : 'Действия для этого статуса недоступны.'}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className={styles.section} style={{ background: 'white', border: '1px solid #E5E7EB' }}>
+                            <h3 style={{ fontSize: '14px', color: '#9CA3AF', textTransform: 'uppercase', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <History size={16} /> {t('activityLog') || 'Activity Log'}
                         </h3>
                         <div className={styles.timeline}>
@@ -709,6 +802,24 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                     )}
                 </div>
             )}
+
+            <DepositModal
+                isOpen={depositModalOpen}
+                onClose={() => setDepositModalOpen(false)}
+                onConfirm={handleDepositConfirm}
+                totalPrice={totalPrice}
+                lang={lang as 'uz' | 'ru'}
+                disabled={actionLoading}
+            />
+            <FinalPaymentModal
+                isOpen={finalModalOpen}
+                onClose={() => setFinalModalOpen(false)}
+                onConfirm={handleFinalPaymentConfirm}
+                totalPrice={totalPrice}
+                depositAmount={depositAmount}
+                lang={lang as 'uz' | 'ru'}
+                disabled={actionLoading}
+            />
         </div>
     );
 }
