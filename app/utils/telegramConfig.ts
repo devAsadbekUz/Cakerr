@@ -10,5 +10,5 @@ export const TELEGRAM_CONFIG = {
     botLink: 'https://t.me/tortele_bot',
     
     // Support/Help link (can be the same or different bot/user)
-    supportLink: 'https://t.me/tortele_bot',
+    supportLink: 'https://t.me/Torteleuz',
 };

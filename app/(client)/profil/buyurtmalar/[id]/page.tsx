@@ -296,7 +296,7 @@ export default function TrackingPage() {
                                         {t('contactTelegram')}
                                     </a>
                                     <a 
-                                        href="tel:+998901234567"
+                                        href="tel:+998901877879"
                                         style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px', background: '#BE185D', color: 'white', borderRadius: '10px', fontSize: '13px', fontWeight: 600, textDecoration: 'none' }}
                                     >
                                         {t('contactPhone')}
