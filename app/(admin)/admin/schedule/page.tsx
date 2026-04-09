@@ -14,6 +14,7 @@ import { availabilityService, GlobalTimeSlot } from '@/app/services/availability
 import { uz, ru } from 'date-fns/locale';
 import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 import styles from '../AdminDashboard.module.css';
+import s from './Schedule.module.css';
 
 export default function SchedulePage() {
     const { lang, t } = useAdminI18n();
@@ -179,13 +180,7 @@ export default function SchedulePage() {
             </header>
 
             {/* ═══════════════════ GLOBAL SLOTS MANAGER ═══════════════════ */}
-            <div style={{
-                background: 'white',
-                borderRadius: '24px',
-                border: '1px solid #E5E7EB',
-                padding: '28px',
-                marginBottom: '32px'
-            }}>
+            <div className={s.globalSettingsCard}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
                     <div style={{
                         width: '36px', height: '36px', borderRadius: '10px',
@@ -218,18 +213,11 @@ export default function SchedulePage() {
                             onDragOver={(e) => handleDragOver(e, index)}
                             onDrop={handleDrop}
                             onDragEnd={() => { setDraggingId(null); dragIndex.current = null; }}
+                            className={s.slotItem}
                             style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                padding: '14px 18px',
                                 border: `1.5px solid ${draggingId === slot.id ? '#BE185D' : '#F3F4F6'}`,
-                                borderRadius: '14px',
                                 background: draggingId === slot.id ? '#FDF2F8' : '#FAFAFA',
-                                transition: 'all 0.15s',
-                                cursor: 'grab',
                                 opacity: draggingId === slot.id ? 0.6 : 1,
-                                userSelect: 'none'
                             }}
                         >
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -263,7 +251,7 @@ export default function SchedulePage() {
                 </div>
 
                 {/* Add new slot */}
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                <div className={s.addSlotRow}>
                     <div style={{ flex: 1 }}>
                         <input
                             type="text"
@@ -294,6 +282,7 @@ export default function SchedulePage() {
                     <button
                         onClick={handleAddSlot}
                         disabled={addingSlot}
+                        className={s.addBtn}
                         style={{
                             padding: '13px 20px',
                             borderRadius: '12px',
@@ -338,7 +327,7 @@ export default function SchedulePage() {
                 </div>
 
                 <div className={styles.dayDetails}>
-                    <div style={{ background: 'white', padding: '24px', borderRadius: '24px', border: '1px solid #E5E7EB' }}>
+                    <div className={s.dayDetailsCard}>
                         <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <CalendarIcon size={20} color="#BE185D" />
                             {format(selectedDate, 'd-MMMM', { locale: localeSelection })} - {t('statusLabel')}

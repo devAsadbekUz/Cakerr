@@ -406,7 +406,7 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                                 <button disabled={disabled} onClick={() => setCancelConfirm(false)} className={styles.orderActionBtn} style={{ width: 'auto', padding: '8px 16px', background: '#F3F4F6', color: '#374151' }}>✗</button>
                             </div>
                         )}
-                        <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
+                        <div className={styles.modalActionsGroup}>
                             {order.status === 'new' && (
                                 <>
                                     {hasUnpricedPhotoItem && (
@@ -451,10 +451,10 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                                     <CheckCircle size={18} /> {t('finishDelivery')}
                                 </button>
                             )}
-                            <button onClick={() => router.push(`/admin/orders/${order.id}`)} className={styles.orderActionBtn} style={{ background: 'white', color: '#BE185D', border: '1.5px solid #F9A8D4' }}>
+                            <button onClick={() => router.push(`/admin/orders/${order.id}`)} className={styles.orderActionBtn} style={{ background: 'white', color: '#BE185D', border: '1.5px solid #F9A8D4', flex: 1 }}>
                                 <History size={18} /> {t('viewFull')}
                             </button>
-                            <button onClick={onClose} className={styles.orderActionBtn} style={{ background: '#F3F4F6', color: '#374151' }}>
+                            <button onClick={onClose} className={styles.orderActionBtn} style={{ background: '#F3F4F6', color: '#374151', flex: 1 }}>
                                 {t('close')}
                             </button>
                         </div>

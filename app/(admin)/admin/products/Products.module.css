@@ -12,6 +12,13 @@
     margin-bottom: 32px;
 }
 
+@media (max-width: 640px) {
+    .container {
+        padding: 16px;
+        padding-bottom: 90px;
+    }
+}
+
 .title {
     font-size: 28px;
     font-weight: 800;
@@ -192,13 +199,34 @@
     .header {
         flex-direction: column;
         align-items: flex-start;
+        gap: 20px;
     }
     .actionsGroup {
         width: 100%;
         justify-content: space-between;
+        align-items: center;
     }
     .productGrid {
         grid-template-columns: repeat(2, 1fr);
         gap: 12px;
+    }
+    .pTitle {
+        font-size: 15px;
+    }
+    .pPrice {
+        font-size: 15px;
+    }
+}
+
+@media (max-width: 400px) {
+    .productGrid {
+        grid-template-columns: 1fr;
+    }
+    .actionsGroup {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .addBtn {
+        justify-content: center;
     }
 }
