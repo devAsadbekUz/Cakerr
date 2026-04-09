@@ -80,6 +80,9 @@ export default function PosPage() {
     // Mobile: toggle cart panel
     const [showMobileCart, setShowMobileCart] = useState(false);
 
+    // Sidebar view toggle (Step 1: Order, Step 2: Checkout)
+    const [sidebarTab, setSidebarTab] = useState<'cart' | 'checkout'>('cart');
+
     // ── Effects ───────────────────────────────────────────────────────────────
     useEffect(() => {
         const loadData = async () => {
@@ -168,27 +171,32 @@ export default function PosPage() {
         // Validation
         if (!customerInfo.name) {
             setError(t('titleError'));
+            setSidebarTab('checkout');
             return;
         }
 
         const phoneRegex = /^\+998\d{9}$/;
         if (!phoneRegex.test(customerInfo.phone)) {
             setError(t('invalidPhone'));
+            setSidebarTab('checkout');
             return;
         }
 
         if (deliveryType === 'delivery' && !deliveryInfo.address.trim()) {
             setError(t('addressRequired'));
+            setSidebarTab('checkout');
             return;
         }
 
         if (deliveryType === 'pickup' && !selectedBranchId) {
             setError(t('selectBranch'));
+            setSidebarTab('checkout');
             return;
         }
 
         if (!deliveryInfo.date || !deliveryInfo.slot) {
             setError(t('error'));
+            setSidebarTab('checkout');
             return;
         }
 
@@ -222,6 +230,7 @@ export default function PosPage() {
             clearCart();
             setDeliveryType('delivery');
             setSelectedBranchId(branches.length > 0 ? branches[0].id : null);
+            setSidebarTab('cart'); // Reset to cart after success
             setTimeout(() => setOrderSuccess(null), 5000);
         } catch (err: any) {
             setError(err.message);
@@ -343,230 +352,279 @@ export default function PosPage() {
                             <X size={18} />
                         </button>
                     </div>
+
+                    {/* Desktop Step Switcher */}
+                    <div className={styles.stepTabs}>
+                        <button 
+                            className={`${styles.stepTab} ${sidebarTab === 'cart' ? styles.activeTab : ''}`}
+                            onClick={() => setSidebarTab('cart')}
+                        >
+                            <ShoppingCart size={14} />
+                            {lang === 'uz' ? 'Buyurtma' : 'Заказ'}
+                        </button>
+                        <button 
+                            className={`${styles.stepTab} ${sidebarTab === 'checkout' ? styles.activeTab : ''}`}
+                            onClick={() => setSidebarTab('checkout')}
+                        >
+                            <User size={14} />
+                            {lang === 'uz' ? 'Tekshirish' : 'Оформление'}
+                        </button>
+                    </div>
                 </div>
 
-                <div className={styles.cartList}>
-                    {cart.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: '60px 20px', color: '#94a3b8' }}>
-                            <ShoppingCart size={48} style={{ margin: '0 auto 16px', opacity: 0.2 }} />
-                            <p style={{ fontWeight: 500 }}>{t('emptyCart')}</p>
-                        </div>
-                    ) : (
-                        cart.map(item => (
-                            <div key={item.cartId} className={styles.cartItem}>
-                                <div className={styles.itemInfo}>
-                                    <div className={styles.itemTitle}>{item.name}</div>
-                                    <div className={styles.itemMeta}>
-                                        {item.portion} {item.flavor ? `• ${item.flavor}` : ''}
+                <div className={styles.sidebarContent}>
+                    {sidebarTab === 'cart' ? (
+                        <div className={styles.cartList}>
+                            {cart.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: '60px 20px', color: '#94a3b8' }}>
+                                    <ShoppingCart size={48} style={{ margin: '0 auto 16px', opacity: 0.2 }} />
+                                    <p style={{ fontWeight: 500 }}>{t('emptyCart')}</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className={styles.cartItemsScroll}>
+                                        {cart.map(item => (
+                                            <div key={item.cartId} className={styles.cartItem}>
+                                                <div className={styles.itemInfo}>
+                                                    <div className={styles.itemTitle}>{item.name}</div>
+                                                    <div className={styles.itemMeta}>
+                                                        {item.portion} {item.flavor ? `• ${item.flavor}` : ''}
+                                                    </div>
+                                                    <div className={styles.itemPrice}>{(Number(item.price) * item.quantity).toLocaleString()} {t('som')}</div>
+                                                </div>
+                                                <div className={styles.itemQuantity}>
+                                                    <button 
+                                                        className={styles.qtyBtn} 
+                                                        onClick={() => {
+                                                            if (item.quantity === 1) {
+                                                                removeItem(item.cartId);
+                                                            } else {
+                                                                updateQuantity(item.cartId, item.quantity - 1);
+                                                            }
+                                                        }}
+                                                    >
+                                                        <Minus size={14} />
+                                                    </button>
+                                                    <span style={{ fontWeight: 700, minWidth: 20, textAlign: 'center' }}>{item.quantity}</span>
+                                                    <button className={styles.qtyBtn} onClick={() => updateQuantity(item.cartId, item.quantity + 1)}><Plus size={14} /></button>
+                                                    <button 
+                                                        onClick={() => removeItem(item.cartId)}
+                                                        style={{ marginLeft: 8, color: '#f87171', display: 'flex', padding: 4 }}
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                    <div className={styles.itemPrice}>{(Number(item.price) * item.quantity).toLocaleString()} {t('som')}</div>
-                                </div>
-                                <div className={styles.itemQuantity}>
-                                    <button 
-                                        className={styles.qtyBtn} 
-                                        onClick={() => {
-                                            if (item.quantity === 1) {
-                                                removeItem(item.cartId);
-                                            } else {
-                                                updateQuantity(item.cartId, item.quantity - 1);
-                                            }
-                                        }}
-                                    >
-                                        <Minus size={14} />
-                                    </button>
-                                    <span style={{ fontWeight: 700, minWidth: 20, textAlign: 'center' }}>{item.quantity}</span>
-                                    <button className={styles.qtyBtn} onClick={() => updateQuantity(item.cartId, item.quantity + 1)}><Plus size={14} /></button>
-                                    <button 
-                                        onClick={() => removeItem(item.cartId)}
-                                        style={{ marginLeft: 8, color: '#f87171', display: 'flex', padding: 4 }}
-                                    >
-                                        <Trash2 size={14} />
-                                    </button>
-                                </div>
-                            </div>
-                        ))
-                    )}
-                </div>
-
-                <div className={styles.sidebarForms}>
-                    {/* Delivery/Pickup Toggle */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px', background: '#f1f5f9', padding: '4px', borderRadius: '12px' }}>
-                        <button 
-                            onClick={() => setDeliveryType('delivery')}
-                            style={{ 
-                                padding: '8px', borderRadius: '8px', border: 'none', 
-                                background: deliveryType === 'delivery' ? 'white' : 'transparent',
-                                color: deliveryType === 'delivery' ? '#BE185D' : '#64748b',
-                                fontWeight: 700, fontSize: '13px', cursor: 'pointer',
-                                boxShadow: deliveryType === 'delivery' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-                            }}
-                        >
-                            {t('delivery')}
-                        </button>
-                        <button 
-                            onClick={() => setDeliveryType('pickup')}
-                            style={{ 
-                                padding: '8px', borderRadius: '8px', border: 'none', 
-                                background: deliveryType === 'pickup' ? 'white' : 'transparent',
-                                color: deliveryType === 'pickup' ? '#BE185D' : '#64748b',
-                                fontWeight: 700, fontSize: '13px', cursor: 'pointer',
-                                boxShadow: deliveryType === 'pickup' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-                            }}
-                        >
-                            {t('pickup')}
-                        </button>
-                    </div>
-
-                    <div className={styles.formRow}>
-                        <div className={styles.formControl}>
-                            <label className={styles.label}><User size={12} style={{ display: 'inline', marginRight: 4 }} /> {t('customerName')}</label>
-                            <input 
-                                type="text" 
-                                value={customerInfo.name}
-                                onChange={(e) => setCustomerInfo({ name: e.target.value })}
-                                className={styles.input} 
-                                placeholder={t('customerName')}
-                            />
-                        </div>
-                        <div className={styles.formControl}>
-                            <label className={styles.label}><Phone size={12} style={{ display: 'inline', marginRight: 4 }} /> Telefon</label>
-                            <input 
-                                type="tel" 
-                                value={customerInfo.phone}
-                                onChange={(e) => {
-                                    let val = e.target.value;
-                                    // Always start with +998
-                                    if (!val.startsWith('+998')) {
-                                        val = '+998';
-                                    }
-                                    // Strip non-digits after +
-                                    const prefix = '+998';
-                                    const rest = val.slice(4).replace(/\D/g, '').slice(0, 9);
-                                    setCustomerInfo({ phone: prefix + rest });
-                                }}
-                                className={styles.input} 
-                                placeholder="+998"
-                            />
-                        </div>
-                    </div>
-
-                    {deliveryType === 'delivery' ? (
-                        <div className={styles.formControl}>
-                            <label className={styles.label}><MapPin size={12} style={{ display: 'inline', marginRight: 4 }} /> {t('address')}</label>
-                            <textarea 
-                                value={deliveryInfo.address}
-                                onChange={(e) => setDeliveryInfo({ address: e.target.value })}
-                                className={styles.textarea} 
-                                rows={2}
-                                placeholder={t('enterAddress')}
-                            />
+                                    
+                                    <div className={styles.cartSummaryMini}>
+                                        <div className={styles.totalRowMini}>
+                                            <span>{t('total')}:</span>
+                                            <span>{subtotal.toLocaleString()} {t('som')}</span>
+                                        </div>
+                                        <button 
+                                            className={styles.nextBtn}
+                                            onClick={() => setSidebarTab('checkout')}
+                                            disabled={cart.length === 0}
+                                        >
+                                            {lang === 'uz' ? "Keyingi (Ma'lumotlar)" : 'Далее (Оформление)'}
+                                        </button>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     ) : (
-                        <div className={styles.formControl}>
-                            <label className={styles.label}><MapPin size={12} style={{ display: 'inline', marginRight: 4 }} /> {t('selectBranch')}</label>
-                            <select 
-                                className={styles.input}
-                                value={selectedBranchId || ''}
-                                onChange={(e) => setSelectedBranchId(e.target.value)}
-                            >
-                                {branches.map(b => (
-                                    <option key={b.id} value={b.id}>
-                                        {lang === 'uz' ? b.name_uz : b.name_ru}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
-
-                    <div className={styles.formRow}>
-                        <div className={styles.formControl}>
-                            <label className={styles.label}><Calendar size={12} style={{ display: 'inline', marginRight: 4 }} /> Sana</label>
-                            <input
-                                type="date"
-                                className={styles.input}
-                                value={deliveryInfo.date ? deliveryInfo.date.toISOString().split('T')[0] : ''}
-                                onChange={(e) => {
-                                    const dateVal = e.target.value;
-                                    if (!dateVal) {
-                                        setDeliveryInfo({ date: null });
-                                        return;
-                                    }
-                                    if (isDateFullyBlocked(dateVal)) {
-                                        setError(lang === 'uz' ? 'Bu sana yopiq' : 'Эта дата закрыта');
-                                        setDeliveryInfo({ date: null });
-                                        return;
-                                    }
-                                    const newDate = new Date(dateVal);
-                                    const slotNowBlocked = deliveryInfo.slot &&
-                                        overrides.some(o => o.date === dateVal && (o.slot === null || o.slot === deliveryInfo.slot));
-                                    setDeliveryInfo({ date: newDate, ...(slotNowBlocked ? { slot: '' } : {}) });
-                                    setError(null);
-                                }}
-                                min={new Date().toISOString().split('T')[0]}
-                            />
-                        </div>
-                        <div className={styles.formControl}>
-                            <label className={styles.label}><Clock size={12} style={{ display: 'inline', marginRight: 4 }} /> Vaqt</label>
-                            <select 
-                                className={styles.input}
-                                value={deliveryInfo.slot}
-                                onChange={(e) => setDeliveryInfo({ slot: e.target.value })}
-                            >
-                                <option value="">{t('selectTime')}</option>
-                                {slots.map(s => {
-                                    const blocked = isSlotBlocked(s.label);
-                                    return (
-                                        <option key={s.id} value={s.label} disabled={blocked}>
-                                            {s.label}{blocked ? ` — ${t('closed')}` : ''}
-                                        </option>
-                                    );
-                                })}
-                            </select>
-                        </div>
-                    </div>
-
-                    <div className={styles.formControl}>
-                        <label className={styles.label}>📝 {t('orderComment')}</label>
-                        <textarea
-                            value={orderNote}
-                            onChange={(e) => setOrderNote(e.target.value)}
-                            className={styles.textarea}
-                            rows={2}
-                            placeholder={t('orderNotePlaceholder')}
-                        />
-                    </div>
-
-                    <div className={styles.totalSection}>
-                        <div className={styles.totalRow}>
-                            <span className={styles.totalLabel}>{t('total')}</span>
-                            <span className={styles.totalAmount}>{(subtotal + (deliveryType === 'delivery' ? DELIVERY_FEE : 0)).toLocaleString()} {t('som')}</span>
-                        </div>
-                        {deliveryType === 'delivery' && (
-                            <div style={{ fontSize: '11px', color: '#64748b', textAlign: 'right', marginTop: '2px' }}>
-                                (Inc. {DELIVERY_FEE.toLocaleString()} {t('deliveryFee')})
+                        <div className={styles.sidebarForms}>
+                            {/* Delivery/Pickup Toggle */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px', background: '#f1f5f9', padding: '4px', borderRadius: '12px' }}>
+                                <button 
+                                    onClick={() => setDeliveryType('delivery')}
+                                    style={{ 
+                                        padding: '8px', borderRadius: '8px', border: 'none', 
+                                        background: deliveryType === 'delivery' ? 'white' : 'transparent',
+                                        color: deliveryType === 'delivery' ? '#BE185D' : '#64748b',
+                                        fontWeight: 700, fontSize: '13px', cursor: 'pointer',
+                                        boxShadow: deliveryType === 'delivery' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                                    }}
+                                >
+                                    {t('delivery')}
+                                </button>
+                                <button 
+                                    onClick={() => setDeliveryType('pickup')}
+                                    style={{ 
+                                        padding: '8px', borderRadius: '8px', border: 'none', 
+                                        background: deliveryType === 'pickup' ? 'white' : 'transparent',
+                                        color: deliveryType === 'pickup' ? '#BE185D' : '#64748b',
+                                        fontWeight: 700, fontSize: '13px', cursor: 'pointer',
+                                        boxShadow: deliveryType === 'pickup' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                                    }}
+                                >
+                                    {t('pickup')}
+                                </button>
                             </div>
-                        )}
-                    </div>
 
-                    {orderSuccess && (
-                        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', padding: 12, borderRadius: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <CheckCircle2 size={18} /> {t('orderConfirmedNum').replace('{id}', (orderSuccess as string).substring(0, 8))}
+                            <div className={styles.formRow}>
+                                <div className={styles.formControl}>
+                                    <label className={styles.label}><User size={12} style={{ display: 'inline', marginRight: 4 }} /> {t('customerName')}</label>
+                                    <input 
+                                        type="text" 
+                                        value={customerInfo.name}
+                                        onChange={(e) => setCustomerInfo({ name: e.target.value })}
+                                        className={styles.input} 
+                                        placeholder={t('customerName')}
+                                    />
+                                </div>
+                                <div className={styles.formControl}>
+                                    <label className={styles.label}><Phone size={12} style={{ display: 'inline', marginRight: 4 }} /> Telefon</label>
+                                    <input 
+                                        type="tel" 
+                                        value={customerInfo.phone}
+                                        onChange={(e) => {
+                                            let val = e.target.value;
+                                            // Always start with +998
+                                            if (!val.startsWith('+998')) {
+                                                val = '+998';
+                                            }
+                                            // Strip non-digits after +
+                                            const prefix = '+998';
+                                            const rest = val.slice(4).replace(/\D/g, '').slice(0, 9);
+                                            setCustomerInfo({ phone: prefix + rest });
+                                        }}
+                                        className={styles.input} 
+                                        placeholder="+998"
+                                    />
+                                </div>
+                            </div>
+
+                            {deliveryType === 'delivery' ? (
+                                <div className={styles.formControl}>
+                                    <label className={styles.label}><MapPin size={12} style={{ display: 'inline', marginRight: 4 }} /> {t('address')}</label>
+                                    <textarea 
+                                        value={deliveryInfo.address}
+                                        onChange={(e) => setDeliveryInfo({ address: e.target.value })}
+                                        className={styles.textarea} 
+                                        rows={2}
+                                        placeholder={t('enterAddress')}
+                                    />
+                                </div>
+                            ) : (
+                                <div className={styles.formControl}>
+                                    <label className={styles.label}><MapPin size={12} style={{ display: 'inline', marginRight: 4 }} /> {t('selectBranch')}</label>
+                                    <select 
+                                        className={styles.input}
+                                        value={selectedBranchId || ''}
+                                        onChange={(e) => setSelectedBranchId(e.target.value)}
+                                    >
+                                        {branches.map(b => (
+                                            <option key={b.id} value={b.id}>
+                                                {lang === 'uz' ? b.name_uz : b.name_ru}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
+                            <div className={styles.formRow}>
+                                <div className={styles.formControl}>
+                                    <label className={styles.label}><Calendar size={12} style={{ display: 'inline', marginRight: 4 }} /> Sana</label>
+                                    <input
+                                        type="date"
+                                        className={styles.input}
+                                        value={deliveryInfo.date ? deliveryInfo.date.toISOString().split('T')[0] : ''}
+                                        onChange={(e) => {
+                                            const dateVal = e.target.value;
+                                            if (!dateVal) {
+                                                setDeliveryInfo({ date: null });
+                                                return;
+                                            }
+                                            if (isDateFullyBlocked(dateVal)) {
+                                                setError(lang === 'uz' ? 'Bu sana yopiq' : 'Эта дата закрыта');
+                                                setDeliveryInfo({ date: null });
+                                                return;
+                                            }
+                                            const newDate = new Date(dateVal);
+                                            const slotNowBlocked = deliveryInfo.slot &&
+                                                overrides.some(o => o.date === dateVal && (o.slot === null || o.slot === deliveryInfo.slot));
+                                            setDeliveryInfo({ date: newDate, ...(slotNowBlocked ? { slot: '' } : {}) });
+                                            setError(null);
+                                        }}
+                                        min={new Date().toISOString().split('T')[0]}
+                                    />
+                                </div>
+                                <div className={styles.formControl}>
+                                    <label className={styles.label}><Clock size={12} style={{ display: 'inline', marginRight: 4 }} /> Vaqt</label>
+                                    <select 
+                                        className={styles.input}
+                                        value={deliveryInfo.slot}
+                                        onChange={(e) => setDeliveryInfo({ slot: e.target.value })}
+                                    >
+                                        <option value="">{t('selectTime')}</option>
+                                        {slots.map(s => {
+                                            const blocked = isSlotBlocked(s.label);
+                                            return (
+                                                <option key={s.id} value={s.label} disabled={blocked}>
+                                                    {s.label}{blocked ? ` — ${t('closed')}` : ''}
+                                                </option>
+                                            );
+                                        })}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className={styles.formControl}>
+                                <label className={styles.label}>📝 {t('orderComment')}</label>
+                                <textarea
+                                    value={orderNote}
+                                    onChange={(e) => setOrderNote(e.target.value)}
+                                    className={styles.textarea}
+                                    rows={2}
+                                    placeholder={t('orderNotePlaceholder')}
+                                />
+                            </div>
+
+                            <div className={styles.totalSection}>
+                                <div className={styles.totalRow}>
+                                    <span className={styles.totalLabel}>{t('total')}</span>
+                                    <span className={styles.totalAmount}>{(subtotal + (deliveryType === 'delivery' ? DELIVERY_FEE : 0)).toLocaleString()} {t('som')}</span>
+                                </div>
+                                {deliveryType === 'delivery' && (
+                                    <div style={{ fontSize: '11px', color: '#64748b', textAlign: 'right', marginTop: '2px' }}>
+                                        (Inc. {DELIVERY_FEE.toLocaleString()} {t('deliveryFee')})
+                                    </div>
+                                )}
+                            </div>
+
+                            {orderSuccess && (
+                                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', padding: 12, borderRadius: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <CheckCircle2 size={18} /> {t('orderConfirmedNum').replace('{id}', (orderSuccess as string).substring(0, 8))}
+                                </div>
+                            )}
+
+                            {error && (
+                                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', padding: 12, borderRadius: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <AlertCircle size={18} /> {error}
+                                </div>
+                            )}
+
+                            <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+                                <button 
+                                    className={styles.backBtn}
+                                    onClick={() => setSidebarTab('cart')}
+                                >
+                                    {lang === 'uz' ? 'Orqaga' : 'Назад'}
+                                </button>
+                                <button 
+                                    className={styles.checkoutBtn}
+                                    onClick={handleSubmit}
+                                    disabled={submitting || cart.length === 0}
+                                    style={{ marginTop: 0 }}
+                                >
+                                    {submitting ? t('saving') : t('confirmOrder')}
+                                </button>
+                            </div>
                         </div>
                     )}
-
-                    {error && (
-                        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', padding: 12, borderRadius: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <AlertCircle size={18} /> {error}
-                        </div>
-                    )}
-
-                    <button 
-                        className={styles.checkoutBtn}
-                        onClick={handleSubmit}
-                        disabled={submitting || cart.length === 0}
-                    >
-                        {submitting ? t('saving') : t('confirmOrder')}
-                    </button>
                 </div>
             </aside>
 
