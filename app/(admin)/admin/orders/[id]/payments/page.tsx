@@ -66,15 +66,15 @@ export default function PaymentHistoryPage({ params }: { params: Promise<{ id: s
 
     const renderLogLine = (log: PaymentLog) => {
         if (log.event_type === 'deposit_recorded') {
-            return t('payLog_initial').replace('{amount}', log.amount.toLocaleString());
+            return t('payLog_initial').replace('{amount}', log.amount.toLocaleString()).replace('{by}', log.recorded_by_name);
         }
         if (log.event_type === 'payment_added') {
-            return t('payLog_added').replace('{amount}', log.amount.toLocaleString());
+            return t('payLog_added').replace('{amount}', log.amount.toLocaleString()).replace('{by}', log.recorded_by_name);
         }
         if (log.event_type === 'deposit_edited') {
             return `${log.recorded_by_name}: ${log.previous_amount?.toLocaleString()} → ${log.amount.toLocaleString()} ${t('som')}`;
         }
-        return t('payLog_final').replace('{amount}', log.amount.toLocaleString());
+        return t('payLog_final').replace('{amount}', log.amount.toLocaleString()).replace('{by}', log.recorded_by_name);
     };
 
     const remaining = order ? Math.max(0, order.total_price - order.deposit_amount) : 0;
