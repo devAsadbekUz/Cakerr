@@ -236,7 +236,7 @@ export const buildOrderMessage = (order: any, lang: 'uz' | 'ru' = 'uz') => {
 
             if (isCustom) {
                 // Custom cake — show full configuration on separate lines
-                messageText += `  • ${item.quantity}x *${name}* - ${price} ${t.som}\n`;
+                messageText += `  • ${item.quantity}x *${name}* - ${price}\n`;
                 const details: string[] = [];
                 const spongeLabel = lang === 'uz' ? (cfg.sponge_uz || cfg.sponge) : (cfg.sponge_ru || cfg.sponge);
                 const flavorLabel = lang === 'uz' ? (cfg.flavor_uz || cfg.flavor) : (cfg.flavor_ru || cfg.flavor);
@@ -250,7 +250,7 @@ export const buildOrderMessage = (order: any, lang: 'uz' | 'ru' = 'uz') => {
                 // Standard product — compact format
                 const portionText = cfg.portion ? ` (${tgEscape(cfg.portion)})` : '';
                 const flavorText = cfg.flavor ? ` | ${tgEscape(cfg.flavor)}` : '';
-                messageText += `  • ${item.quantity}x ${name}${portionText}${flavorText} - ${price} ${t.som}\n`;
+                messageText += `  • ${item.quantity}x ${name}${portionText}${flavorText} - ${price}\n`;
             }
 
             const note = cfg.custom_note || cfg.order_note;

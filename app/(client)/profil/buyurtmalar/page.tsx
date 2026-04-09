@@ -181,7 +181,10 @@ export default function OrderHistoryPage() {
                                     <p className={styles.productMeta}>{t('portion')}: {item.portion}</p>
                                 </div>
                                 <div className={styles.productPrice}>
-                                    {item.price.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}
+                                    {item.price === 0
+                                        ? <span style={{ color: '#BE185D', fontStyle: 'italic', fontSize: '13px' }}>{t('negotiable')}</span>
+                                        : <>{item.price.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}</>
+                                    }
                                 </div>
                             </div>
                         ))}
@@ -190,7 +193,11 @@ export default function OrderHistoryPage() {
                             <div className={styles.totalRow} onClick={() => router.push(`/profil/buyurtmalar/${order.id}`)}>
                                 <span className={styles.totalLabel}>{t('total')}</span>
                                 <div className={styles.totalValue}>
-                                    {order.total.toLocaleString('uz-UZ')} {t('som')}
+                                    {order.items.some(item => item.price === 0) ? (
+                                        <span style={{ color: '#BE185D', fontStyle: 'italic', fontSize: '14px' }}>{t('negotiable')}</span>
+                                    ) : (
+                                        <>{order.total.toLocaleString('uz-UZ')} {t('som')}</>
+                                    )}
                                     <ChevronRight size={18} color="#D1D5DB" />
                                 </div>
                             </div>

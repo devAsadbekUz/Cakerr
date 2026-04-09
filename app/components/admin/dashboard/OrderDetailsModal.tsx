@@ -8,7 +8,7 @@ import { format } from 'date-fns';
 import {
     XCircle, MapPinned, Calendar as CalendarIcon, PackageCheck,
     CheckCircle2, Utensils, Truck, CheckCircle, ZoomIn, History,
-    Banknote, CreditCard, Coins, Tag, AlertTriangle, Receipt
+    Banknote, CreditCard, Coins, Tag, AlertTriangle, Receipt, AlertCircle
 } from 'lucide-react';
 import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 import type { AdminOrderItem, AdminOrderCardData } from '@/app/types/admin-order';
@@ -88,9 +88,9 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
     const showPaymentSection = ['confirmed', 'preparing', 'ready', 'delivering', 'completed'].includes(order.status);
     const noDepositWarning = depositAmount === 0 && ['confirmed', 'preparing', 'ready', 'delivering'].includes(order.status);
 
-    // Block confirmation if any item is a photo order with price not yet set
-    const hasUnpricedPhotoItem = order.status === 'new' && order.order_items?.some(
-        item => item.configuration?.mode === 'upload' && (!item.unit_price || item.unit_price === 0)
+    // Block confirmation if any item is a custom order with price not yet set
+    const hasUnpricedCustomItem = order.status === 'new' && order.order_items?.some(
+        item => (item.configuration?.mode === 'upload' || item.configuration?.mode === 'wizard') && (!item.unit_price || item.unit_price === 0)
     );
 
     const handleDepositConfirm = (amount: number) => {
@@ -409,16 +409,35 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                         <div className={styles.modalActionsGroup}>
                             {order.status === 'new' && (
                                 <>
-                                    {hasUnpricedPhotoItem && (
-                                        <div style={{ width: '100%', marginBottom: '8px', padding: '10px 12px', background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: '10px', fontSize: '13px', color: '#92400E', lineHeight: '1.5' }}>
-                                            {t('confirmPriceFirst')}
-                                            {' '}
-                                            <button onClick={() => router.push(`/admin/orders/${order.id}`)} style={{ background: 'none', border: 'none', color: '#BE185D', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', fontSize: '13px', padding: 0 }}>
+                                    {hasUnpricedCustomItem && (
+                                        <div style={{
+                                            width: '100%', marginBottom: '12px', padding: '12px 14px',
+                                            background: '#FFF7ED', border: '1px solid #FDBA74',
+                                            borderRadius: '12px', fontSize: '13px', color: '#9A3412',
+                                            lineHeight: '1.5', display: 'flex', flexDirection: 'column', gap: '4px'
+                                        }}>
+                                            <div style={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <AlertCircle size={16} /> {t('confirmPriceFirst')}
+                                            </div>
+                                            <button
+                                                onClick={() => router.push(`/admin/orders/${order.id}`)}
+                                                style={{
+                                                    background: '#BE185D', color: 'white', border: 'none',
+                                                    borderRadius: '8px', padding: '6px 12px', fontWeight: 700,
+                                                    cursor: 'pointer', fontSize: '12px', alignSelf: 'flex-start',
+                                                    marginTop: '4px'
+                                                }}
+                                            >
                                                 {t('setPrice')}
                                             </button>
                                         </div>
                                     )}
-                                    <button disabled={disabled || !!hasUnpricedPhotoItem} onClick={() => setDepositModalOpen(true)} className={`${styles.orderActionBtn} ${styles.orderActionBtnPrimary}`}>
+                                    <button
+                                        disabled={disabled || !!hasUnpricedCustomItem}
+                                        onClick={() => setDepositModalOpen(true)}
+                                        className={`${styles.orderActionBtn} ${styles.orderActionBtnPrimary}`}
+                                        title={hasUnpricedCustomItem ? (lang === 'uz' ? 'Tasdiqlashdan avval narxni belgilang' : 'Установите цену перед подтверждением') : ''}
+                                    >
                                         <CheckCircle2 size={18} /> {t('confirmOrder')}
                                     </button>
                                     <button disabled={disabled} onClick={() => setCancelConfirm(true)} className={`${styles.orderActionBtn} ${styles.orderActionBtnDanger}`}>

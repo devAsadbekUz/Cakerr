@@ -490,8 +490,8 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                             )}
                                         </div>
 
-                                        {/* Agreed price editor — only for photo reference orders */}
-                                        {item.configuration?.mode === 'upload' && (
+                                        {/* Agreed price editor — for custom cakes (photo or wizard) */}
+                                        {(item.configuration?.mode === 'upload' || item.configuration?.mode === 'wizard') && (
                                             <div style={{ marginTop: '12px', padding: '12px', borderRadius: '10px', background: (item.unit_price ?? 0) === 0 ? '#FFF7ED' : '#F0FDF4', border: `1px solid ${(item.unit_price ?? 0) === 0 ? '#FED7AA' : '#BBF7D0'}` }}>
                                                 <div style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', color: (item.unit_price ?? 0) === 0 ? '#92400E' : '#065F46', marginBottom: '8px' }}>
                                                     {(item.unit_price ?? 0) === 0

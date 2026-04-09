@@ -299,6 +299,7 @@ const uz: Record<string, string | string[]> = {
     inscriptionLabel: "Yozuv",
     drawingLabel: "Chizilgan Rasm",
     adminMayChange: "Admin tomonidan o'zgartirilishi mumkin",
+    customPriceNote: "🎂 Maxsus tort narxi buyurtma berilganidan so'ng admin bilan kelishiladi.",
 };
 
 const ru: Record<string, string | string[]> = {
@@ -598,6 +599,7 @@ const ru: Record<string, string | string[]> = {
     inscriptionLabel: "Надпись",
     drawingLabel: "Рисунок",
     adminMayChange: "Может быть изменено администратором",
+    customPriceNote: "🎂 Цена особого торта будет согласована с админом после оформления заказа.",
 };
 
 export const clientTranslations: Record<Language, Record<string, string | string[]>> = { uz, ru };

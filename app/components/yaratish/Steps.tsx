@@ -329,6 +329,20 @@ export function ReviewStep() {
                 )}
 
                 </div>
+                <div style={{
+                    marginTop: '20px',
+                    padding: '12px 16px',
+                    background: '#FFF1F2',
+                    borderRadius: '12px',
+                    border: '1px solid #FECDD3',
+                    fontSize: '14px',
+                    color: '#BE185D',
+                    lineHeight: '1.5',
+                    textAlign: 'center',
+                    fontWeight: 500
+                }}>
+                    {t('customPriceNote')}
+                </div>
             </div>
         );
 }

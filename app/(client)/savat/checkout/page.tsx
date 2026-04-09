@@ -812,13 +812,13 @@ export default function CheckoutPage() {
                 </div>
 
                 <div className={styles.summary}>
-                    {cart.some(item => item.configuration?.mode === 'upload') && (
+                    {cart.some(item => item.configuration?.mode === 'wizard' || item.configuration?.mode === 'upload') && (
                         <div style={{
                             marginBottom: '10px', padding: '10px 12px',
-                            background: '#FFF7ED', border: '1px solid #FED7AA',
-                            borderRadius: '10px', fontSize: '13px', color: '#9A3412', lineHeight: '1.5'
+                            background: '#FDF2F8', border: '1px solid #FBCFE8',
+                            borderRadius: '10px', fontSize: '13px', color: '#BE185D', lineHeight: '1.5'
                         }}>
-                            {t('photoPriceNote')}
+                            {t('customPriceNote')}
                         </div>
                     )}
                     <div className={styles.summaryRow}>

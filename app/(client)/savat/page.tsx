@@ -110,7 +110,13 @@ export default function SavatPage() {
                         </div>
                         <div className={`${styles.summaryRow} ${styles.total}`}>
                             <span>{t('total')}</span>
-                            <span className={styles.totalValue}>{total.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}</span>
+                            <span className={styles.totalValue}>
+                                {cart.some(item => !item.price) ? (
+                                    <span style={{ color: '#BE185D', fontStyle: 'italic', fontSize: '16px' }}>{t('negotiable')}</span>
+                                ) : (
+                                    <>{total.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}</>
+                                )}
+                            </span>
                         </div>
                     </div>
 
