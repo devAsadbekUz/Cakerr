@@ -432,29 +432,35 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                                             <div className={styles.itemPriceQty}>
                                                 <div className={styles.itemPrice} style={{ fontVariantNumeric: 'tabular-nums', flex: 1 }}>
                                                     {editingItemId === item.id ? (
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                            <input
-                                                                type="number"
-                                                                value={editValue}
-                                                                onChange={(e) => setEditValue(e.target.value)}
-                                                                className={styles.posSearchInput} // Reuse POS styles for basic input
-                                                                style={{ padding: '4px 8px', width: '90px', height: '32px', fontSize: '13px' }}
-                                                                autoFocus
-                                                                placeholder={t('price')}
-                                                            />
-                                                            <button 
-                                                                disabled={isSavingPrice}
-                                                                onClick={() => handleSavePrice(item.id)}
-                                                                style={{ padding: '6px', background: '#059669', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex' }}
-                                                            >
-                                                                {isSavingPrice ? <Loader2 size={16} className={styles.spinner} /> : <Check size={16} />}
-                                                            </button>
-                                                            <button 
-                                                                onClick={() => setEditingItemId(null)}
-                                                                style={{ padding: '6px', background: '#EF4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex' }}
-                                                            >
-                                                                <X size={16} />
-                                                            </button>
+                                                        <div className={styles.premiumPriceEditor}>
+                                                            <div className={styles.premiumInputGroup}>
+                                                                <input
+                                                                    type="number"
+                                                                    value={editValue}
+                                                                    onChange={(e) => setEditValue(e.target.value)}
+                                                                    className={styles.premiumInput}
+                                                                    autoFocus
+                                                                    placeholder="0"
+                                                                />
+                                                                <span className={styles.premiumCurrency}>{t('som')}</span>
+                                                            </div>
+                                                            <div className={styles.premiumActions}>
+                                                                <button 
+                                                                    disabled={isSavingPrice}
+                                                                    onClick={() => handleSavePrice(item.id)}
+                                                                    className={styles.premiumConfirmBtn}
+                                                                    title={t('save')}
+                                                                >
+                                                                    {isSavingPrice ? <Loader2 size={18} className={styles.spinner} /> : <Check size={18} strokeWidth={3} />}
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => setEditingItemId(null)}
+                                                                    className={styles.premiumCancelBtn}
+                                                                    title={t('close')}
+                                                                >
+                                                                    <X size={18} strokeWidth={3} />
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     ) : (
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

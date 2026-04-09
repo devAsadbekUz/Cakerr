@@ -5,7 +5,7 @@ import {
     ArrowLeft, MapPinned, Calendar, Clock, User,
     Package, CheckCircle2, AlertCircle,
     History, ChevronDown, ChevronUp, XCircle,
-    AlertTriangle, Receipt, Pencil
+    AlertTriangle, Receipt, Pencil, Check, X, Loader2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru, uz } from 'date-fns/locale';
@@ -518,29 +518,33 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                 </div>
 
                                                 {editPriceItemId === item.id ? (
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                                    <div className={styles.premiumPriceEditor}>
+                                                        <div className={styles.premiumInputGroup}>
                                                             <input
                                                                 type="number"
-                                                                inputMode="numeric"
                                                                 value={editPriceValue}
                                                                 onChange={e => { setEditPriceValue(e.target.value); setEditPriceError(null); }}
-                                                                placeholder={lang === 'uz' ? "Narxni kiriting (so'm)" : "Введите цену (сум)"}
-                                                                style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: `1.5px solid ${editPriceError ? '#EF4444' : '#E5E7EB'}`, fontSize: '15px', fontWeight: 700, outline: 'none', fontVariantNumeric: 'tabular-nums' }}
+                                                                placeholder="0"
+                                                                className={styles.premiumInput}
                                                                 autoFocus
                                                             />
-                                                            <button
-                                                                onClick={() => handleEditPrice(item.id)}
+                                                            <span className={styles.premiumCurrency}>{lang === 'uz' ? "so'm" : "сум"}</span>
+                                                        </div>
+                                                        <div className={styles.premiumActions}>
+                                                            <button 
                                                                 disabled={editPriceLoading}
-                                                                style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#16A34A', color: 'white', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}
+                                                                onClick={() => handleEditPrice(item.id)}
+                                                                className={styles.premiumConfirmBtn}
+                                                                title={lang === 'uz' ? 'Saqlash' : 'Сохранить'}
                                                             >
-                                                                {editPriceLoading ? '...' : (lang === 'uz' ? 'Saqlash' : 'Сохранить')}
+                                                                {editPriceLoading ? <Loader2 size={18} className={styles.spinning} /> : <Check size={18} strokeWidth={3} />}
                                                             </button>
-                                                            <button
-                                                                onClick={() => { setEditPriceItemId(null); setEditPriceError(null); }}
-                                                                style={{ padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #E5E7EB', background: 'white', color: '#6B7280', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}
+                                                            <button 
+                                                                onClick={() => setEditPriceItemId(null)}
+                                                                className={styles.premiumCancelBtn}
+                                                                title={lang === 'uz' ? 'Yopish' : 'Закрыть'}
                                                             >
-                                                                {lang === 'uz' ? 'Bekor' : 'Отмена'}
+                                                                <X size={18} strokeWidth={3} />
                                                             </button>
                                                         </div>
                                                         {editPriceError && <p style={{ margin: 0, fontSize: '12px', color: '#EF4444', fontWeight: 600 }}>{editPriceError}</p>}
