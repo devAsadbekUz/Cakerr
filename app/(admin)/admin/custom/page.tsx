@@ -12,6 +12,7 @@ import {
 import styles from './AdminCustom.module.css';
 import { customCakeService, CustomOption } from '@/app/services/customCakeService';
 import { useAdminI18n } from '@/app/context/AdminLanguageContext';
+import ImageUpload from '@/app/components/admin/ImageUpload';
 
 type TabType = 'cake_type' | 'nachinka' | 'size' | 'decoration';
 
@@ -225,13 +226,11 @@ export default function AdminCustomPage() {
                                 </div>
 
                                 <div className={styles.formGroup}>
-                                    <label>{t('imageUrlLabel')}</label>
-                                    <input
-                                        type="text"
-                                        className={styles.input}
+                                    <label>{lang === 'uz' ? 'Rasm' : 'Изображение'}</label>
+                                    <ImageUpload
                                         value={editingOption.image_url || ''}
-                                        onChange={e => setEditingOption({ ...editingOption, image_url: e.target.value })}
-                                        placeholder="https://..."
+                                        onChange={url => setEditingOption({ ...editingOption, image_url: url })}
+                                        bucket="images"
                                     />
                                 </div>
 
