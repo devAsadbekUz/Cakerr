@@ -159,7 +159,6 @@ export default function AdminCustomPage() {
                                 )}
                             </div>
 
-                            <span className={styles.cardPrice}>+{option.price.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}</span>
 
                             <div className={styles.cardActions}>
                                 <button className={styles.actionBtn} onClick={() => handleEdit(option)}>
@@ -205,16 +204,6 @@ export default function AdminCustomPage() {
                                     />
                                 </div>
 
-                                <div className={styles.formGroup}>
-                                    <label>{t('priceLabel')} ({lang === 'uz' ? "so'm" : "сум"})</label>
-                                    <input
-                                        type="number"
-                                        className={styles.input}
-                                        value={editingOption.price || 0}
-                                        onChange={e => setEditingOption({ ...editingOption, price: parseInt(e.target.value) })}
-                                        required
-                                    />
-                                </div>
 
                                 {(activeTab === 'cream' || activeTab === 'decoration') && (
                                     <div className={styles.formGroup}>

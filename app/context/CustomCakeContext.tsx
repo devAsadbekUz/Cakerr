@@ -85,18 +85,8 @@ export function CustomCakeProvider({ children }: { children: ReactNode }) {
     const reset = useCallback(() => setState(initialState), []);
 
     const calculateTotal = useCallback(() => {
-        let total = 0;
-
-        const selectedSponge = state.options.find(o => o.id === state.sponge);
-        const selectedCream = state.options.find(o => o.id === state.cream);
-        const selectedDecors = state.options.filter(o => state.decorations.includes(o.id));
-
-        if (selectedSponge) total += Number(selectedSponge.price);
-        if (selectedCream) total += Number(selectedCream.price);
-        selectedDecors.forEach(d => total += Number(d.price));
-
-        return total;
-    }, [state.options, state.sponge, state.cream, state.decorations]);
+        return 0;
+    }, []);
 
     const value = useMemo(() => ({
         ...state,

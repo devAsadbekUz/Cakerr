@@ -45,7 +45,6 @@ export function SpongeStep() {
                             <Cookie size={32} />
                         </div>
                         <span className={styles.label}>{s.label}</span>
-                        {s.price > 0 && <span className={styles.price}>+{s.price.toLocaleString()} {t('som')}</span>}
                     </div>
                 ))}
             </div>
@@ -76,7 +75,6 @@ export function CreamStep() {
                             </div>
                         )}
                         <span className={styles.label}>{c.label}</span>
-                        {c.price > 0 && <span className={styles.price}>+{c.price.toLocaleString()} {t('som')}</span>}
                     </div>
                 ))}
             </div>
@@ -199,7 +197,6 @@ export function DecorationStep() {
                     >
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                             <span className={styles.label}>{d.label}</span>
-                            {d.price > 0 && <span style={{ fontSize: 13, color: '#BE185D', fontWeight: 600 }}>+{d.price.toLocaleString()} {t('som')}</span>}
                         </div>
                         {decorations.includes(d.id) && <Check size={20} color="#BE185D" />}
                     </div>
@@ -327,14 +324,7 @@ export function ReviewStep() {
                     </div>
                 )}
 
-                <div className={styles.totalEstimated}>
-                    <div>
-                        <span className={styles.totalLabel}>{t('estimatedPrice')}</span>
-                        <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{t('adminMayChange')}</div>
-                    </div>
-                    <div className={styles.totalValue}>{calculateTotal().toLocaleString()} {t('som')}</div>
                 </div>
             </div>
-        </div>
-    );
+        );
 }

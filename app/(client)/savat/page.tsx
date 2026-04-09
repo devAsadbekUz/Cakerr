@@ -67,7 +67,7 @@ export default function SavatPage() {
                                     </div>
                                     <div className={styles.itemBottom}>
                                         <p className={styles.itemPrice}>
-                                            {item.configuration?.mode === 'upload' && !item.price
+                                            {!item.price
                                                 ? <span style={{ color: '#BE185D', fontStyle: 'italic' }}>{t('negotiable')}</span>
                                                 : <>{(item.price || 0).toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}</>
                                             }

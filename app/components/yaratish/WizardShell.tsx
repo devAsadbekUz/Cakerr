@@ -109,7 +109,7 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
             id: '00000000-0000-0000-0000-000000000000',
             productId: '00000000-0000-0000-0000-000000000000',
             name: t('customCake'),
-            price: total,
+            price: 0,
             quantity: 1,
             image: '/images/custom-cake-placeholder.jpg',
             // Portion and flavor for CartItem type
@@ -125,7 +125,7 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
                 uploaded_photo_url: uploadedImage,
                 order_note: uploadComment,
                 pricing_type: 'hybrid',
-                estimated_total: total
+                estimated_total: 0
             }
         };
 
@@ -169,11 +169,6 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
             </main>
 
             <footer className={styles.footer}>
-                <div className={styles.priceBar}>
-                    <span className={styles.priceLabel}>{t('estimatedPrice')}</span>
-                    <span className={styles.priceValue}>{calculateTotal().toLocaleString()} {t('som')}</span>
-                </div>
-
                 <div className={styles.buttonGroup}>
                     <button className={styles.prevBtn} onClick={handleBack}>
                         <ChevronLeft size={20} style={{ marginRight: 4 }} />
