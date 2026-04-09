@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { parent_ids, ...optionData } = body;
+    const { parent_ids, relations, ...optionData } = body;
 
     const { data, error } = await serviceClient
         .from('custom_cake_options')
@@ -73,7 +73,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, parent_ids, ...updates } = body;
+    const { id, parent_ids, relations, ...updates } = body;
 
     if (!id) {
         return NextResponse.json({ error: 'Missing option id' }, { status: 400 });

@@ -73,7 +73,9 @@ export default function AdminCustomPage() {
             ...option,
             is_available: !option.is_available,
         });
-        if (!error && data) {
+        if (error) {
+            alert(t('error') + ': ' + error);
+        } else if (data) {
             setOptions(prev => prev.map(o => o.id === data.id ? data : o));
         }
         setTogglingId(null);
@@ -86,7 +88,9 @@ export default function AdminCustomPage() {
         setSaving(true);
         const { data, error } = await customCakeService.saveOption(editingOption);
 
-        if (!error && data) {
+        if (error) {
+            alert(t('error') + ': ' + error);
+        } else if (data) {
             if (editingOption.id) {
                 setOptions(options.map(o => o.id === data.id ? data : o));
             } else {
