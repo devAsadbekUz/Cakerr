@@ -187,8 +187,8 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     };
 
     const handleAddPayment = async () => {
-        const increment = parseInt(editDepositValue.replace(/[^\d-]/g, ''), 10);
-        if (isNaN(increment) || (increment === 0)) {
+        const increment = parseInt(editDepositValue.replace(/\D/g, ''), 10);
+        if (isNaN(increment) || increment <= 0) {
             setEditDepositError(lang === 'uz' ? "Noto'g'ri summa" : "Неверная сумма");
             return;
         }
@@ -430,7 +430,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                 inputMode="numeric"
                                                 value={editDepositValue}
                                                 onChange={e => {
-                                                    setEditDepositValue(e.target.value.replace(/[^\d-]/g, ''));
+                                                    setEditDepositValue(e.target.value.replace(/\D/g, ''));
                                                     setEditDepositError(null);
                                                 }}
                                                 placeholder="80000"

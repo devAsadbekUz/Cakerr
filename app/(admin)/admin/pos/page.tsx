@@ -183,8 +183,8 @@ export default function PosPage() {
             return;
         }
 
-        if (deliveryType === 'delivery' && !deliveryInfo.address.trim()) {
-            setError(t('addressRequired'));
+        if (deliveryType === 'delivery' && (!deliveryInfo.address || deliveryInfo.address.trim().length < 5)) {
+            setError(lang === 'uz' ? "Manzil to'liq emas" : "Адрес неполный");
             setSidebarTab('checkout');
             return;
         }
@@ -218,7 +218,7 @@ export default function PosPage() {
                         address: deliveryInfo.address,
                         slot: deliveryInfo.slot
                     },
-                    totalPrice: subtotal + (deliveryType === 'delivery' ? DELIVERY_FEE : 0),
+                    totalPrice: subtotal + (deliveryType === 'delivery' && cart.length > 0 ? DELIVERY_FEE : 0),
                     orderNote: orderNote.trim() || null
                 })
             });
@@ -255,7 +255,7 @@ export default function PosPage() {
                 >
                     <ShoppingCart size={22} />
                     <span className={styles.cartFabBadge}>{totalItems}</span>
-                    <span className={styles.cartFabTotal}>{(subtotal + (deliveryType === 'delivery' ? DELIVERY_FEE : 0)).toLocaleString()} {t('som')}</span>
+                    <span className={styles.cartFabTotal}>{(subtotal + (deliveryType === 'delivery' && totalItems > 0 ? DELIVERY_FEE : 0)).toLocaleString()} {t('som')}</span>
                 </button>
             )}
 
@@ -322,6 +322,7 @@ export default function PosPage() {
                                     alt={getLocalized(product.title, lang)}
                                     fill
                                     style={{ objectFit: 'cover' }}
+                                    onError={(e) => { e.currentTarget.src = 'https://placehold.co/400x400/f8fafc/94a3b8?text=no+image'; }}
                                 />
                             </div>
                             <div className={styles.productInfo} onClick={() => setDetailProduct(product)} style={{ cursor: 'pointer' }}>
@@ -355,10 +356,16 @@ export default function PosPage() {
                         </button>
                         <button 
                             className={`${styles.stepTab} ${sidebarTab === 'checkout' ? styles.activeTab : ''}`}
-                            onClick={() => setSidebarTab('checkout')}
+                            onClick={() => {
+                                if (cart.length === 0) {
+                                    alert(lang === 'uz' ? 'Savat bo\'sh' : 'Корзина пуста');
+                                    return;
+                                }
+                                setSidebarTab('checkout');
+                            }}
                         >
                             <User size={14} />
-                            {lang === 'uz' ? 'Tekshirish' : 'Оформление'}
+                            {lang === 'uz' ? "Ma'lumotlar" : 'Оформление'}
                         </button>
                     </div>
                 </div>
@@ -381,6 +388,13 @@ export default function PosPage() {
                                                     <div className={styles.itemMeta}>
                                                         {item.portion} {item.flavor ? `• ${item.flavor}` : ''}
                                                     </div>
+                                                    {item.configuration && (
+                                                        <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>
+                                                            {item.configuration.type_uz && `${item.configuration.type_uz}`}
+                                                            {item.configuration.nachinka_uz && ` • ${item.configuration.nachinka_uz}`}
+                                                            {item.configuration.size_uz && ` • ${item.configuration.size_uz}`}
+                                                        </div>
+                                                    )}
                                                     <div className={styles.itemPrice}>
                                                          {!item.price ? (
                                                              <span style={{ color: '#BE185D', fontStyle: 'italic' }}>{t('negotiable')}</span>
@@ -439,6 +453,26 @@ export default function PosPage() {
                         </div>
                     ) : (
                         <div className={styles.sidebarForms}>
+                            {/* BUG-06: Cart Summary Block */}
+                            <div style={{ background: 'white', padding: '12px 14px', borderRadius: '12px', marginBottom: '16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                                <div style={{ fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                                    <span>{lang === 'uz' ? 'Savat tarkibi' : 'Состав корзины'} ({totalItems})</span>
+                                    <span style={{ color: '#BE185D' }}>{subtotal.toLocaleString()}</span>
+                                </div>
+                                <div style={{ maxHeight: '110px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                    {cart.map(item => (
+                                        <div key={item.cartId} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px', color: '#475569' }}>
+                                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '75%' }}>
+                                                {item.quantity}x {item.name}
+                                            </span>
+                                            <span style={{ fontWeight: 600, flexShrink: 0 }}>
+                                                {item.price ? (Number(item.price) * item.quantity).toLocaleString() : t('negotiable')}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
                             {/* Delivery/Pickup Toggle */}
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px', background: '#f1f5f9', padding: '4px', borderRadius: '12px' }}>
                                 <button 
@@ -484,15 +518,11 @@ export default function PosPage() {
                                         type="tel" 
                                         value={customerInfo.phone}
                                         onChange={(e) => {
-                                            let val = e.target.value;
-                                            // Always start with +998
-                                            if (!val.startsWith('+998')) {
-                                                val = '+998';
-                                            }
-                                            // Strip non-digits after +
-                                            const prefix = '+998';
-                                            const rest = val.slice(4).replace(/\D/g, '').slice(0, 9);
-                                            setCustomerInfo({ phone: prefix + rest });
+                                            let digits = e.target.value.replace(/\D/g, '');
+                                            // Auto-strip duplicate 998 if typed by user
+                                            if (digits.startsWith('998')) digits = digits.slice(3);
+                                            digits = digits.slice(0, 9);
+                                            setCustomerInfo({ phone: '+998' + digits });
                                         }}
                                         className={styles.input} 
                                         placeholder="+998"
@@ -546,7 +576,9 @@ export default function PosPage() {
                                                 setDeliveryInfo({ date: null });
                                                 return;
                                             }
-                                            const newDate = new Date(dateVal);
+                                            // BUG-07: Use local parsing to avoid date shifting
+                                            const parts = dateVal.split('-');
+                                            const newDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
                                             const slotNowBlocked = deliveryInfo.slot &&
                                                 overrides.some(o => o.date === dateVal && (o.slot === null || o.slot === deliveryInfo.slot));
                                             setDeliveryInfo({ date: newDate, ...(slotNowBlocked ? { slot: '' } : {}) });
@@ -559,7 +591,7 @@ export default function PosPage() {
                                     <label className={styles.label}><Clock size={12} style={{ display: 'inline', marginRight: 4 }} /> Vaqt</label>
                                     <select 
                                         className={styles.input}
-                                        value={deliveryInfo.slot}
+                                        value={deliveryInfo.slot || ''}
                                         onChange={(e) => setDeliveryInfo({ slot: e.target.value })}
                                     >
                                         <option value="">{t('selectTime')}</option>
@@ -589,9 +621,9 @@ export default function PosPage() {
                             <div className={styles.totalSection}>
                                 <div className={styles.totalRow}>
                                     <span className={styles.totalLabel}>{t('total')}</span>
-                                    <span className={styles.totalAmount}>{(subtotal + (deliveryType === 'delivery' ? DELIVERY_FEE : 0)).toLocaleString()} {t('som')}</span>
+                                    <span className={styles.totalAmount}>{(subtotal + (deliveryType === 'delivery' && cart.length > 0 ? DELIVERY_FEE : 0)).toLocaleString()} {t('som')}</span>
                                 </div>
-                                {deliveryType === 'delivery' && (
+                                {deliveryType === 'delivery' && cart.length > 0 && (
                                     <div style={{ fontSize: '11px', color: '#64748b', textAlign: 'right', marginTop: '2px' }}>
                                         (Inc. {DELIVERY_FEE.toLocaleString()} {t('deliveryFee')})
                                     </div>

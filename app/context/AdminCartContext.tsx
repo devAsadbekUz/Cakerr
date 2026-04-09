@@ -51,8 +51,28 @@ export function AdminCartProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const addItem = useCallback((newItem: Omit<CartItem, 'cartId'>) => {
-        const cartId = `pos-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-        setCart(prev => [...prev, { ...newItem, cartId }]);
+        setCart(prev => {
+            const existingIndex = prev.findIndex(item => {
+                if (item.id !== newItem.id || item.portion !== newItem.portion || item.flavor !== newItem.flavor || item.price !== newItem.price) {
+                    return false;
+                }
+                if (!item.configuration && !newItem.configuration) return true;
+                if (!item.configuration || !newItem.configuration) return false;
+                return JSON.stringify(item.configuration) === JSON.stringify(newItem.configuration);
+            });
+
+            if (existingIndex >= 0) {
+                const newCart = [...prev];
+                newCart[existingIndex] = {
+                    ...newCart[existingIndex],
+                    quantity: newCart[existingIndex].quantity + (newItem.quantity || 1)
+                };
+                return newCart;
+            }
+
+            const cartId = `pos-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+            return [...prev, { ...newItem, quantity: newItem.quantity || 1, cartId }];
+        });
     }, []);
 
     const removeItem = useCallback((cartId: string) => {
