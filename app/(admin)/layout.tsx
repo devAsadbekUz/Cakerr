@@ -10,6 +10,7 @@ export const metadata: Metadata = {
     title: 'Admin | TORTEL\'E',
     description: 'Management panel for TORTEL\'E orders and operations.',
     robots: 'noindex, nofollow',
+    manifest: '/admin-manifest.json',
 };
 
 function parsePermissions(raw: string | undefined) {
