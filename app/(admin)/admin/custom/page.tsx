@@ -153,9 +153,17 @@ export default function AdminCustomPage() {
                                     {option.sub_label_uz && (
                                         <div className={styles.cardSubTitle}>{option.sub_label_uz}</div>
                                     )}
-                                    {option.parent_id && (
-                                        <div className={styles.parentBadge}>
-                                            {options.find(o => o.id === option.parent_id)?.label_uz || '...'}
+                                    {option.parent_ids && option.parent_ids.length > 0 && (
+                                        <div className={styles.parentBadgeGroup}>
+                                            {option.parent_ids.map(pid => {
+                                                const p = options.find(o => o.id === pid);
+                                                if (!p) return null;
+                                                return (
+                                                    <div key={pid} className={styles.parentBadge}>
+                                                        {lang === 'uz' ? p.label_uz : (p.label_ru || p.label_uz)}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     )}
                                 </div>
@@ -234,19 +242,42 @@ export default function AdminCustomPage() {
 
                                 {(activeTab === 'nachinka' || activeTab === 'size') && (
                                     <div className={styles.formGroup}>
-                                        <label>{t('parentCakeType') || 'Bog&apos;langan tort turi'}</label>
-                                        <select 
-                                            className={styles.input}
-                                            value={editingOption.parent_id || ''}
-                                            onChange={e => setEditingOption({ ...editingOption, parent_id: e.target.value || null })}
-                                        >
-                                            <option value="">{t('selectParentPlaceholder') || 'Tort turini tanlang'}</option>
-                                            {options.filter(o => o.type === 'cake_type').map(type => (
-                                                <option key={type.id} value={type.id}>
-                                                    {lang === 'uz' ? type.label_uz : (type.label_ru || type.label_uz)}
-                                                </option>
-                                            ))}
-                                        </select>
+                                        <label>
+                                            {activeTab === 'nachinka' 
+                                                ? t('associatedTypes')
+                                                : t('associatedNachinkas')}
+                                        </label>
+                                        <div className={styles.checkboxList}>
+                                            {options
+                                                .filter(o => {
+                                                    if (activeTab === 'nachinka') return o.type === 'cake_type';
+                                                    if (activeTab === 'size') return o.type === 'nachinka' || o.type === 'cake_type';
+                                                    return false;
+                                                })
+                                                .map(parent => (
+                                                    <label key={parent.id} className={styles.checkboxItem}>
+                                                        <input
+                                                            type="checkbox"
+                                                            className={styles.checkbox}
+                                                            checked={(editingOption.parent_ids || []).includes(parent.id)}
+                                                            onChange={e => {
+                                                                const current = editingOption.parent_ids || [];
+                                                                const next = e.target.checked 
+                                                                    ? [...current, parent.id]
+                                                                    : current.filter(id => id !== parent.id);
+                                                                setEditingOption({ ...editingOption, parent_ids: next });
+                                                            }}
+                                                        />
+                                                        <span className={styles.checkboxLabel}>
+                                                            {lang === 'uz' ? parent.label_uz : (parent.label_ru || parent.label_uz)}
+                                                            <span style={{ fontSize: '11px', opacity: 0.6, marginLeft: '6px' }}>
+                                                                ({parent.type === 'cake_type' ? t('typeBadge') : t('nachinkaBadge')})
+                                                            </span>
+                                                        </span>
+                                                    </label>
+                                                ))
+                                            }
+                                        </div>
                                     </div>
                                 )}
 

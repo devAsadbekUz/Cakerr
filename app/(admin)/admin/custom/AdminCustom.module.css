@@ -366,4 +366,68 @@
     padding: 24px;
     border-top: 1px solid #F3F4F6;
     margin-top: 24px;
+    background: #F9FAFB;
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
+}
+
+.checkboxList {
+    background: #FAFAFA;
+    border: 1px solid #E5E7EB;
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.checkboxItem {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.checkboxItem:hover {
+    background: #F3F4F6;
+}
+
+.checkbox {
+    width: 18px;
+    height: 18px;
+    accent-color: #BE185D;
+    cursor: pointer;
+}
+
+.checkboxLabel {
+    font-size: 14px;
+    color: #374151;
+    font-weight: 500;
+    cursor: pointer;
+    flex: 1;
+}
+
+.parentBadge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    background: #FFF1F2;
+    border: 1px solid #FECDD3;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #BE185D;
+    margin-top: 6px;
+    gap: 4px;
+}
+
+.parentBadgeGroup {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
 }

@@ -11,7 +11,7 @@ export interface CustomOption {
     price: number;
     is_available: boolean;
     sort_order: number;
-    parent_id?: string | null;
+    parent_ids?: string[]; // Array of associated parent IDs (Cake Types for Nachinka, Nachinkas/Types for Size)
 }
 
 export const customCakeService = {

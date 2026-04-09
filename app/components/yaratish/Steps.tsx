@@ -255,9 +255,10 @@ export function NachinkaStep() {
     const { nachinka, setNachinka, cakeType, options } = useCustomCake();
     const { t, lang } = useLanguage();
     
-    // Filter nachinka by parent cake type
+    // Filter nachinka by parent cake type using many-to-many relationship
     const availableNachinkas = options.filter(o => 
-        o.type === 'nachinka' && (o.parent_id === cakeType || !o.parent_id)
+        o.type === 'nachinka' && 
+        (!cakeType || (o.parent_ids || []).includes(cakeType))
     );
 
     return (
@@ -304,13 +305,22 @@ export function NachinkaStep() {
  * Step 4: Size - Filtered by parent cake type
  */
 export function SizeStep() {
-    const { size, setSize, cakeType, options } = useCustomCake();
+    const { size, setSize, cakeType, nachinka, options } = useCustomCake();
     const { t, lang } = useLanguage();
     
-    // Filter sizes by parent cake type
-    const availableSizes = options.filter(o => 
-        o.type === 'size' && (o.parent_id === cakeType || !o.parent_id)
-    );
+    // Filter sizes by parent cake type AND/OR selected nachinka
+    const availableSizes = options.filter(o => {
+        if (o.type !== 'size') return false;
+        
+        // Multi-relational filtering:
+        // 1. Must be compatible with the selected Cake Type
+        const isTypeMatch = !cakeType || (o.parent_ids || []).includes(cakeType);
+        
+        // 2. Must be compatible with the selected Nachinka
+        const isNachinkaMatch = !nachinka || (o.parent_ids || []).includes(nachinka);
+        
+        return isTypeMatch && isNachinkaMatch;
+    });
 
     return (
         <div className={styles.stepContainer}>
