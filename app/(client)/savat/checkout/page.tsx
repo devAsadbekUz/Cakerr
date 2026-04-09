@@ -191,9 +191,34 @@ export default function CheckoutPage() {
     const isSlotBlocked = (slot: string) => {
         if (!selectedDateObj) return false;
         const dateStr = format(selectedDateObj, 'yyyy-MM-dd');
+        
+        // 1. Check DB overrides
         const dayOverrides = overrides.filter(o => o.date === dateStr);
-        return dayOverrides.some(o => o.slot === null || o.slot === slot);
+        if (dayOverrides.some(o => o.slot === null || o.slot === slot)) return true;
+
+        // 2. Check if the slot has already passed today
+        const todayStr = format(new Date(), 'yyyy-MM-dd');
+        if (dateStr === todayStr) {
+            const match = slot.match(/^(\d{2}):/);
+            if (match) {
+                const slotStartHour = parseInt(match[1], 10);
+                const currentHour = new Date().getHours();
+                // Block if the current hour is entirely past or into the slot's start hour
+                if (currentHour >= slotStartHour) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     };
+
+    // Auto-clear selected slot if it becomes blocked (e.g., time passes while on page)
+    useEffect(() => {
+        if (selectedSlot && isSlotBlocked(selectedSlot)) {
+            setSelectedSlot('');
+        }
+    }, [selectedDateObj, overrides, selectedSlot]);
 
     // Also check stored session — defensive fallback for the rare case where the context
     // is momentarily stale right after loginWithTelegram() writes the phone to the session.

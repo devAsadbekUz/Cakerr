@@ -212,6 +212,7 @@ export const buildOrderMessage = (order: any, lang: 'uz' | 'ru' = 'uz') => {
         const d = new Date(order.delivery_time);
         if (!isNaN(d.getTime())) {
             dateFormatted = d.toLocaleDateString(lang === 'uz' ? 'uz-UZ' : 'ru-RU', {
+                timeZone: 'Asia/Tashkent',
                 day: '2-digit',
                 month: '2-digit',
                 year: 'numeric'
