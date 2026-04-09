@@ -34,7 +34,7 @@ export const customCakeService = {
         }
 
         // Map parent_ids for the client wizard
-        return (data || []).map(opt => ({
+        return (data || []).map((opt: any) => ({
             ...opt,
             parent_ids: opt.relations?.map((r: any) => r.parent_id) || []
         })) as CustomOption[];
