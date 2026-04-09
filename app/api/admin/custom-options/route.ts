@@ -2,6 +2,28 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isAdminVerified } from '@/app/utils/admin-auth';
 import { serviceClient } from '@/app/utils/supabase/service';
 
+const WHITELISTED_COLUMNS = [
+    'type',
+    'label_uz',
+    'label_ru',
+    'sub_label_uz',
+    'sub_label_ru',
+    'image_url',
+    'price',
+    'is_available',
+    'sort_order',
+];
+
+function filterWhitelistedFields(body: any) {
+    const filtered: any = {};
+    WHITELISTED_COLUMNS.forEach(col => {
+        if (col in body) {
+            filtered[col] = body[col];
+        }
+    });
+    return filtered;
+}
+
 // GET /api/admin/custom-options — fetch ALL options with their multi-parent relations
 export async function GET() {
     if (!await isAdminVerified()) {
@@ -37,7 +59,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { parent_ids, relations, ...optionData } = body;
+    const { parent_ids } = body;
+    const optionData = filterWhitelistedFields(body);
 
     const { data, error } = await serviceClient
         .from('custom_cake_options')
@@ -73,7 +96,8 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, parent_ids, relations, ...updates } = body;
+    const { id, parent_ids } = body;
+    const updates = filterWhitelistedFields(body);
 
     if (!id) {
         return NextResponse.json({ error: 'Missing option id' }, { status: 400 });

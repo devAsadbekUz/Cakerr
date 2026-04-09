@@ -286,6 +286,39 @@ export default function AdminCustomPage() {
                                 )}
 
                                 <div className={styles.formGroup}>
+                                    <label>{t('priceLabel')}</label>
+                                    <input
+                                        type="number"
+                                        className={styles.input}
+                                        value={editingOption.price || 0}
+                                        onChange={e => setEditingOption({ ...editingOption, price: parseFloat(e.target.value) })}
+                                        required
+                                    />
+                                </div>
+
+                                <div className={styles.formGroup}>
+                                    <label>Qo'shimcha ma'lumot (UZ)</label>
+                                    <input
+                                        type="text"
+                                        className={styles.input}
+                                        value={editingOption.sub_label_uz || ''}
+                                        onChange={e => setEditingOption({ ...editingOption, sub_label_uz: e.target.value })}
+                                        placeholder="Masalan: 4-6 kishilik"
+                                    />
+                                </div>
+
+                                <div className={styles.formGroup}>
+                                    <label>Доп. информация (RU)</label>
+                                    <input
+                                        type="text"
+                                        className={styles.input}
+                                        value={editingOption.sub_label_ru || ''}
+                                        onChange={e => setEditingOption({ ...editingOption, sub_label_ru: e.target.value })}
+                                        placeholder="Напр: 4-6 человек"
+                                    />
+                                </div>
+
+                                <div className={styles.formGroup}>
                                     <label>{t('sortOrderLabel')}</label>
                                     <input
                                         type="number"

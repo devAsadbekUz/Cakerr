@@ -130,6 +130,7 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
 
     const handleBack = () => {
         if (step === 1) {
+            router.push('/');
             if (onClose) {
                 onClose();
             }
