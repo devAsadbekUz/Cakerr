@@ -7,7 +7,8 @@ export type BuilderMode = 'wizard' | 'upload' | null;
 
 interface CustomCakeState {
     // Mode
-    mode: BuilderMode;
+    // Mode
+    mode: 'wizard';
 
     // Wizard State
     step: number;
@@ -16,10 +17,6 @@ interface CustomCakeState {
     decorations: string[];
     text: string;
     drawingData: string;
-
-    // Upload State
-    uploadedImage: string | null;
-    uploadComment: string;
 
     // Options from DB
     options: CustomOption[];
@@ -33,8 +30,6 @@ interface CustomCakeContextType extends CustomCakeState {
     setText: (text: string) => void;
     setDrawingData: (data: string) => void;
 
-    setUploadedImage: (image: string | null) => void;
-    setUploadComment: (comment: string) => void;
     setOptions: (options: CustomOption[]) => void;
 
     nextStep: () => void;
@@ -44,15 +39,13 @@ interface CustomCakeContextType extends CustomCakeState {
 }
 
 const initialState: CustomCakeState = {
-    mode: null,
+    mode: 'wizard',
     step: 1,
     sponge: null,
     cream: null,
     decorations: [],
     text: '',
     drawingData: '',
-    uploadedImage: null,
-    uploadComment: '',
     options: []
 };
 
@@ -61,7 +54,7 @@ const CustomCakeContext = createContext<CustomCakeContextType | undefined>(undef
 export function CustomCakeProvider({ children }: { children: ReactNode }) {
     const [state, setState] = useState<CustomCakeState>(initialState);
 
-    const setMode = useCallback((mode: BuilderMode) => setState(prev => ({ ...prev, mode })), []);
+    const setMode = useCallback((mode: BuilderMode) => setState(prev => ({ ...prev, mode: 'wizard' })), []);
 
     const setSponge = useCallback((sponge: string) => setState(prev => ({ ...prev, sponge })), []);
     const setCream = useCallback((cream: string) => setState(prev => ({ ...prev, cream })), []);
@@ -76,8 +69,6 @@ export function CustomCakeProvider({ children }: { children: ReactNode }) {
     const setText = useCallback((text: string) => setState(prev => ({ ...prev, text })), []);
     const setDrawingData = useCallback((drawingData: string) => setState(prev => ({ ...prev, drawingData })), []);
 
-    const setUploadedImage = useCallback((uploadedImage: string | null) => setState(prev => ({ ...prev, uploadedImage })), []);
-    const setUploadComment = useCallback((uploadComment: string) => setState(prev => ({ ...prev, uploadComment })), []);
     const setOptions = useCallback((options: CustomOption[]) => setState(prev => ({ ...prev, options })), []);
 
     const nextStep = useCallback(() => setState(prev => ({ ...prev, step: prev.step + 1 })), []);
@@ -96,14 +87,12 @@ export function CustomCakeProvider({ children }: { children: ReactNode }) {
         toggleDecoration,
         setText,
         setDrawingData,
-        setUploadedImage,
-        setUploadComment,
         setOptions,
         nextStep,
         prevStep,
         reset,
         calculateTotal,
-    }), [state, setMode, setSponge, setCream, toggleDecoration, setText, setDrawingData, setUploadedImage, setUploadComment, setOptions, nextStep, prevStep, reset, calculateTotal]);
+    }), [state, setMode, setSponge, setCream, toggleDecoration, setText, setDrawingData, setOptions, nextStep, prevStep, reset, calculateTotal]);
 
     return (
         <CustomCakeContext.Provider value={value}>

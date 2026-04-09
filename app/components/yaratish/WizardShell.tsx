@@ -12,8 +12,7 @@ import {
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCartActions } from '@/app/context/CartContext';
 import { useRouter } from 'next/navigation';
-import BuilderModeSelection from './BuilderModeSelection';
-import PhotoUploadForm from './PhotoUploadForm';
+// BuilderModeSelection and PhotoUploadForm removed
 
 import { useEffect } from 'react';
 import { customCakeService } from '@/app/services/customCakeService';
@@ -26,23 +25,17 @@ interface WizardShellProps {
 
 export default function WizardShell({ onItemComplete, onClose }: WizardShellProps) {
     const {
-        mode,
-        step,
-        nextStep,
-        prevStep,
-        setMode,
         sponge,
         cream,
         decorations,
         text,
         drawingData,
-        uploadedImage,
-        uploadComment,
         options,
         setOptions,
         calculateTotal,
         reset
     } = useCustomCake();
+    const { step, nextStep, prevStep } = useCustomCake(); // Extracting step control
     const { addItem } = useCartActions();
     const router = useRouter();
     const { t, lang } = useLanguage();
@@ -68,13 +61,7 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
         load();
     }, []);
 
-    if (!mode) {
-        return <BuilderModeSelection />;
-    }
-
-    if (mode === 'upload') {
-        return <PhotoUploadForm />;
-    }
+    // Mode selection and photo upload removed, always default to wizard
 
     if (optionsError) {
         return (
@@ -116,7 +103,7 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
             portion: t('custom'),
             flavor: lang === 'uz' ? (options.find(o => o.id === cream)?.label_uz || t('custom')) : (options.find(o => o.id === cream)?.label_ru || t('custom')),
             configuration: {
-                mode,
+                mode: 'wizard',
                 sponge_uz: options.find(o => o.id === sponge)?.label_uz,
                 sponge_ru: options.find(o => o.id === sponge)?.label_ru,
                 flavor_uz: options.find(o => o.id === cream)?.label_uz,
@@ -125,8 +112,6 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
                 decorations_ru: options.filter(o => decorations.includes(o.id)).map(o => o.label_ru).join(', '),
                 custom_note: text,
                 drawing: drawingData,
-                uploaded_photo_url: uploadedImage,
-                order_note: uploadComment,
                 pricing_type: 'hybrid',
                 estimated_total: 0
             }
@@ -146,8 +131,6 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
         if (step === 1) {
             if (onClose) {
                 onClose();
-            } else {
-                setMode(null);
             }
         } else {
             prevStep();

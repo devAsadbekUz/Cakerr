@@ -28,7 +28,7 @@ import { createClient } from '@/app/utils/supabase/client';
 import { Product, Category } from '@/app/types';
 import { getLocalized } from '@/app/utils/i18n';
 import WizardShell from '@/app/components/yaratish/WizardShell';
-import PhotoUploadForm from '@/app/components/yaratish/PhotoUploadForm';
+// PhotoUploadForm removed
 import { POSProductDetailModal } from '@/app/components/admin/pos/POSProductDetailModal';
 import styles from './page.module.css';
 import Image from 'next/image';
@@ -310,17 +310,7 @@ export default function PosPage() {
                         </div>
                     </div>
 
-                    <div className={styles.productCard} onClick={() => { resetBuilder(); setBuilderMode('upload'); setShowBuilder('upload'); }}>
-                        <div className={styles.specialCard} style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)' }}>
-                            <div className={styles.specialIcon}>
-                                <ImageIcon size={32} />
-                            </div>
-                            <div>
-                                <div style={{ fontWeight: 800, fontSize: 16 }}>{t('basedOnPhoto')}</div>
-                                <div style={{ fontSize: 12, opacity: 0.9 }}>{lang === 'uz' ? 'Mijoz rasmi' : 'Фото клиента'}</div>
-                            </div>
-                        </div>
-                    </div>
+                    {/* 'Based on Photo' card removed */}
 
                     {/* Standard Products */}
                     {filteredProducts.map(product => (
@@ -642,10 +632,8 @@ export default function PosPage() {
                         <button className={styles.closeModal} onClick={() => { setShowBuilder(null); resetBuilder(); }}>
                             <X size={20} />
                         </button>
-                        {showBuilder === 'wizard' ? (
+                        {showBuilder === 'wizard' && (
                             <WizardShell onItemComplete={handleBuilderComplete} onClose={() => setShowBuilder(null)} />
-                        ) : (
-                            <PhotoUploadForm onItemComplete={handleBuilderComplete} onClose={() => setShowBuilder(null)} />
                         )}
                     </div>
                 </div>
