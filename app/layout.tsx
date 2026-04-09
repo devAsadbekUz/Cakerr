@@ -61,6 +61,7 @@ export const metadata: Metadata = {
     statusBarStyle: 'default',
     title: "TORTEL'E",
   },
+  manifest: '/manifest.json',
   formatDetection: {
     telephone: false,
   },
