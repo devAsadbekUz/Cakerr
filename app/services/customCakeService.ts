@@ -2,7 +2,7 @@ import { createClient } from '@/app/utils/supabase/client';
 
 export interface CustomOption {
     id: string;
-    type: 'sponge' | 'cream' | 'decoration';
+    type: 'cake_type' | 'nachinka' | 'size' | 'decoration' | 'sponge' | 'cream'; // 'sponge'/'cream' kept for safety but moving to 'nachinka'
     label_uz: string;
     label_ru?: string;
     sub_label_uz?: string;
@@ -11,6 +11,7 @@ export interface CustomOption {
     price: number;
     is_available: boolean;
     sort_order: number;
+    parent_id?: string | null;
 }
 
 export const customCakeService = {

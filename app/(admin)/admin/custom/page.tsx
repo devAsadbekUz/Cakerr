@@ -13,11 +13,11 @@ import styles from './AdminCustom.module.css';
 import { customCakeService, CustomOption } from '@/app/services/customCakeService';
 import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 
-type TabType = 'sponge' | 'cream' | 'decoration';
+type TabType = 'cake_type' | 'nachinka' | 'size' | 'decoration';
 
 export default function AdminCustomPage() {
     const { lang, t } = useAdminI18n();
-    const [activeTab, setActiveTab] = useState<TabType>('sponge');
+    const [activeTab, setActiveTab] = useState<TabType>('cake_type');
     const [options, setOptions] = useState<CustomOption[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -99,21 +99,23 @@ export default function AdminCustomPage() {
 
     const getTabIcon = (tab: TabType) => {
         switch (tab) {
-            case 'sponge':     return <Cookie size={18} />;
-            case 'cream':      return <Droplets size={18} />;
+            case 'cake_type':  return <Maximize2 size={18} />;
+            case 'nachinka':   return <Cookie size={18} />;
+            case 'size':       return <Circle size={18} />;
             case 'decoration': return <Palette size={18} />;
         }
     };
 
     const getTabLabel = (tab: TabType) => {
         switch (tab) {
-            case 'sponge':     return t('tabSponge');
-            case 'cream':      return t('tabCream');
+            case 'cake_type':  return t('tabCakeType') || 'Tort turi';
+            case 'nachinka':   return t('tabNachinka') || 'Nachinka';
+            case 'size':       return t('tabSizes') || "O'lcham";
             case 'decoration': return t('tabDecoration');
         }
     };
 
-    const TABS: TabType[] = ['sponge', 'cream', 'decoration'];
+    const TABS: TabType[] = ['cake_type', 'nachinka', 'size', 'decoration'];
 
     return (
         <div className={styles.container}>
@@ -151,6 +153,11 @@ export default function AdminCustomPage() {
                                     </div>
                                     {option.sub_label_uz && (
                                         <div className={styles.cardSubTitle}>{option.sub_label_uz}</div>
+                                    )}
+                                    {option.parent_id && (
+                                        <div className={styles.parentBadge}>
+                                            {options.find(o => o.id === option.parent_id)?.label_uz || '...'}
+                                        </div>
                                     )}
                                 </div>
 
@@ -217,15 +224,32 @@ export default function AdminCustomPage() {
                                     />
                                 </div>
 
-                                {(activeTab === 'cream' || activeTab === 'decoration') && (
+                                <div className={styles.formGroup}>
+                                    <label>{t('imageUrlLabel')}</label>
+                                    <input
+                                        type="text"
+                                        className={styles.input}
+                                        value={editingOption.image_url || ''}
+                                        onChange={e => setEditingOption({ ...editingOption, image_url: e.target.value })}
+                                        placeholder="https://..."
+                                    />
+                                </div>
+
+                                {(activeTab === 'nachinka' || activeTab === 'size') && (
                                     <div className={styles.formGroup}>
-                                        <label>{t('imageUrlLabel')}</label>
-                                        <input
-                                            type="text"
+                                        <label>{t('parentCakeType') || 'Bog&apos;langan tort turi'}</label>
+                                        <select 
                                             className={styles.input}
-                                            value={editingOption.image_url || ''}
-                                            onChange={e => setEditingOption({ ...editingOption, image_url: e.target.value })}
-                                        />
+                                            value={editingOption.parent_id || ''}
+                                            onChange={e => setEditingOption({ ...editingOption, parent_id: e.target.value || null })}
+                                        >
+                                            <option value="">{t('selectParentPlaceholder') || 'Tort turini tanlang'}</option>
+                                            {options.filter(o => o.type === 'cake_type').map(type => (
+                                                <option key={type.id} value={type.id}>
+                                                    {lang === 'uz' ? type.label_uz : (type.label_ru || type.label_uz)}
+                                                </option>
+                                            ))}
+                                        </select>
                                     </div>
                                 )}
 

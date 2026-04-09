@@ -6,16 +6,16 @@ import { CustomOption } from '../services/customCakeService';
 export type BuilderMode = 'wizard' | 'upload' | null;
 
 interface CustomCakeState {
-    // Mode
-    // Mode
     mode: 'wizard';
-
-    // Wizard State
     step: number;
-    sponge: string | null;
-    cream: string | null;
+
+    // New Wizard State
+    cakeType: string | null;
+    photoRef: string | null;     // Reference photo URL/base64
+    comment: string;            // User's instructions
+    nachinka: string | null;     // Ingredients
+    size: string | null;
     decorations: string[];
-    text: string;
     drawingData: string;
 
     // Options from DB
@@ -24,10 +24,12 @@ interface CustomCakeState {
 
 interface CustomCakeContextType extends CustomCakeState {
     setMode: (mode: BuilderMode) => void;
-    setSponge: (sponge: string) => void;
-    setCream: (cream: string) => void;
+    setCakeType: (id: string | null) => void;
+    setPhotoRef: (ref: string | null) => void;
+    setComment: (text: string) => void;
+    setNachinka: (id: string | null) => void;
+    setSize: (id: string | null) => void;
     toggleDecoration: (decoration: string) => void;
-    setText: (text: string) => void;
     setDrawingData: (data: string) => void;
 
     setOptions: (options: CustomOption[]) => void;
@@ -41,10 +43,12 @@ interface CustomCakeContextType extends CustomCakeState {
 const initialState: CustomCakeState = {
     mode: 'wizard',
     step: 1,
-    sponge: null,
-    cream: null,
+    cakeType: null,
+    photoRef: null,
+    comment: '',
+    nachinka: null,
+    size: null,
     decorations: [],
-    text: '',
     drawingData: '',
     options: []
 };
@@ -56,8 +60,19 @@ export function CustomCakeProvider({ children }: { children: ReactNode }) {
 
     const setMode = useCallback((mode: BuilderMode) => setState(prev => ({ ...prev, mode: 'wizard' })), []);
 
-    const setSponge = useCallback((sponge: string) => setState(prev => ({ ...prev, sponge })), []);
-    const setCream = useCallback((cream: string) => setState(prev => ({ ...prev, cream })), []);
+    const setCakeType = useCallback((cakeType: string | null) => setState(prev => ({ 
+        ...prev, 
+        cakeType,
+        // Reset dependent fields if cake type changes
+        nachinka: null,
+        size: null 
+    })), []);
+
+    const setPhotoRef = useCallback((photoRef: string | null) => setState(prev => ({ ...prev, photoRef })), []);
+    const setComment = useCallback((comment: string) => setState(prev => ({ ...prev, comment })), []);
+    const setNachinka = useCallback((nachinka: string | null) => setState(prev => ({ ...prev, nachinka })), []);
+    const setSize = useCallback((size: string | null) => setState(prev => ({ ...prev, size })), []);
+
     const toggleDecoration = useCallback((decoration: string) => {
         setState(prev => ({
             ...prev,
@@ -66,7 +81,7 @@ export function CustomCakeProvider({ children }: { children: ReactNode }) {
                 : [...prev.decorations, decoration]
         }));
     }, []);
-    const setText = useCallback((text: string) => setState(prev => ({ ...prev, text })), []);
+
     const setDrawingData = useCallback((drawingData: string) => setState(prev => ({ ...prev, drawingData })), []);
 
     const setOptions = useCallback((options: CustomOption[]) => setState(prev => ({ ...prev, options })), []);
@@ -82,17 +97,19 @@ export function CustomCakeProvider({ children }: { children: ReactNode }) {
     const value = useMemo(() => ({
         ...state,
         setMode,
-        setSponge,
-        setCream,
+        setCakeType,
+        setPhotoRef,
+        setComment,
+        setNachinka,
+        setSize,
         toggleDecoration,
-        setText,
         setDrawingData,
         setOptions,
         nextStep,
         prevStep,
         reset,
         calculateTotal,
-    }), [state, setMode, setSponge, setCream, toggleDecoration, setText, setDrawingData, setOptions, nextStep, prevStep, reset, calculateTotal]);
+    }), [state]);
 
     return (
         <CustomCakeContext.Provider value={value}>

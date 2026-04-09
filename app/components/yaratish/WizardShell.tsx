@@ -1,20 +1,19 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useCustomCake } from '@/app/context/CustomCakeContext';
 import styles from './WizardShell.module.css';
 import {
-    SpongeStep,
-    CreamStep,
-    DecorationStep,
+    TypeStep,
+    DesignStep,
+    NachinkaStep,
+    SizeStep,
     ReviewStep
 } from './Steps';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCartActions } from '@/app/context/CartContext';
 import { useRouter } from 'next/navigation';
-// BuilderModeSelection and PhotoUploadForm removed
 
-import { useEffect } from 'react';
 import { customCakeService } from '@/app/services/customCakeService';
 import { useLanguage } from '@/app/context/LanguageContext';
 
@@ -25,26 +24,28 @@ interface WizardShellProps {
 
 export default function WizardShell({ onItemComplete, onClose }: WizardShellProps) {
     const {
-        sponge,
-        cream,
-        decorations,
-        text,
+        cakeType,
+        nachinka,
+        size,
+        photoRef,
+        comment,
         drawingData,
         options,
         setOptions,
         calculateTotal,
         reset
     } = useCustomCake();
-    const { step, nextStep, prevStep } = useCustomCake(); // Extracting step control
+    const { step, nextStep, prevStep } = useCustomCake();
     const { addItem } = useCartActions();
     const router = useRouter();
     const { t, lang } = useLanguage();
-    const [optionsError, setOptionsError] = React.useState<string | null>(null);
+    const [optionsError, setOptionsError] = useState<string | null>(null);
 
     const STEPS = [
-        { title: t('stepSponge'), component: SpongeStep },
-        { title: t('stepCream'), component: CreamStep },
-        { title: t('stepDecoration'), component: DecorationStep },
+        { title: t('stepType'), component: TypeStep },
+        { title: t('stepDesign'), component: DesignStep },
+        { title: t('stepNachinka'), component: NachinkaStep },
+        { title: t('stepSize'), component: SizeStep },
         { title: t('stepReview'), component: ReviewStep },
     ];
 
@@ -59,9 +60,7 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
             }
         };
         load();
-    }, []);
-
-    // Mode selection and photo upload removed, always default to wizard
+    }, [setOptions, t]);
 
     if (optionsError) {
         return (
@@ -79,38 +78,40 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
         );
     }
 
-    const CurrentStepComponent = STEPS[step - 1]?.component;
-    if (!CurrentStepComponent) return null;
     const progress = (step / STEPS.length) * 100;
 
     const isNextDisabled = () => {
-        if (step === 1 && !sponge) return true;
-        if (step === 2 && !cream) return true;
+        if (step === 1 && !cakeType) return true;
+        if (step === 2) return false; // Design step is optional
+        if (step === 3 && !nachinka) return true;
+        if (step === 4 && !size) return true;
         return false;
     };
 
     const handleComplete = () => {
-        const total = calculateTotal();
+        const selectedType = options.find(o => o.id === cakeType);
+        const selectedNachinka = options.find(o => o.id === nachinka);
+        const selectedSize = options.find(o => o.id === size);
 
         const item: any = {
-            id: '00000000-0000-0000-0000-000000000000',
+            id: crypto.randomUUID(),
             productId: '00000000-0000-0000-0000-000000000000',
             name: t('customCake'),
             price: 0,
             quantity: 1,
-            image: '/images/custom-cake-placeholder.jpg',
-            // Portion and flavor for CartItem type
-            portion: t('custom'),
-            flavor: lang === 'uz' ? (options.find(o => o.id === cream)?.label_uz || t('custom')) : (options.find(o => o.id === cream)?.label_ru || t('custom')),
+            image: photoRef || selectedType?.image_url || '/images/custom-cake-placeholder.jpg',
+            portion: lang === 'uz' ? selectedSize?.label_uz : selectedSize?.label_ru || selectedSize?.label_uz,
+            flavor: lang === 'uz' ? selectedNachinka?.label_uz : selectedNachinka?.label_ru || selectedNachinka?.label_uz,
             configuration: {
                 mode: 'wizard',
-                sponge_uz: options.find(o => o.id === sponge)?.label_uz,
-                sponge_ru: options.find(o => o.id === sponge)?.label_ru,
-                flavor_uz: options.find(o => o.id === cream)?.label_uz,
-                flavor_ru: options.find(o => o.id === cream)?.label_ru,
-                decorations_uz: options.filter(o => decorations.includes(o.id)).map(o => o.label_uz).join(', '),
-                decorations_ru: options.filter(o => decorations.includes(o.id)).map(o => o.label_ru).join(', '),
-                custom_note: text,
+                type_uz: selectedType?.label_uz,
+                type_ru: selectedType?.label_ru,
+                nachinka_uz: selectedNachinka?.label_uz,
+                nachinka_ru: selectedNachinka?.label_ru,
+                size_uz: selectedSize?.label_uz,
+                size_ru: selectedSize?.label_ru,
+                photo_ref: photoRef,
+                custom_note: comment,
                 drawing: drawingData,
                 pricing_type: 'hybrid',
                 estimated_total: 0
@@ -136,6 +137,9 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
             prevStep();
         }
     };
+
+    const CurrentStepComponent = STEPS[step - 1]?.component;
+    if (!CurrentStepComponent) return null;
 
     return (
         <div className={styles.container}>

@@ -386,14 +386,14 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                                             }}
                                         >
                                             <Image
-                                                src={item.configuration?.uploaded_photo_url || item.configuration?.drawing || item.products?.image_url || '/placeholder.png'}
+                                                src={((item.configuration as any)?.photo_ref || (item.configuration as any)?.uploaded_photo_url || (item.configuration as any)?.drawing || (item.products as any)?.image_url || '/placeholder.png') as string}
                                                 alt={item.name}
                                                 className={styles.itemImage}
                                                 style={{ cursor: 'pointer', borderRadius: '8px', objectFit: 'cover' }}
                                                 width={80}
                                                 height={80}
                                             />
-                                            {(item.configuration?.uploaded_photo_url || item.configuration?.drawing) && (
+                                            {(item.configuration?.photo_ref || item.configuration?.uploaded_photo_url || item.configuration?.drawing) && (
                                                 <div style={{
                                                     position: 'absolute', bottom: '4px', right: '4px',
                                                     width: '24px', height: '24px', borderRadius: '6px',
@@ -412,12 +412,15 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                                                 ) : item.configuration?.mode === 'wizard' ? (
                                                     <div style={{ color: '#0369A1', fontWeight: 700, fontSize: '10px', marginBottom: '2px', textTransform: 'uppercase' }}>🎂 {t('viaBuilder')}</div>
                                                 ) : null}
+                                                {(item.configuration as any)?.type_uz && <div>{lang === 'uz' ? 'Turi' : 'Тип'}: {(item.configuration as any)[lang === 'uz' ? 'type_uz' : 'type_ru'] || (item.configuration as any).type_uz}</div>}
+                                                {(item.configuration as any)?.nachinka_uz && <div>{lang === 'uz' ? 'Nachinka' : 'Начинка'}: {(item.configuration as any)[lang === 'uz' ? 'nachinka_uz' : 'nachinka_ru'] || (item.configuration as any).nachinka_uz}</div>}
+                                                {(item.configuration as any)?.size_uz && <div>{lang === 'uz' ? "O'lcham" : 'Размер'}: {(item.configuration as any)[lang === 'uz' ? 'size_uz' : 'size_ru'] || (item.configuration as any).size_uz}</div>}
                                                 {item.configuration?.shape && <div>Shakl: {item.configuration.shape}</div>}
-                                                {item.configuration?.size && <div>O&apos;lcham: {item.configuration.size}</div>}
+                                                {item.configuration?.size && !(item.configuration as any)?.size_uz && <div>O&apos;lcham: {item.configuration.size}</div>}
                                                 {item.configuration?.sponge && <div>{t('sponge')}: {item.configuration.sponge}</div>}
-                                                {item.configuration?.flavor && <div>{t('flavorCream')}: {item.configuration.flavor}</div>}
+                                                {item.configuration?.flavor && !(item.configuration as any)?.nachinka_uz && <div>{t('flavorCream')}: {item.configuration.flavor}</div>}
                                                 {item.configuration?.decorations && <div>Bezaklar: {item.configuration.decorations}</div>}
-                                                {item.configuration?.portion && !item.configuration?.size && <div>{t('portionSize')}: {item.configuration.portion}</div>}
+                                                {item.configuration?.portion && !item.configuration?.size && !(item.configuration as any)?.size_uz && <div>{t('portionSize')}: {item.configuration.portion}</div>}
                                                 {(item.configuration?.custom_note || item.configuration?.order_note) && (
                                                     <div style={{ marginTop: '4px', padding: '6px', background: 'hsla(var(--color-primary), 0.05)', borderRadius: '6px', borderLeft: '3px solid hsl(var(--color-primary-dark))' }}>
                                                         <div style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--color-primary-dark))', textTransform: 'uppercase' }}>

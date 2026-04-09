@@ -483,7 +483,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 <div key={item.id} className={styles.orderItemCard} style={{ background: '#F9FAFB', border: 'none' }}>
                                     <div style={{ width: '100px', height: '100px', borderRadius: '12px', overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
                                         <Image
-                                            src={item.configuration?.uploaded_photo_url || item.configuration?.drawing || item.products?.image_url || '/placeholder.png'}
+                                            src={(item.configuration as any)?.photo_ref || (item.configuration as any)?.uploaded_photo_url || (item.configuration as any)?.drawing || (item.products as any)?.image_url || '/placeholder.png'}
                                             alt={item.name}
                                             fill style={{ objectFit: 'cover' }}
                                         />
@@ -497,12 +497,15 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                             {item.quantity} {t('pcs')} × {(item.unit_price || 0).toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}
                                         </div>
                                         <div style={{ marginTop: '8px', fontSize: '13px', background: 'white', padding: '8px', borderRadius: '8px', border: '1px solid #F3F4F6', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                            {(item.configuration as any)?.type_uz && <div><strong>{lang === 'uz' ? 'Turi' : 'Тип'}:</strong> {(item.configuration as any)[lang === 'uz' ? 'type_uz' : 'type_ru'] || (item.configuration as any).type_uz}</div>}
+                                            {(item.configuration as any)?.nachinka_uz && <div><strong>{lang === 'uz' ? 'Nachinka' : 'Начинка'}:</strong> {(item.configuration as any)[lang === 'uz' ? 'nachinka_uz' : 'nachinka_ru'] || (item.configuration as any).nachinka_uz}</div>}
+                                            {(item.configuration as any)?.size_uz && <div><strong>{lang === 'uz' ? "O'lcham" : 'Размер'}:</strong> {(item.configuration as any)[lang === 'uz' ? 'size_uz' : 'size_ru'] || (item.configuration as any).size_uz}</div>}
                                             {item.configuration?.shape && <div><strong>Shakl:</strong> {item.configuration.shape}</div>}
-                                            {item.configuration?.size && <div><strong>O&apos;lcham:</strong> {item.configuration.size}</div>}
+                                            {item.configuration?.size && !(item.configuration as any)?.size_uz && <div><strong>O&apos;lcham:</strong> {item.configuration.size}</div>}
                                             {item.configuration?.sponge && <div><strong>Biskvit:</strong> {item.configuration.sponge}</div>}
-                                            {item.configuration?.flavor && <div><strong>{t('flavor')}:</strong> {item.configuration.flavor}</div>}
+                                            {item.configuration?.flavor && !(item.configuration as any)?.nachinka_uz && <div><strong>{t('flavor')}:</strong> {item.configuration.flavor}</div>}
                                             {item.configuration?.decorations && <div><strong>Bezaklar:</strong> {item.configuration.decorations}</div>}
-                                            {item.configuration?.portion && !item.configuration?.size && <div><strong>{t('portion')}:</strong> {item.configuration.portion}</div>}
+                                            {item.configuration?.portion && !item.configuration?.size && !(item.configuration as any)?.size_uz && <div><strong>{t('portion')}:</strong> {item.configuration.portion}</div>}
                                             {(item.configuration?.custom_note || item.configuration?.order_note) && (
                                                 <div style={{ marginTop: '4px', fontStyle: 'italic', color: '#BE185D' }}>&quot;{item.configuration.custom_note || item.configuration.order_note}&quot;</div>
                                             )}
