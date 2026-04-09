@@ -4,8 +4,6 @@ import React from 'react';
 import { useCustomCake } from '@/app/context/CustomCakeContext';
 import styles from './WizardShell.module.css';
 import {
-    ShapeStep,
-    SizeStep,
     SpongeStep,
     CreamStep,
     DecorationStep,
@@ -33,8 +31,6 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
         nextStep,
         prevStep,
         setMode,
-        shape,
-        size,
         sponge,
         cream,
         decorations,
@@ -53,8 +49,6 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
     const [optionsError, setOptionsError] = React.useState<string | null>(null);
 
     const STEPS = [
-        { title: t('stepShape'), component: ShapeStep },
-        { title: t('stepSize'), component: SizeStep },
         { title: t('stepSponge'), component: SpongeStep },
         { title: t('stepCream'), component: CreamStep },
         { title: t('stepDecoration'), component: DecorationStep },
@@ -103,10 +97,8 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
     const progress = (step / STEPS.length) * 100;
 
     const isNextDisabled = () => {
-        if (step === 1 && !shape) return true;
-        if (step === 2 && !size) return true;
-        if (step === 3 && !sponge) return true;
-        if (step === 4 && !cream) return true;
+        if (step === 1 && !sponge) return true;
+        if (step === 2 && !cream) return true;
         return false;
     };
 
@@ -120,14 +112,11 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
             price: total,
             quantity: 1,
             image: '/images/custom-cake-placeholder.jpg',
-            // Portsiya and flavor are required by CartItem type
-            portion: options.find(o => o.id === size)?.label || t('custom'),
+            // Portion and flavor for CartItem type
+            portion: t('custom'),
             flavor: options.find(o => o.id === cream)?.label || t('custom'),
             configuration: {
                 mode,
-                // Shape is now stored by DB UUID — look it up from options
-                shape: options.find(o => o.id === shape)?.label || shape,
-                size: options.find(o => o.id === size)?.label,
                 sponge: options.find(o => o.id === sponge)?.label,
                 flavor: options.find(o => o.id === cream)?.label,
                 decorations: options.filter(o => decorations.includes(o.id)).map(o => o.label).join(', '),

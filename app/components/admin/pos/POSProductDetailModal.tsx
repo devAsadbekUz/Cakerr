@@ -49,7 +49,6 @@ export function POSProductDetailModal({ product, onClose }: Props) {
 
     const details = product.details ?? {};
     const hasDetails = (
-        (details.shapes?.length ?? 0) > 0 ||
         (details.flavors?.length ?? 0) > 0 ||
         (details.coating?.length ?? 0) > 0 ||
         (details.innerCoating?.length ?? 0) > 0 ||
@@ -166,9 +165,6 @@ export function POSProductDetailModal({ product, onClose }: Props) {
                     {/* Detail chips */}
                     {hasDetails && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
-                            {details.shapes && details.shapes.length > 0 && (
-                                <ChipRow label={t('shapesLabel')} items={details.shapes} color="#e0f2fe" textColor="#0369a1" lang={lang} />
-                            )}
                             {details.flavors && details.flavors.length > 0 && (
                                 <ChipRow label={t('flavorsLabel')} items={details.flavors} color="#fce7f3" textColor="#be185d" lang={lang} />
                             )}

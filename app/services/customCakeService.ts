@@ -2,7 +2,7 @@ import { createClient } from '@/app/utils/supabase/client';
 
 export interface CustomOption {
     id: string;
-    type: 'size' | 'sponge' | 'cream' | 'decoration' | 'shape';
+    type: 'sponge' | 'cream' | 'decoration';
     label: string;
     sub_label?: string;
     image_url?: string;

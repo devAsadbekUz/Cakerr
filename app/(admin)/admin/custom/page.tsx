@@ -13,32 +13,11 @@ import styles from './AdminCustom.module.css';
 import { customCakeService, CustomOption } from '@/app/services/customCakeService';
 import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 
-type TabType = 'shape' | 'size' | 'sponge' | 'cream' | 'decoration';
-
-// Map shape labels to a representative icon
-const SHAPE_ICON_MAP: Record<string, React.ElementType> = {
-    'Yumaloq':      Circle,
-    'To\'rtburchak': Square,
-    'Yurak':        Heart,
-    'Oval':         Circle,
-    'Aylana':       Circle,
-    'Guldasta':     Star,
-    'Uchburchak':   Triangle,
-    'Yulduz':       Star,
-    'Olti burchak': Hexagon,
-    'Minora':       Maximize2,
-    'Raqam':        Square,
-    'Harf':         Square,
-};
-
-function ShapeIcon({ label }: { label: string }) {
-    const Icon = SHAPE_ICON_MAP[label] || Circle;
-    return <Icon size={28} />;
-}
+type TabType = 'sponge' | 'cream' | 'decoration';
 
 export default function AdminCustomPage() {
     const { lang, t } = useAdminI18n();
-    const [activeTab, setActiveTab] = useState<TabType>('shape');
+    const [activeTab, setActiveTab] = useState<TabType>('sponge');
     const [options, setOptions] = useState<CustomOption[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -120,8 +99,6 @@ export default function AdminCustomPage() {
 
     const getTabIcon = (tab: TabType) => {
         switch (tab) {
-            case 'shape':      return <Circle size={18} />;
-            case 'size':       return <Maximize2 size={18} />;
             case 'sponge':     return <Cookie size={18} />;
             case 'cream':      return <Droplets size={18} />;
             case 'decoration': return <Palette size={18} />;
@@ -130,16 +107,13 @@ export default function AdminCustomPage() {
 
     const getTabLabel = (tab: TabType) => {
         switch (tab) {
-            case 'shape':      return t('tabShapes');
-            case 'size':       return t('tabSizes');
             case 'sponge':     return t('tabSponge');
             case 'cream':      return t('tabCream');
             case 'decoration': return t('tabDecoration');
         }
     };
 
-    const TABS: TabType[] = ['shape', 'size', 'sponge', 'cream', 'decoration'];
-    const isShapeTab = activeTab === 'shape';
+    const TABS: TabType[] = ['sponge', 'cream', 'decoration'];
 
     return (
         <div className={styles.container}>
@@ -160,17 +134,6 @@ export default function AdminCustomPage() {
                 ))}
             </div>
 
-            {/* Shape tab hint */}
-            {isShapeTab && !loading && (
-                <div className={styles.shapeHint}>
-                    <Eye size={16} />
-                    <span>
-                        {lang === 'uz'
-                            ? 'Ko\'z belgisini bosib shaklni mijozlarga ko\'rsating yoki yashiring.'
-                            : 'Нажмите на иконку глаза, чтобы показать или скрыть форму от клиентов.'}
-                    </span>
-                </div>
-            )}
 
             {loading ? (
                 <div style={{ textAlign: 'center', padding: '40px' }}>{t('loading')}</div>
@@ -179,7 +142,7 @@ export default function AdminCustomPage() {
                     {filteredOptions.map(option => (
                         <div
                             key={option.id}
-                            className={`${styles.card} ${isShapeTab && !option.is_available ? styles.cardDisabled : ''}`}
+                            className={styles.card}
                         >
                             <div className={styles.cardHeader}>
                                 <div>
@@ -187,12 +150,7 @@ export default function AdminCustomPage() {
                                     {option.sub_label && <span className={styles.cardSubLabel}>{option.sub_label}</span>}
                                 </div>
 
-                                {/* Shape tab: show icon + availability badge */}
-                                {isShapeTab ? (
-                                    <div className={styles.cardIcon}>
-                                        <ShapeIcon label={option.label} />
-                                    </div>
-                                ) : option.image_url ? (
+                                {option.image_url ? (
                                     <div className={styles.cardImageWrapper}>
                                         <Image src={option.image_url} alt={option.label} fill className={styles.cardImage} style={{ objectFit: 'cover' }} />
                                     </div>
@@ -201,57 +159,24 @@ export default function AdminCustomPage() {
                                 )}
                             </div>
 
-                            {/* Availability badge for shapes */}
-                            {isShapeTab && (
-                                <span className={`${styles.availBadge} ${option.is_available ? styles.availBadgeOn : styles.availBadgeOff}`}>
-                                    {option.is_available
-                                        ? (lang === 'uz' ? 'Ko\'rinadigan' : 'Видимый')
-                                        : (lang === 'uz' ? 'Yashirin' : 'Скрытый')}
-                                </span>
-                            )}
-
-                            {!isShapeTab && (
-                                <span className={styles.cardPrice}>+{option.price.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}</span>
-                            )}
+                            <span className={styles.cardPrice}>+{option.price.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}</span>
 
                             <div className={styles.cardActions}>
-                                {/* Toggle button — primary action for shapes */}
-                                {isShapeTab && (
-                                    <button
-                                        className={`${styles.actionBtn} ${option.is_available ? styles.toggleOnBtn : styles.toggleOffBtn}`}
-                                        onClick={() => handleToggleAvailable(option)}
-                                        disabled={togglingId === option.id}
-                                        title={option.is_available
-                                            ? (lang === 'uz' ? 'Yashirish' : 'Скрыть')
-                                            : (lang === 'uz' ? 'Ko\'rsatish' : 'Показать')}
-                                    >
-                                        {togglingId === option.id
-                                            ? <Loader2 size={16} className="animate-spin" />
-                                            : option.is_available ? <Eye size={16} /> : <EyeOff size={16} />}
-                                    </button>
-                                )}
-
                                 <button className={styles.actionBtn} onClick={() => handleEdit(option)}>
                                     <Edit2 size={16} />
                                 </button>
 
-                                {/* Allow delete only for non-shape types (shapes are pre-seeded) */}
-                                {!isShapeTab && (
-                                    <button className={`${styles.actionBtn} ${styles.deleteBtn}`} onClick={() => handleDelete(option.id)}>
-                                        <Trash2 size={16} />
-                                    </button>
-                                )}
+                                <button className={`${styles.actionBtn} ${styles.deleteBtn}`} onClick={() => handleDelete(option.id)}>
+                                    <Trash2 size={16} />
+                                </button>
                             </div>
                         </div>
                     ))}
 
-                    {/* Only show "Add new" card for non-shape tabs */}
-                    {!isShapeTab && (
-                        <button className={`${styles.card} ${styles.addCard}`} onClick={handleAdd}>
-                            <Plus size={32} />
-                            <span>{t('addNew')}</span>
-                        </button>
-                    )}
+                    <button className={`${styles.card} ${styles.addCard}`} onClick={handleAdd}>
+                        <Plus size={32} />
+                        <span>{t('addNew')}</span>
+                    </button>
                 </div>
             )}
 
@@ -276,34 +201,20 @@ export default function AdminCustomPage() {
                                         onChange={e => setEditingOption({ ...editingOption, label: e.target.value })}
                                         required
                                         // Shapes: label is editable but only for renaming context
-                                        readOnly={isShapeTab}
+                                        readOnly={false}
                                     />
                                 </div>
 
-                                {(activeTab === 'size' || isShapeTab) && (
-                                    <div className={styles.formGroup}>
-                                        <label>{t('subLabelLabel')}</label>
-                                        <input
-                                            type="text"
-                                            className={styles.input}
-                                            value={editingOption.sub_label || ''}
-                                            onChange={e => setEditingOption({ ...editingOption, sub_label: e.target.value })}
-                                        />
-                                    </div>
-                                )}
-
-                                {!isShapeTab && (
-                                    <div className={styles.formGroup}>
-                                        <label>{t('priceLabel')} ({lang === 'uz' ? "so'm" : "сум"})</label>
-                                        <input
-                                            type="number"
-                                            className={styles.input}
-                                            value={editingOption.price || 0}
-                                            onChange={e => setEditingOption({ ...editingOption, price: parseInt(e.target.value) })}
-                                            required
-                                        />
-                                    </div>
-                                )}
+                                <div className={styles.formGroup}>
+                                    <label>{t('priceLabel')} ({lang === 'uz' ? "so'm" : "сум"})</label>
+                                    <input
+                                        type="number"
+                                        className={styles.input}
+                                        value={editingOption.price || 0}
+                                        onChange={e => setEditingOption({ ...editingOption, price: parseInt(e.target.value) })}
+                                        required
+                                    />
+                                </div>
 
                                 {(activeTab === 'cream' || activeTab === 'decoration') && (
                                     <div className={styles.formGroup}>
@@ -327,20 +238,6 @@ export default function AdminCustomPage() {
                                     />
                                 </div>
 
-                                {/* For shapes in edit modal, show availability toggle */}
-                                {isShapeTab && (
-                                    <div className={styles.formGroup}>
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                                            <input
-                                                type="checkbox"
-                                                checked={editingOption.is_available ?? true}
-                                                onChange={e => setEditingOption({ ...editingOption, is_available: e.target.checked })}
-                                                style={{ width: 18, height: 18 }}
-                                            />
-                                            {lang === 'uz' ? 'Mijozlarga ko\'rsatish' : 'Показывать клиентам'}
-                                        </label>
-                                    </div>
-                                )}
                             </div>
                             <div className={styles.modalFooter}>
                                 <button type="submit" className={styles.submitBtn} disabled={saving}>

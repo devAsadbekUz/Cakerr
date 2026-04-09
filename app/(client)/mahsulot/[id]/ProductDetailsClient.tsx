@@ -217,11 +217,6 @@ export default function ProductDetailsClient({ product }: { product: Product }) 
           <div className={styles.divider} />
 
           {/* Details Sections */}
-          {product.details?.shapes && product.details.shapes.length > 0 && (
-            <Section title={t('shapes')}>
-              {product.details.shapes.map((s: any) => <Chip key={typeof s === 'string' ? s : s.uz} label={s} color="green" />)}
-            </Section>
-          )}
 
           {product.details?.flavors && product.details.flavors.length > 0 && (
             <Section title={t('flavors')}>

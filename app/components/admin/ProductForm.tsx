@@ -31,7 +31,6 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
     const [variants, setVariants] = useState<{ label: string; value: string; price: number | string }[]>([]);
 
     // Details/Attributes State
-    const [shapes, setShapes] = useState('');
     const [flavors, setFlavors] = useState('');
     const [coating, setCoating] = useState('');
     const [isAvailable, setIsAvailable] = useState(true);
@@ -87,11 +86,9 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
 
             // Populate Attributes
             if (product.details) {
-                setShapes(Array.isArray(product.details.shapes) ? product.details.shapes.join(', ') : '');
                 setFlavors(Array.isArray(product.details.flavors) ? product.details.flavors.join(', ') : '');
                 setCoating(Array.isArray(product.details.coating) ? product.details.coating.join(', ') : '');
             } else {
-                setShapes('');
                 setFlavors('');
                 setCoating('');
             }
@@ -109,7 +106,6 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
         setCategoryId(categories.length > 0 ? categories[0].id : '');
         setImages([]);
         setVariants([]);
-        setShapes('');
         setFlavors('');
         setCoating('');
         setIsAvailable(true);
@@ -174,7 +170,6 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
             images: images,
             variants: variants.map(v => ({ ...v, price: Number(v.price) })),
             details: {
-                shapes: shapes.split(',').map(s => s.trim()).filter(Boolean),
                 flavors: flavors.split(',').map(s => s.trim()).filter(Boolean),
                 coating: coating.split(',').map(s => s.trim()).filter(Boolean),
             },
@@ -361,17 +356,6 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
                             <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#9A3412', marginBottom: '12px' }}>
                                 {t('attributesLabel')} ({t('commaSeparated')})
                             </label>
-
-                            <div style={{ marginBottom: '12px' }}>
-                                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                                    {t('shapesLabel')}
-                                </label>
-                                <input
-                                    value={shapes} onChange={e => setShapes(e.target.value)}
-                                    placeholder={t('placeholderShapes')}
-                                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #E5E7EB', fontSize: '13px' }}
-                                />
-                            </div>
 
                             <div style={{ marginBottom: '12px' }}>
                                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>

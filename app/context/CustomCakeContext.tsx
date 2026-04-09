@@ -11,8 +11,6 @@ interface CustomCakeState {
 
     // Wizard State
     step: number;
-    shape: string | null;
-    size: string | null;
     sponge: string | null;
     cream: string | null;
     decorations: string[];
@@ -29,8 +27,6 @@ interface CustomCakeState {
 
 interface CustomCakeContextType extends CustomCakeState {
     setMode: (mode: BuilderMode) => void;
-    setShape: (shape: string) => void;
-    setSize: (size: string) => void;
     setSponge: (sponge: string) => void;
     setCream: (cream: string) => void;
     toggleDecoration: (decoration: string) => void;
@@ -50,8 +46,6 @@ interface CustomCakeContextType extends CustomCakeState {
 const initialState: CustomCakeState = {
     mode: null,
     step: 1,
-    shape: null,
-    size: null,
     sponge: null,
     cream: null,
     decorations: [],
@@ -69,8 +63,6 @@ export function CustomCakeProvider({ children }: { children: ReactNode }) {
 
     const setMode = useCallback((mode: BuilderMode) => setState(prev => ({ ...prev, mode })), []);
 
-    const setShape = useCallback((shape: string) => setState(prev => ({ ...prev, shape })), []);
-    const setSize = useCallback((size: string) => setState(prev => ({ ...prev, size })), []);
     const setSponge = useCallback((sponge: string) => setState(prev => ({ ...prev, sponge })), []);
     const setCream = useCallback((cream: string) => setState(prev => ({ ...prev, cream })), []);
     const toggleDecoration = useCallback((decoration: string) => {
@@ -95,26 +87,20 @@ export function CustomCakeProvider({ children }: { children: ReactNode }) {
     const calculateTotal = useCallback(() => {
         let total = 0;
 
-        const selectedShape = state.options.find(o => o.id === state.shape);
-        const selectedSize = state.options.find(o => o.id === state.size);
         const selectedSponge = state.options.find(o => o.id === state.sponge);
         const selectedCream = state.options.find(o => o.id === state.cream);
         const selectedDecors = state.options.filter(o => state.decorations.includes(o.id));
 
-        if (selectedShape) total += Number(selectedShape.price);
-        if (selectedSize) total += Number(selectedSize.price);
         if (selectedSponge) total += Number(selectedSponge.price);
         if (selectedCream) total += Number(selectedCream.price);
         selectedDecors.forEach(d => total += Number(d.price));
 
         return total;
-    }, [state.options, state.shape, state.size, state.sponge, state.cream, state.decorations]);
+    }, [state.options, state.sponge, state.cream, state.decorations]);
 
     const value = useMemo(() => ({
         ...state,
         setMode,
-        setShape,
-        setSize,
         setSponge,
         setCream,
         toggleDecoration,
@@ -127,7 +113,7 @@ export function CustomCakeProvider({ children }: { children: ReactNode }) {
         prevStep,
         reset,
         calculateTotal,
-    }), [state, setMode, setShape, setSize, setSponge, setCream, toggleDecoration, setText, setDrawingData, setUploadedImage, setUploadComment, setOptions, nextStep, prevStep, reset, calculateTotal]);
+    }), [state, setMode, setSponge, setCream, toggleDecoration, setText, setDrawingData, setUploadedImage, setUploadComment, setOptions, nextStep, prevStep, reset, calculateTotal]);
 
     return (
         <CustomCakeContext.Provider value={value}>
