@@ -41,12 +41,12 @@ export default function AdminCustomPage() {
 
     const handleAdd = () => {
         setEditingOption({
-            type: activeTab,
-            label: '',
-            sub_label: '',
+            type: activeTab as any,
+            label_uz: '',
+            label_ru: '',
             price: 0,
             is_available: true,
-            sort_order: filteredOptions.length + 1
+            sort_order: (options.filter(o => o.type === activeTab).length || 0) + 1
         });
         setIsModalOpen(true);
     };
@@ -145,14 +145,18 @@ export default function AdminCustomPage() {
                             className={styles.card}
                         >
                             <div className={styles.cardHeader}>
-                                <div>
-                                    <h3 className={styles.cardTitle}>{option.label}</h3>
-                                    {option.sub_label && <span className={styles.cardSubLabel}>{option.sub_label}</span>}
+                                <div className={styles.cardInfo}>
+                                    <div className={styles.cardTitle}>
+                                        {lang === 'uz' ? option.label_uz : (option.label_ru || option.label_uz)}
+                                    </div>
+                                    {option.sub_label_uz && (
+                                        <div className={styles.cardSubTitle}>{option.sub_label_uz}</div>
+                                    )}
                                 </div>
 
                                 {option.image_url ? (
                                     <div className={styles.cardImageWrapper}>
-                                        <Image src={option.image_url} alt={option.label} fill className={styles.cardImage} style={{ objectFit: 'cover' }} />
+                                        <Image src={option.image_url} alt={option.label_uz || ''} fill className={styles.cardImage} style={{ objectFit: 'cover' }} />
                                     </div>
                                 ) : (
                                     <div className={styles.cardIcon}>{getTabIcon(option.type as TabType)}</div>
@@ -192,18 +196,26 @@ export default function AdminCustomPage() {
                         <form className={styles.form} onSubmit={handleSubmit}>
                             <div className={styles.modalContent}>
                                 <div className={styles.formGroup}>
-                                    <label>{t('labelName')}</label>
+                                    <label>Nomi (O'zbekcha)</label>
                                     <input
                                         type="text"
                                         className={styles.input}
-                                        value={editingOption.label || ''}
-                                        onChange={e => setEditingOption({ ...editingOption, label: e.target.value })}
+                                        value={editingOption.label_uz || ''}
+                                        onChange={e => setEditingOption({ ...editingOption, label_uz: e.target.value })}
                                         required
-                                        // Shapes: label is editable but only for renaming context
-                                        readOnly={false}
                                     />
                                 </div>
 
+                                <div className={styles.formGroup}>
+                                    <label>Название (Русский)</label>
+                                    <input
+                                        type="text"
+                                        className={styles.input}
+                                        value={editingOption.label_ru || ''}
+                                        onChange={e => setEditingOption({ ...editingOption, label_ru: e.target.value })}
+                                        required
+                                    />
+                                </div>
 
                                 {(activeTab === 'cream' || activeTab === 'decoration') && (
                                     <div className={styles.formGroup}>

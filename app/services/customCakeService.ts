@@ -3,8 +3,10 @@ import { createClient } from '@/app/utils/supabase/client';
 export interface CustomOption {
     id: string;
     type: 'sponge' | 'cream' | 'decoration';
-    label: string;
-    sub_label?: string;
+    label_uz: string;
+    label_ru?: string;
+    sub_label_uz?: string;
+    sub_label_ru?: string;
     image_url?: string;
     price: number;
     is_available: boolean;

@@ -45,7 +45,7 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
     } = useCustomCake();
     const { addItem } = useCartActions();
     const router = useRouter();
-    const { t } = useLanguage();
+    const { t, lang } = useLanguage();
     const [optionsError, setOptionsError] = React.useState<string | null>(null);
 
     const STEPS = [
@@ -114,12 +114,15 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
             image: '/images/custom-cake-placeholder.jpg',
             // Portion and flavor for CartItem type
             portion: t('custom'),
-            flavor: options.find(o => o.id === cream)?.label || t('custom'),
+            flavor: lang === 'uz' ? (options.find(o => o.id === cream)?.label_uz || t('custom')) : (options.find(o => o.id === cream)?.label_ru || t('custom')),
             configuration: {
                 mode,
-                sponge: options.find(o => o.id === sponge)?.label,
-                flavor: options.find(o => o.id === cream)?.label,
-                decorations: options.filter(o => decorations.includes(o.id)).map(o => o.label).join(', '),
+                sponge_uz: options.find(o => o.id === sponge)?.label_uz,
+                sponge_ru: options.find(o => o.id === sponge)?.label_ru,
+                flavor_uz: options.find(o => o.id === cream)?.label_uz,
+                flavor_ru: options.find(o => o.id === cream)?.label_ru,
+                decorations_uz: options.filter(o => decorations.includes(o.id)).map(o => o.label_uz).join(', '),
+                decorations_ru: options.filter(o => decorations.includes(o.id)).map(o => o.label_ru).join(', '),
                 custom_note: text,
                 drawing: drawingData,
                 uploaded_photo_url: uploadedImage,

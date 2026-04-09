@@ -28,7 +28,7 @@ const CREAM_ICONS: Record<string, any> = {
 
 export function SpongeStep() {
     const { sponge, setSponge, options } = useCustomCake();
-    const { t } = useLanguage();
+    const { t, lang } = useLanguage();
     const sponges = options.filter(o => o.type === 'sponge');
 
     return (
@@ -44,7 +44,7 @@ export function SpongeStep() {
                         <div className={styles.iconWrapper}>
                             <Cookie size={32} />
                         </div>
-                        <span className={styles.label}>{s.label}</span>
+                        <span className={styles.label}>{lang === 'uz' ? s.label_uz : (s.label_ru || s.label_uz)}</span>
                     </div>
                 ))}
             </div>
@@ -54,7 +54,7 @@ export function SpongeStep() {
 
 export function CreamStep() {
     const { cream, setCream, options } = useCustomCake();
-    const { t } = useLanguage();
+    const { t, lang } = useLanguage();
     const creams = options.filter(o => o.type === 'cream');
 
     return (
@@ -68,13 +68,13 @@ export function CreamStep() {
                         onClick={() => setCream(c.id)}
                     >
                         {c.image_url ? (
-                            <Image src={c.image_url} alt={c.label} className={styles.cardImage} style={{ borderRadius: '50%', objectFit: 'cover' }} width={60} height={60} />
+                            <Image src={c.image_url} alt={lang === 'uz' ? c.label_uz : (c.label_ru || c.label_uz)} className={styles.cardImage} style={{ borderRadius: '50%', objectFit: 'cover' }} width={60} height={60} />
                         ) : (
                             <div className={styles.iconWrapper}>
                                 <Droplets size={32} />
                             </div>
                         )}
-                        <span className={styles.label}>{c.label}</span>
+                        <span className={styles.label}>{lang === 'uz' ? c.label_uz : (c.label_ru || c.label_uz)}</span>
                     </div>
                 ))}
             </div>
@@ -84,7 +84,7 @@ export function CreamStep() {
 
 export function DecorationStep() {
     const { decorations, toggleDecoration, text, setText, drawingData, setDrawingData, options } = useCustomCake();
-    const { t } = useLanguage();
+    const { t, lang } = useLanguage();
     const decors = options.filter(o => o.type === 'decoration');
     const [mode, setMode] = useState<'text' | 'drawing'>('text');
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -196,7 +196,7 @@ export function DecorationStep() {
                         onClick={() => toggleDecoration(d.id)}
                     >
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span className={styles.label}>{d.label}</span>
+                            <span className={styles.label}>{lang === 'uz' ? d.label_uz : (d.label_ru || d.label_uz)}</span>
                         </div>
                         {decorations.includes(d.id) && <Check size={20} color="#BE185D" />}
                     </div>
@@ -274,10 +274,14 @@ export function DecorationStep() {
 
 export function ReviewStep() {
     const { sponge, cream, decorations, text, drawingData, options, calculateTotal } = useCustomCake();
-    const { t } = useLanguage();
+    const { t, lang } = useLanguage();
 
     // Helper to find label by ID from DB (works for all types)
-    const getOptionLabel = (id: string | null) => options.find(o => o.id === id)?.label || t('notSelected');
+    const getOptionLabel = (id: string | null) => {
+        const option = options.find(o => o.id === id);
+        if (!option) return t('notSelected');
+        return lang === 'uz' ? option.label_uz : (option.label_ru || option.label_uz);
+    };
 
     const summaryItems = [
         { label: t('stepSponge'), value: getOptionLabel(sponge) },
