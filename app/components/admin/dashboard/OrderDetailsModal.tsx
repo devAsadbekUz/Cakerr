@@ -70,6 +70,14 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
     const [editingItemId, setEditingItemId] = useState<string | null>(null);
     const [editValue, setEditValue] = useState<string>('');
     const [isSavingPrice, setIsSavingPrice] = useState(false);
+    
+    // Sync local items with prop
+    const [localItems, setLocalItems] = useState<AdminOrderItem[]>(order.order_items || []);
+    
+    // When prop changes, sync back (handles real-time updates from other tabs)
+    useMemo(() => {
+        setLocalItems(order.order_items || []);
+    }, [order.order_items]);
 
     const handleSavePrice = async (itemId: string) => {
         const price = parseFloat(editValue);
@@ -87,16 +95,13 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
 
             if (!response.ok) throw new Error('Failed to update price');
             
-            // Successfully updated price! 
-            // We need to refresh the UI. Since the Dashboard parent usually
-            // handles data fetching, we can call refresh if it's passed or
-            // just clear the state and wait for the next periodic refresh.
-            // Better: let's use router.refresh() to trigger server component update if applicable
-            // or just rely on the parent's poll if it exists.
+            // Optimistic update
+            setLocalItems(prev => prev.map(item => 
+                item.id === itemId ? { ...item, unit_price: price } : item
+            ));
+            
             setEditingItemId(null);
             router.refresh(); 
-            // NOTE: In many cases on this project, we might need a more direct way
-            // to update the order object prop. For now, clearing state is first step.
         } catch (err) {
             console.error('[OrderDetailsModal] Save error:', err);
             alert('Xatolik yuz berdi narxni saqlashda');
@@ -123,13 +128,18 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
     const s = { label: statusLabels[order.status as keyof typeof statusLabels] ?? order.status, ...sc };
 
     const depositAmount = order.deposit_amount ?? 0;
-    const totalPrice = order.total_price ?? 0;
+    
+    // Derive total price from local items to handle optimistic updates
+    const totalPrice = useMemo(() => {
+        return localItems.reduce((acc, item) => acc + (item.unit_price || 0) * item.quantity, 0);
+    }, [localItems]);
+
     const remaining = Math.max(0, totalPrice - depositAmount);
     const showPaymentSection = ['confirmed', 'preparing', 'ready', 'delivering', 'completed'].includes(order.status);
     const noDepositWarning = depositAmount === 0 && ['confirmed', 'preparing', 'ready', 'delivering'].includes(order.status);
 
     // Block confirmation if any item is a custom order with price not yet set
-    const hasUnpricedCustomItem = order.status === 'new' && order.order_items?.some(
+    const hasUnpricedCustomItem = order.status === 'new' && localItems.some(
         item => (item.configuration?.mode === 'upload' || item.configuration?.mode === 'wizard') && (!item.unit_price || item.unit_price === 0)
     );
 
@@ -366,7 +376,7 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                         <div className={styles.infoSection}>
                             <div className={styles.infoLabel}>{t('items')}</div>
                             <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                {order.order_items?.map((item: AdminOrderItem) => (
+                                {localItems.map((item: AdminOrderItem) => (
                                     <div key={item.id} className={styles.orderItemCard}>
                                         <div
                                             style={{ position: 'relative', cursor: 'pointer' }}

@@ -158,6 +158,23 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                 setEditPriceError(data.error || 'Error');
                 return;
             }
+            // Optimistic update
+            setOrder(prev => {
+                if (!prev) return prev;
+                const newItems = prev.order_items?.map(item => 
+                    item.id === itemId ? { ...item, unit_price: newPrice } : item
+                );
+                
+                // Recalculate total_price locally for immediate visual update
+                const oldItem = prev.order_items?.find(i => i.id === itemId);
+                const oldUnitPrice = oldItem?.unit_price ?? 0;
+                const quantity = oldItem?.quantity ?? 1;
+                const delta = (newPrice - oldUnitPrice) * quantity;
+                const newTotal = Math.max(0, (prev.total_price ?? 0) + delta);
+
+                return { ...prev, order_items: newItems, total_price: newTotal };
+            });
+
             await fetchData();
             router.refresh();
             setEditPriceItemId(null);
@@ -504,10 +521,10 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                                         <div style={{ display: 'flex', gap: '8px' }}>
                                                             <input
-                                                                type="text"
+                                                                type="number"
                                                                 inputMode="numeric"
                                                                 value={editPriceValue}
-                                                                onChange={e => { setEditPriceValue(e.target.value.replace(/\D/g, '')); setEditPriceError(null); }}
+                                                                onChange={e => { setEditPriceValue(e.target.value); setEditPriceError(null); }}
                                                                 placeholder={lang === 'uz' ? "Narxni kiriting (so'm)" : "Введите цену (сум)"}
                                                                 style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: `1.5px solid ${editPriceError ? '#EF4444' : '#E5E7EB'}`, fontSize: '15px', fontWeight: 700, outline: 'none', fontVariantNumeric: 'tabular-nums' }}
                                                                 autoFocus
