@@ -10,8 +10,31 @@ function resolveTgLang(code?: string | null): 'uz' | 'ru' {
 }
 
 function safeName(name: string): string {
-    // Strip Markdown special characters that could break Telegram message formatting
+// Strip Markdown special characters that could break Telegram message formatting
     return name.replace(/[*_`[\]()~>#+=|{}.!\\]/g, '');
+}
+
+/**
+ * Synchronizes the persistent blue "Menu" button for a specific user.
+ * This ensures the button is localized and points to the correct Mini App URL.
+ */
+async function syncMenuButton(chatId: number, text: string, appUrl: string, api: string) {
+    try {
+        await fetch(`${api}/setChatMenuButton`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: chatId,
+                menu_button: {
+                    type: 'web_app',
+                    text: text,
+                    web_app: { url: appUrl }
+                }
+            })
+        });
+    } catch (err) {
+        console.error('[Telegram Webhook] syncMenuButton error:', err);
+    }
 }
 
 const BOT_STRINGS = {
@@ -113,6 +136,11 @@ export async function POST(request: NextRequest) {
                             ...(webAppMarkup ? { reply_markup: webAppMarkup } : {})
                         })
                     });
+
+                    // Option B: Sync the blue menu button per-user for bilingual support
+                    if (appUrl) {
+                        await syncMenuButton(chatId, orderBtnText, appUrl, TELEGRAM_API);
+                    }
                     return NextResponse.json({ ok: true });
                 }
 
@@ -187,6 +215,11 @@ export async function POST(request: NextRequest) {
                             ...(webAppMarkup ? { reply_markup: webAppMarkup } : {})
                         })
                     });
+
+                    // Option B: Sync the blue menu button per-user after registration
+                    if (appUrl) {
+                        await syncMenuButton(chatId, orderBtnText, appUrl, TELEGRAM_API);
+                    }
 
                     console.log('[Telegram Webhook] Profile completed for:', normalizedPhone);
 
