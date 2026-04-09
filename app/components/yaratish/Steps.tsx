@@ -263,35 +263,38 @@ export function NachinkaStep() {
     return (
         <div className={styles.stepContainer}>
             <h2 className={styles.stepTitle}>{t('selectNachinka')}</h2>
-            <div className={styles.list}>
-                {availableNachinkas.map((n) => (
-                    <div
-                        key={n.id}
-                        className={`${styles.listItem} ${nachinka === n.id ? styles.listItemActive : ''}`}
-                        onClick={() => setNachinka(n.id)}
-                    >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            {n.image_url ? (
-                                <div style={{ width: 40, height: 40, position: 'relative', borderRadius: 8, overflow: 'hidden' }}>
-                                    <Image src={n.image_url} alt={n.label_uz} fill style={{ objectFit: 'cover' }} />
-                                </div>
-                            ) : (
-                                <div className={styles.iconWrapper} style={{ width: 40, height: 40 }}>
-                                    <Palette size={20} />
-                                </div>
-                            )}
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <span className={styles.label}>{lang === 'uz' ? n.label_uz : (n.label_ru || n.label_uz)}</span>
-                                {n.sub_label_uz && (
-                                    <span className={styles.subLabel}>
-                                        {lang === 'uz' ? n.sub_label_uz : (n.sub_label_ru || n.sub_label_uz)}
-                                    </span>
+            <div className={styles.typeGrid}>
+                {availableNachinkas.length > 0 ? (
+                    availableNachinkas.map((n) => (
+                        <div
+                            key={n.id}
+                            className={`${styles.typeCard} ${nachinka === n.id ? styles.typeCardActive : ''}`}
+                            onClick={() => setNachinka(n.id)}
+                        >
+                            <div className={styles.typeImageWrapper}>
+                                {n.image_url ? (
+                                    <Image 
+                                        src={n.image_url} 
+                                        alt={lang === 'uz' ? n.label_uz : (n.label_ru || n.label_uz)} 
+                                        fill 
+                                        style={{ objectFit: 'cover' }} 
+                                    />
+                                ) : (
+                                    <div className={styles.iconWrapper} style={{ width: '100%', height: '100%', borderRadius: 0 }}>
+                                        <Palette size={32} />
+                                    </div>
                                 )}
                             </div>
+                            <span className={styles.typeLabel}>
+                                {lang === 'uz' ? n.label_uz : (n.label_ru || n.label_uz)}
+                            </span>
                         </div>
-                        {nachinka === n.id && <Check size={20} color="#BE185D" />}
+                    ))
+                ) : (
+                    <div className={styles.emptyState} style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: '#9CA3AF' }}>
+                        {lang === 'uz' ? "Ushbu turdagi tort uchun nachinkalar topilmadi." : "Начинки для этого типа торта не найдены."}
                     </div>
-                ))}
+                )}
             </div>
         </div>
     );
