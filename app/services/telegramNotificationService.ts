@@ -1,4 +1,4 @@
-import { getStatusConfig, tgEscape, buildOrderMessage, getTelegramButtons, resolveOrderLanguage } from '@/app/utils/orderConfig';
+import { getStatusConfig, tgEscape, buildOrderMessage, getTelegramButtons, resolveOrderLanguage, buildCustomerStatusMessage } from '@/app/utils/orderConfig';
 import { serviceClient } from '@/app/utils/supabase/service';
 
 function resolveTgLang(code?: string | null): 'uz' | 'ru' {
@@ -7,57 +7,61 @@ function resolveTgLang(code?: string | null): 'uz' | 'ru' {
 }
 
 /**
+ * Re-usable helper to fetch everything needed for a customer status bubble
+ */
+async function fetchCustomerOrderContext(orderId: string) {
+    const { data: order } = await serviceClient
+        .from('orders')
+        .select(`
+            *,
+            profiles (full_name, phone_number, telegram_id, tg_lang),
+            branches (name_uz, name_ru, address_uz, address_ru, location_link),
+            order_payment_logs (*)
+        `)
+        .eq('id', orderId)
+        .single();
+    
+    if (order) {
+        (order as any).payment_logs = (order.order_payment_logs || []).sort(
+            (a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+    }
+    return order;
+}
+
+/**
  * Handles the logic of sending a status update to a customer's specific Telegram chat.
- * Implements the "Delete and Replace" pattern to avoid spamming the customer.
- * Auto-cleans terminal statuses (cancelled, completed).
- * 
- * @param orderId The UUID of the order
- * @param newStatus The new status string to apply
- * @param order The detailed order fetch, MUST include `profiles` resolving to get `telegram_id` and `tg_lang`, as well as `client_tg_message_id`.
  */
 export async function notifyCustomerStatusChange(orderId: string, newStatus: string, order: any): Promise<void> {
     const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-    if (!TELEGRAM_BOT_TOKEN) {
-        console.warn('[notifyCustomerStatusChange] No TELEGRAM_BOT_TOKEN found.');
-        return;
-    }
+    if (!TELEGRAM_BOT_TOKEN) return;
     const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
-    // Get the primary profile attached to the order
-    const profile = Array.isArray(order.profiles) ? order.profiles[0] : order.profiles;
+    // 1. Fetch unified context
+    const orderWithLogs = await fetchCustomerOrderContext(orderId);
+    if (!orderWithLogs) return;
 
-    // If there's no profile or the customer hasn't linked Telegram, there's nobody to notify.
-    if (!profile || !profile.telegram_id) {
-        return;
-    }
-
-    // Determine the customer's preferred language. This fixes the legacy bug where the 
-    // web api was trying to send the message in the Admin's language.
+    const profile = Array.isArray(orderWithLogs.profiles) ? orderWithLogs.profiles[0] : orderWithLogs.profiles;
+    if (!profile || !profile.telegram_id) return;
+    
     const clientLang = resolveTgLang(profile.tg_lang);
 
-    // 1. Delete previous message if it exists to prevent chat clutter
-    if (order.client_tg_message_id) {
+    // 2. Delete previous message if it exists
+    if (orderWithLogs.client_tg_message_id) {
         try {
-            const delRes = await fetch(`${TELEGRAM_API}/deleteMessage`, {
+            await fetch(`${TELEGRAM_API}/deleteMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     chat_id: profile.telegram_id,
-                    message_id: order.client_tg_message_id
+                    message_id: orderWithLogs.client_tg_message_id
                 })
             });
-            if (!delRes.ok) {
-                const errText = await delRes.text();
-                console.error('[notifyCustomerStatusChange] Delete message failed:', delRes.status, errText);
-            }
-        } catch (err) {
-            console.error('[notifyCustomerStatusChange] Delete client msg error:', err);
-        }
+        } catch (err) { console.error('[notifyStatus] Delete failed', err); }
     }
 
-    // 2. Determine Action Based on Status
+    // 3. Determine Action Based on Status
     if (newStatus === 'cancelled') {
-        // If cancelled, clear message tracking completely. No new message is sent.
         await serviceClient
             .from('orders')
             .update({ client_tg_message_id: null, client_tg_delete_at: null })
@@ -65,74 +69,8 @@ export async function notifyCustomerStatusChange(orderId: string, newStatus: str
         return;
     }
 
-    // For all other statuses, construct and send the newly localized status bubble
-    const statusConfig = getStatusConfig(newStatus);
-    const shortId = orderId.slice(0, 8);
-    const clientLabels = {
-        uz: {
-            title: "🍰 *Buyurtma holati yangilandi*",
-            text: `Hurmatli mijoz, sizning #${shortId} raqamli buyurtmangiz holati o'zgardi:`
-        },
-        ru: {
-            title: "🍰 *Статус заказа обновлен*",
-            text: `Уважаемый клиент, статус вашего заказа #${shortId} изменился:`
-        }
-    }[clientLang];
-
-    const statusLabel = statusConfig.labels[clientLang];
-    const statusDesc = statusConfig.descs[clientLang];
-
-    let clientMessage = `${clientLabels.title}\n\n${clientLabels.text}\n\n*${tgEscape(statusLabel)}*\n_${tgEscape(statusDesc)}_`;
-
-    // Payment info for confirmed orders
-    if (newStatus === 'confirmed') {
-        const depositAmount = Number(order.deposit_amount ?? 0);
-        const totalPrice = Number(order.total_price ?? 0);
-        if (depositAmount > 0) {
-            const remaining = Math.max(0, totalPrice - depositAmount);
-            const paymentInfo = clientLang === 'uz'
-                ? `\n\n💵 *Avans:* ${depositAmount.toLocaleString()} so'm qabul qilindi\n💰 *Qoldiq:* ${remaining.toLocaleString()} so'm`
-                : `\n\n💵 *Аванс:* ${depositAmount.toLocaleString()} сум получен\n💰 *Остаток:* ${remaining.toLocaleString()} сум`;
-            clientMessage += paymentInfo;
-        } else {
-            const noDepositInfo = clientLang === 'uz'
-                ? `\n\n⚠️ _Avans to'lovi haqida menejer siz bilan bog'lanadi._`
-                : `\n\n⚠️ _Менеджер свяжется с вами по вопросу предоплаты._`;
-            clientMessage += noDepositInfo;
-        }
-    }
-
-    // Payment info for completed orders
-    if (newStatus === 'completed') {
-        const depositAmount = Number(order.deposit_amount ?? 0);
-        const finalPayment = Number(order.final_payment_amount ?? 0);
-        const totalPrice = Number(order.total_price ?? 0);
-        if (finalPayment > 0 || depositAmount > 0) {
-            const paidTotal = depositAmount + finalPayment;
-            const paymentSummary = clientLang === 'uz'
-                ? `\n\n✅ *Jami to'landi:* ${paidTotal.toLocaleString()} so'm / ${totalPrice.toLocaleString()} so'm`
-                : `\n\n✅ *Итого оплачено:* ${paidTotal.toLocaleString()} сум / ${totalPrice.toLocaleString()} сум`;
-            clientMessage += paymentSummary;
-        }
-    }
-
-    // Special additive info for Pickup orders once they are Ready
-    if (newStatus === 'ready' && order.delivery_type === 'pickup' && order.branches) {
-        const branch = order.branches;
-        const bName = clientLang === 'uz' ? branch.name_uz : branch.name_ru;
-        const bAddr = clientLang === 'uz' ? branch.address_uz : branch.address_ru;
-        const bLink = branch.location_link;
-
-        const pickupInfo = clientLang === 'uz'
-            ? `\n\n🏢 *Olib ketish manzili:* ${tgEscape(bName)}\n📍 ${tgEscape(bAddr)}`
-            : `\n\n🏢 *Адрес самовывоза:* ${tgEscape(bName)}\n📍 ${tgEscape(bAddr)}`;
-        
-        clientMessage += pickupInfo;
-        if (bLink) {
-            const mapLabel = clientLang === 'uz' ? "📍 Xaritada ko'rish" : "📍 Посмотреть на карте";
-            clientMessage += `\n\n[${mapLabel}](${bLink})`;
-        }
-    }
+    // 4. Build unified message
+    const clientMessage = buildCustomerStatusMessage(orderWithLogs, clientLang);
 
     try {
         const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
@@ -153,8 +91,6 @@ export async function notifyCustomerStatusChange(orderId: string, newStatus: str
 
         if (result.ok) {
             console.log(`[notifyCustomerStatusChange] Successfully notified customer ${profile.telegram_id}`);
-            // Track the message ID we just sent so we can delete it next time
-            // If the status is completed, schedule an automatic self-destruct via the cron job in 24 hours.
             const isCompleted = newStatus === 'completed';
             const deleteAt = isCompleted
                 ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
@@ -167,8 +103,6 @@ export async function notifyCustomerStatusChange(orderId: string, newStatus: str
                     client_tg_delete_at: deleteAt
                 })
                 .eq('id', orderId);
-        } else {
-            console.error('[notifyCustomerStatusChange] Failed to send message to customer:', result);
         }
     } catch (err) {
         console.error('[notifyCustomerStatusChange] Send message error:', err);
@@ -276,51 +210,35 @@ export async function notifyAdminNewOrder(orderId: string): Promise<boolean> {
 export async function notifyCustomerPaymentReceived(orderId: string, increment: number, order: any): Promise<void> {
     const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
     if (!TELEGRAM_BOT_TOKEN) return;
-
-    const profile = Array.isArray(order.profiles) ? order.profiles[0] : order.profiles;
-    if (!profile || !profile.telegram_id) return;
-
-    const clientLang = resolveTgLang(profile.tg_lang);
     const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
-    // 1. Fetch ALL payment logs for this order to build the ledger list
-    const { data: logs } = await serviceClient
-        .from('order_payment_logs')
-        .select('amount, event_type')
-        .eq('order_id', orderId)
-        .order('created_at', { ascending: true });
+    // 1. Fetch unified context
+    const orderWithLogs = await fetchCustomerOrderContext(orderId);
+    if (!orderWithLogs) return;
 
-    // 2. Format the ledger string
-    const currency = clientLang === 'uz' ? "so'm" : "сум";
-    const ledgerLines = (logs || []).map(log => {
-        const amt = Number(log.amount);
-        const sign = amt >= 0 ? '+' : '';
-        return `▫️ ${sign}${amt.toLocaleString()} ${currency}`;
-    }).join('\n');
+    const profile = Array.isArray(orderWithLogs.profiles) ? orderWithLogs.profiles[0] : orderWithLogs.profiles;
+    if (!profile || !profile.telegram_id) return;
+    
+    const clientLang = resolveTgLang(profile.tg_lang);
 
-    // 3. Delete previous message
-    if (order.client_tg_message_id) {
+    // 2. Delete previous message if it exists
+    if (orderWithLogs.client_tg_message_id) {
         try {
             await fetch(`${TELEGRAM_API}/deleteMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     chat_id: profile.telegram_id,
-                    message_id: order.client_tg_message_id
+                    message_id: orderWithLogs.client_tg_message_id
                 })
             });
-        } catch (e) { console.error('[notifyPayment] Delete failed', e); }
+        } catch (err) { console.error('[notifyPayment] Delete failed', err); }
     }
 
-    // 4. Build message
-    const totalPaid = (Number(order.deposit_amount ?? 0)) + (Number(order.final_payment_amount ?? 0));
-    const totalPrice = Number(order.total_price ?? 0);
+    // 3. Build unified message
+    const clientMessage = buildCustomerStatusMessage(orderWithLogs, clientLang);
 
-    const title = clientLang === 'uz' ? `💰 *To'lov qabul qilindi!*` : `💰 *Платёж принят!*`;
-    const ledgerTitle = clientLang === 'uz' ? `*To'lovlar tarixi:*` : `*История платежей:*`;
-    const totalLabel = clientLang === 'uz' ? `✅ *Jami to'landi:*` : `✅ *Всего оплачено:*`;
-
-    const text = `${title}\n\n${ledgerTitle}\n${ledgerLines}\n\n${totalLabel} ${totalPaid.toLocaleString()} / ${totalPrice.toLocaleString()} ${currency}`;
+    // 4. Send message
 
     // 5. Send new message
     try {
@@ -329,17 +247,26 @@ export async function notifyCustomerPaymentReceived(orderId: string, increment: 
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 chat_id: profile.telegram_id,
-                text,
+                text: clientMessage,
                 parse_mode: 'Markdown'
             })
         });
 
         if (res.ok) {
             const result = await res.json();
-            // Update order with NEW message ID
+            
+            // If the order is already completed, ensure this new payment message also self-destructs in 24h
+            const deleteAt = order.status === 'completed'
+                ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+                : null;
+
+            // Update order with NEW message ID and deletion timer
             await serviceClient
                 .from('orders')
-                .update({ client_tg_message_id: result.result.message_id })
+                .update({ 
+                    client_tg_message_id: result.result.message_id,
+                    client_tg_delete_at: deleteAt
+                })
                 .eq('id', orderId);
             
             // 6. SYNC: Update the Admin Group message as well

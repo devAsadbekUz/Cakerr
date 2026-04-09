@@ -360,3 +360,85 @@ export const resolveOrderLanguage = (params: {
     return parseLang(params.fallbackLang);
 };
 
+/**
+ * Builds a unified status message for the customer, combining the latest status info
+ * with the full payment ledger.
+ */
+export const buildCustomerStatusMessage = (order: any, lang: 'uz' | 'ru' = 'uz') => {
+    const statusConfig = getStatusConfig(order.status);
+    const shortId = order.id.slice(0, 8);
+    
+    const clientLabels = {
+        uz: {
+            title: "🍰 *Buyurtma holati yangilandi*",
+            text: `Hurmatli mijoz, sizning #${shortId} raqamli buyurtmangiz holati o'zgardi:`,
+            history: "*To'lovlar tarixi:*",
+            totalPaid: "Jami to'landi",
+            totalSpent: "Jami summa",
+            remaining: "Qoldiq",
+            som: "so'm"
+        },
+        ru: {
+            title: "🍰 *Статус заказа обновлен*",
+            text: `Уважаемый клиент, статус вашего заказа #${shortId} изменился:`,
+            history: "*История платежей:*",
+            totalPaid: "Всего оплачено",
+            totalSpent: "Итого",
+            remaining: "Остаток",
+            som: "сум"
+        }
+    }[lang];
+
+    const statusLabel = statusConfig.labels[lang];
+    const statusDesc = statusConfig.descs[lang];
+
+    // 1. Status Section
+    let message = `${clientLabels.title}\n\n${clientLabels.text}\n\n*${tgEscape(statusLabel)}*\n_${tgEscape(statusDesc)}_`;
+
+    // 2. Fulfillment Section (Pickup Address)
+    if (order.status === 'ready' && order.delivery_type === 'pickup' && order.branches) {
+        const branch = order.branches;
+        const bName = lang === 'uz' ? branch.name_uz : branch.name_ru;
+        const bAddr = lang === 'uz' ? branch.address_uz : branch.address_ru;
+        const bLink = branch.location_link;
+
+        const pickupInfo = lang === 'uz'
+            ? `\n\n🏢 *Olib ketish manzili:* ${tgEscape(bName)}\n📍 ${tgEscape(bAddr)}`
+            : `\n\n🏢 *Адрес самовывоза:* ${tgEscape(bName)}\n📍 ${tgEscape(bAddr)}`;
+        
+        message += pickupInfo;
+        if (bLink) {
+            const mapLabel = lang === 'uz' ? "📍 Xaritada ko'rish" : "📍 Посмотреть на карте";
+            message += `\n\n[${mapLabel}](${bLink})`;
+        }
+    }
+
+    // 3. Payment Ledger Section
+    const logs = order.payment_logs || [];
+    if (logs.length > 0) {
+        message += `\n\n${clientLabels.history}\n`;
+        logs.forEach((log: any) => {
+            const amt = Number(log.amount);
+            const sign = amt >= 0 ? '+' : '';
+            message += `▫️ ${sign}${amt.toLocaleString()} ${clientLabels.som}\n`;
+        });
+    }
+
+    // 4. Totals Section
+    const depositAmount = Number(order.deposit_amount ?? 0);
+    const finalPayment = Number(order.final_payment_amount ?? 0);
+    const totalPaid = depositAmount + finalPayment;
+    const totalPrice = Number(order.total_price ?? 0);
+    
+    if (totalPaid > 0 || order.status === 'completed') {
+        const totalsLine = `\n✅ *${clientLabels.totalPaid}:* ${totalPaid.toLocaleString()} / ${totalPrice.toLocaleString()} ${clientLabels.som}`;
+        message += totalsLine;
+    } else if (order.status === 'confirmed' && depositAmount === 0) {
+         const noDepositInfo = lang === 'uz'
+                ? `\n\n⚠️ _Avans to'lovi haqida menejer siz bilan bog'lanadi._`
+                : `\n\n⚠️ _Менеджер свяжется с вами по вопросу предоплаты._`;
+         message += noDepositInfo;
+    }
+
+    return message;
+};
