@@ -154,6 +154,11 @@ export function DesignStep() {
         <div className={styles.stepContainer}>
             <h2 className={styles.stepTitle}>{t('stepDesign')}</h2>
 
+            <div className={styles.optionalBanner}>
+                <Info size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
+                <span>{t('designOptionalNote')}</span>
+            </div>
+
             {/* 1. Upload Photo */}
             <div className={styles.designSection}>
                 <div className={styles.uploadWrapper}>
@@ -197,10 +202,10 @@ export function DesignStep() {
             {/* 3. Drawing Tool */}
             <div className={styles.designSection}>
                 <div className={styles.drawingHeader}>
-                    <label className={styles.commentLabel}>3. {t('drawingMode')}</label>
+                    <label className={styles.commentLabel}>3. {t('drawingRefLabel')}</label>
                     <button
                         className={styles.toggleBtn}
-                        style={{ width: 'auto', padding: '6px 12px' }}
+                        style={{ width: 'auto', padding: '8px 12px' }}
                         onClick={() => setIsDrawingOpen(!isDrawingOpen)}
                     >
                         {isDrawingOpen ? <X size={16} /> : <Pencil size={16} />}
