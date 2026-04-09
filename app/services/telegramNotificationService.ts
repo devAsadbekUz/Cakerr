@@ -283,7 +283,22 @@ export async function notifyCustomerPaymentReceived(orderId: string, increment: 
     const clientLang = resolveTgLang(profile.tg_lang);
     const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
-    // 1. Delete previous message
+    // 1. Fetch ALL payment logs for this order to build the ledger list
+    const { data: logs } = await serviceClient
+        .from('order_payment_logs')
+        .select('amount, event_type')
+        .eq('order_id', orderId)
+        .order('created_at', { ascending: true });
+
+    // 2. Format the ledger string
+    const currency = clientLang === 'uz' ? "so'm" : "сум";
+    const ledgerLines = (logs || []).map(log => {
+        const amt = Number(log.amount);
+        const sign = amt >= 0 ? '+' : '';
+        return `▫️ ${sign}${amt.toLocaleString()} ${currency}`;
+    }).join('\n');
+
+    // 3. Delete previous message
     if (order.client_tg_message_id) {
         try {
             await fetch(`${TELEGRAM_API}/deleteMessage`, {
@@ -297,16 +312,17 @@ export async function notifyCustomerPaymentReceived(orderId: string, increment: 
         } catch (e) { console.error('[notifyPayment] Delete failed', e); }
     }
 
-    // 2. Build message
+    // 4. Build message
     const totalPaid = (Number(order.deposit_amount ?? 0)) + (Number(order.final_payment_amount ?? 0));
     const totalPrice = Number(order.total_price ?? 0);
-    const sign = increment >= 0 ? '+' : '';
 
-    const text = clientLang === 'uz'
-        ? `💰 *To'lov qabul qilindi!*\n\nSizdan ${sign}${increment.toLocaleString()} so'm qabul qilindi.\n\n✅ *Jami to'landi:* ${totalPaid.toLocaleString()} / ${totalPrice.toLocaleString()} so'm`
-        : `💰 *Платёж принят!*\n\nОт вас получено ${sign}${increment.toLocaleString()} сум.\n\n✅ *Всего оплачено:* ${totalPaid.toLocaleString()} / ${totalPrice.toLocaleString()} сум`;
+    const title = clientLang === 'uz' ? `💰 *To'lov qabul qilindi!*` : `💰 *Платёж принят!*`;
+    const ledgerTitle = clientLang === 'uz' ? `*To'lovlar tarixi:*` : `*История платежей:*`;
+    const totalLabel = clientLang === 'uz' ? `✅ *Jami to'landi:*` : `✅ *Всего оплачено:*`;
 
-    // 3. Send new message
+    const text = `${title}\n\n${ledgerTitle}\n${ledgerLines}\n\n${totalLabel} ${totalPaid.toLocaleString()} / ${totalPrice.toLocaleString()} ${currency}`;
+
+    // 5. Send new message
     try {
         const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
             method: 'POST',
