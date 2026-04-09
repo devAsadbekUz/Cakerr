@@ -21,10 +21,12 @@ export const adminTranslations = {
         selectTime: "Vaqtni tanlang",
         orderNotePlaceholder: "Buyurtma bo'yicha qo'shimcha izoh...",
         orderConfirmedNum: "Buyurtma #{id} tasdiqlandi!",
-        confirmPriceFirst: "📸 Tasdiqlash uchun avval tort narxini rasm bo'yicha belgilang.",
+        confirmPriceFirst: "Tasdiqlashdan avval barcha maxsus mahsulotlar narxini belgilang.",
         setPrice: "Narxni belgilash →",
+        priceSet: "Narx belgilandi",
         yuklanmoqda: "Yuklanmoqda...",
         som: "so'm",
+        negotiable: "Kelishiladi",
         deliveryFee: "yetkazib berish narxi",
         
         // Forms
@@ -457,10 +459,12 @@ export const adminTranslations = {
         selectTime: "Выберите время",
         orderNotePlaceholder: "Доп. комментарий к заказу...",
         orderConfirmedNum: "Заказ #{id} подтвержден!",
-        confirmPriceFirst: "📸 Для подтверждения сначала установите цену торта по фото.",
+        confirmPriceFirst: "Перед подтверждением установите цену для всех особых товаров.",
         setPrice: "Установить цену →",
+        priceSet: "Цена установлена",
         yuklanmoqda: "Загрузка...",
         som: "сум",
+        negotiable: "Договорная",
         deliveryFee: "стоимость доставки",
         
         // Forms

@@ -8,7 +8,8 @@ import { format } from 'date-fns';
 import {
     XCircle, MapPinned, Calendar as CalendarIcon, PackageCheck,
     CheckCircle2, Utensils, Truck, CheckCircle, ZoomIn, History,
-    Banknote, CreditCard, Coins, Tag, AlertTriangle, Receipt, AlertCircle
+    Banknote, CreditCard, Coins, Tag, AlertTriangle, Receipt, AlertCircle,
+    Check, X, Loader2
 } from 'lucide-react';
 import { useAdminI18n } from '@/app/context/AdminLanguageContext';
 import type { AdminOrderItem, AdminOrderCardData } from '@/app/types/admin-order';
@@ -64,6 +65,43 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
     const [cancelConfirm, setCancelConfirm] = useState(false);
     const [depositModalOpen, setDepositModalOpen] = useState(false);
     const [finalModalOpen, setFinalModalOpen] = useState(false);
+
+    // Inline price editing state
+    const [editingItemId, setEditingItemId] = useState<string | null>(null);
+    const [editValue, setEditValue] = useState<string>('');
+    const [isSavingPrice, setIsSavingPrice] = useState(false);
+
+    const handleSavePrice = async (itemId: string) => {
+        const price = parseFloat(editValue);
+        if (isNaN(price) || price < 0) return;
+
+        setIsSavingPrice(true);
+        try {
+            const response = await fetch(`/api/admin/orders/${order.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ item_id: itemId, unit_price: price })
+            });
+
+            if (!response.ok) throw new Error('Failed to update price');
+            
+            // Successfully updated price! 
+            // We need to refresh the UI. Since the Dashboard parent usually
+            // handles data fetching, we can call refresh if it's passed or
+            // just clear the state and wait for the next periodic refresh.
+            // Better: let's use router.refresh() to trigger server component update if applicable
+            // or just rely on the parent's poll if it exists.
+            setEditingItemId(null);
+            router.refresh(); 
+            // NOTE: In many cases on this project, we might need a more direct way
+            // to update the order object prop. For now, clearing state is first step.
+        } catch (err) {
+            console.error('[OrderDetailsModal] Save error:', err);
+            alert('Xatolik yuz berdi narxni saqlashda');
+        } finally {
+            setIsSavingPrice(false);
+        }
+    };
 
     const statusLabels = useMemo(() => ({
         new: t('status_new'),
@@ -380,8 +418,55 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                                                 )}
                                             </div>
                                             <div className={styles.itemPriceQty}>
-                                                <div className={styles.itemPrice} style={{ fontVariantNumeric: 'tabular-nums' }}>
-                                                    {((item.unit_price || 0) * item.quantity).toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}
+                                                <div className={styles.itemPrice} style={{ fontVariantNumeric: 'tabular-nums', flex: 1 }}>
+                                                    {editingItemId === item.id ? (
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                            <input
+                                                                type="number"
+                                                                value={editValue}
+                                                                onChange={(e) => setEditValue(e.target.value)}
+                                                                className={styles.posSearchInput} // Reuse POS styles for basic input
+                                                                style={{ padding: '4px 8px', width: '90px', height: '32px', fontSize: '13px' }}
+                                                                autoFocus
+                                                                placeholder={t('price')}
+                                                            />
+                                                            <button 
+                                                                disabled={isSavingPrice}
+                                                                onClick={() => handleSavePrice(item.id)}
+                                                                style={{ padding: '6px', background: '#059669', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex' }}
+                                                            >
+                                                                {isSavingPrice ? <Loader2 size={16} className={styles.spinner} /> : <Check size={16} />}
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => setEditingItemId(null)}
+                                                                style={{ padding: '6px', background: '#EF4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex' }}
+                                                            >
+                                                                <X size={16} />
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            <span>
+                                                                {item.unit_price && item.unit_price > 0 ? (
+                                                                    <>{((item.unit_price || 0) * item.quantity).toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}</>
+                                                                ) : (
+                                                                    <span style={{ color: '#BE185D', fontWeight: 800 }}>{t('negotiable')}</span>
+                                                                )}
+                                                            </span>
+                                                            {order.status === 'new' && (
+                                                                <button 
+                                                                    onClick={() => { setEditingItemId(item.id); setEditValue(item.unit_price?.toString() || ''); }}
+                                                                    style={{ 
+                                                                        border: 'none', padding: '4px 8px', 
+                                                                        borderRadius: '6px', cursor: 'pointer', color: '#BE185D', 
+                                                                        fontSize: '11px', fontWeight: 700, background: '#FFF1F2' 
+                                                                    }}
+                                                                >
+                                                                    {item.unit_price && item.unit_price > 0 ? t('edit') : `🏷️ ${t('setPrice')}`}
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className={styles.itemQtyBadge} style={{ fontVariantNumeric: 'tabular-nums' }}>{item.quantity} {t('pcs')}</div>
                                             </div>
