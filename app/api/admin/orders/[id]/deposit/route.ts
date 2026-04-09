@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAdminVerified } from '@/app/utils/admin-auth';
 import { serviceClient } from '@/app/utils/supabase/service';
+import { notifyCustomerPaymentReceived } from '@/app/services/telegramNotificationService';
 
 /**
  * PATCH /api/admin/orders/[id]/deposit
@@ -19,21 +20,28 @@ export async function PATCH(
     const headersList = await request.headers;
     const adminName = headersList.get('x-admin-username') || 'System';
 
-    let deposit_amount: number;
+    let payment_increment: number;
     try {
         const body = await request.json();
-        deposit_amount = body.deposit_amount;
-        if (typeof deposit_amount !== 'number' || !Number.isInteger(deposit_amount) || deposit_amount < 0) {
-            return NextResponse.json({ error: 'deposit_amount must be a non-negative integer' }, { status: 400 });
+        payment_increment = body.payment_increment;
+        if (typeof payment_increment !== 'number' || !Number.isInteger(payment_increment)) {
+            return NextResponse.json({ error: 'payment_increment must be an integer' }, { status: 400 });
         }
     } catch {
         return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
     }
 
-    // Fetch current deposit to store as previous_amount in the log
+    // Fetch current deposit to calculate new total
     const { data: currentOrder, error: fetchError } = await serviceClient
         .from('orders')
-        .select('deposit_amount, total_price, status')
+        .select(`
+            deposit_amount, 
+            final_payment_amount, 
+            total_price, 
+            status,
+            client_tg_message_id,
+            profiles (telegram_id, tg_lang)
+        `)
         .eq('id', orderId)
         .single();
 
@@ -42,15 +50,16 @@ export async function PATCH(
     }
 
     const previousAmount = currentOrder.deposit_amount ?? 0;
+    const newTotal = previousAmount + payment_increment;
 
-    // Build update payload — if the order is cancelled, sync refund_needed with the new deposit amount
+    // Build update payload
     const updatePayload: Record<string, any> = {
-        deposit_amount,
+        deposit_amount: newTotal,
         updated_at: new Date().toISOString(),
         last_updated_by_name: adminName
     };
     if (currentOrder.status === 'cancelled') {
-        updatePayload.refund_needed = deposit_amount > 0;
+        updatePayload.refund_needed = newTotal > 0;
     }
 
     // Update the deposit amount on the order
@@ -66,18 +75,28 @@ export async function PATCH(
         return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
 
-    // Write audit log entry
+    // Write primary audit log entry as 'payment_added'
     const { error: logError } = await serviceClient.from('order_payment_logs').insert({
         order_id: orderId,
-        event_type: 'deposit_edited',
-        amount: deposit_amount,
-        previous_amount: previousAmount,
+        event_type: 'payment_added',
+        amount: payment_increment,
+        previous_amount: previousAmount, // context only
         recorded_by_name: adminName
     });
 
     if (logError) {
         console.error('[Deposit API] Log insert error:', logError);
-        // Non-fatal — the deposit was saved, just log the error
+    }
+
+    // Notify Customer about the payment
+    try {
+        // Pass the re-fetched order object so notice function has profile info
+        await notifyCustomerPaymentReceived(orderId, payment_increment, {
+            ...currentOrder,
+            deposit_amount: newTotal // use the updated total for display
+        });
+    } catch (notifErr) {
+        console.error('[Deposit API] Notify error:', notifErr);
     }
 
     return NextResponse.json({ success: true, order: updatedOrder });

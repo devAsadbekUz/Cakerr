@@ -168,9 +168,9 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         }
     };
 
-    const handleEditDeposit = async () => {
-        const newAmount = parseInt(editDepositValue.replace(/\D/g, ''), 10);
-        if (isNaN(newAmount) || newAmount < 0) {
+    const handleAddPayment = async () => {
+        const increment = parseInt(editDepositValue.replace(/[^\d-]/g, ''), 10);
+        if (isNaN(increment) || (increment === 0)) {
             setEditDepositError(lang === 'uz' ? "Noto'g'ri summa" : "Неверная сумма");
             return;
         }
@@ -181,14 +181,13 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ deposit_amount: newAmount })
+                body: JSON.stringify({ payment_increment: increment })
             });
             if (!res.ok) {
                 const data = await res.json();
                 setEditDepositError(data.error || 'Error');
                 return;
             }
-            // Refresh order data to show updated values
             await fetchData();
             setEditDepositOpen(false);
             setEditDepositValue('');
@@ -363,7 +362,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                     </span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px' }}>
-                                    <span style={{ color: '#6B7280' }}>{lang === 'uz' ? "Avans to'lovi:" : "Аванс:"}</span>
+                                    <span style={{ color: '#6B7280' }}>{t('totalPaid')}:</span>
                                     <span style={{ fontWeight: 800, color: '#16A34A', fontVariantNumeric: 'tabular-nums' }}>
                                         {depositAmount.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}
                                     </span>
@@ -388,24 +387,24 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 {!editDepositOpen ? (
                                     <button
                                         onClick={() => {
-                                            setEditDepositValue(String(depositAmount));
+                                            setEditDepositValue('');
                                             setEditDepositError(null);
                                             setEditDepositOpen(true);
                                         }}
                                         style={{
                                             display: 'flex', alignItems: 'center', gap: '8px',
                                             padding: '9px 16px', borderRadius: '9px', border: '1.5px solid #E5E7EB',
-                                            background: 'white', color: '#374151', fontWeight: 700,
+                                            background: 'white', color: '#BE185D', fontWeight: 700,
                                             fontSize: '13px', cursor: 'pointer'
                                         }}
                                     >
-                                        <Pencil size={14} />
-                                        {lang === 'uz' ? "Avansni tahrirlash" : "Редактировать аванс"}
+                                        <CheckCircle2 size={14} />
+                                        {t('addPayment')}
                                     </button>
                                 ) : (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                         <label style={{ fontSize: '13px', fontWeight: 700, color: '#374151' }}>
-                                            {lang === 'uz' ? "Yangi avans summasi (so'm):" : "Новая сумма аванса (сум):"}
+                                            {t('paymentIncrementLabel')}
                                         </label>
                                         <div style={{ display: 'flex', gap: '8px' }}>
                                             <input
@@ -413,9 +412,10 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                 inputMode="numeric"
                                                 value={editDepositValue}
                                                 onChange={e => {
-                                                    setEditDepositValue(e.target.value.replace(/\D/g, ''));
+                                                    setEditDepositValue(e.target.value.replace(/[^\d-]/g, ''));
                                                     setEditDepositError(null);
                                                 }}
+                                                placeholder="80000"
                                                 style={{
                                                     flex: 1, padding: '10px 12px', borderRadius: '8px',
                                                     border: `1.5px solid ${editDepositError ? '#EF4444' : '#E5E7EB'}`,
@@ -425,7 +425,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                 autoFocus
                                             />
                                             <button
-                                                onClick={handleEditDeposit}
+                                                onClick={handleAddPayment}
                                                 disabled={editDepositLoading}
                                                 style={{
                                                     padding: '10px 18px', borderRadius: '8px', border: 'none',
@@ -433,7 +433,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                     fontSize: '14px', cursor: 'pointer'
                                                 }}
                                             >
-                                                {editDepositLoading ? '...' : (lang === 'uz' ? "Saqlash" : "Сохранить")}
+                                                {editDepositLoading ? '...' : t('add')}
                                             </button>
                                             <button
                                                 onClick={() => { setEditDepositOpen(false); setEditDepositError(null); }}

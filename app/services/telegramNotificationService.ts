@@ -268,3 +268,65 @@ export async function notifyAdminNewOrder(orderId: string): Promise<boolean> {
         return false;
     }
 }
+
+/**
+ * Notifies the customer whenever a partial payment is added by the admin.
+ * Uses the same "Delete and Replace" pattern to keep the chat clean.
+ */
+export async function notifyCustomerPaymentReceived(orderId: string, increment: number, order: any): Promise<void> {
+    const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+    if (!TELEGRAM_BOT_TOKEN) return;
+
+    const profile = Array.isArray(order.profiles) ? order.profiles[0] : order.profiles;
+    if (!profile || !profile.telegram_id) return;
+
+    const clientLang = resolveTgLang(profile.tg_lang);
+    const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
+
+    // 1. Delete previous message
+    if (order.client_tg_message_id) {
+        try {
+            await fetch(`${TELEGRAM_API}/deleteMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: profile.telegram_id,
+                    message_id: order.client_tg_message_id
+                })
+            });
+        } catch (e) { console.error('[notifyPayment] Delete failed', e); }
+    }
+
+    // 2. Build message
+    const totalPaid = (Number(order.deposit_amount ?? 0)) + (Number(order.final_payment_amount ?? 0));
+    const totalPrice = Number(order.total_price ?? 0);
+    const sign = increment >= 0 ? '+' : '';
+
+    const text = clientLang === 'uz'
+        ? `💰 *To'lov qabul qilindi!*\n\nSizdan ${sign}${increment.toLocaleString()} so'm qabul qilindi.\n\n✅ *Jami to'landi:* ${totalPaid.toLocaleString()} / ${totalPrice.toLocaleString()} so'm`
+        : `💰 *Платёж принят!*\n\nОт вас получено ${sign}${increment.toLocaleString()} сум.\n\n✅ *Всего оплачено:* ${totalPaid.toLocaleString()} / ${totalPrice.toLocaleString()} сум`;
+
+    // 3. Send new message
+    try {
+        const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: profile.telegram_id,
+                text,
+                parse_mode: 'Markdown'
+            })
+        });
+
+        if (res.ok) {
+            const result = await res.json();
+            // Update order with NEW message ID
+            await serviceClient
+                .from('orders')
+                .update({ client_tg_message_id: result.result.message_id })
+                .eq('id', orderId);
+        }
+    } catch (err) {
+        console.error('[notifyPayment] Send error', err);
+    }
+}
