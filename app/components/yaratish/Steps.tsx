@@ -311,7 +311,7 @@ export function NachinkaStep() {
  * Step 4: Size - Filtered by parent cake type
  */
 export function SizeStep() {
-    const { size, setSize, cakeType, nachinka, options } = useCustomCake();
+    const { size, setSize, cakeType, nachinka, options, isFullyPriced } = useCustomCake();
     const { t, lang } = useLanguage();
 
     // Filter sizes by parent cake type AND/OR selected nachinka
@@ -364,10 +364,12 @@ export function SizeStep() {
                     </div>
                 )}
             </div>
-            <div className={styles.pricingNote}>
-                <Info size={18} />
-                {t('customPriceNote')}
-            </div>
+            {!isFullyPriced && (
+                <div className={styles.pricingNote}>
+                    <Info size={18} />
+                    {t('customPriceNote')}
+                </div>
+            )}
         </div>
     );
 }
@@ -376,7 +378,7 @@ export function SizeStep() {
  * Final Step: Review
  */
 export function ReviewStep() {
-    const { cakeType, nachinka, size, photoRef, comment, drawingData, options } = useCustomCake();
+    const { cakeType, nachinka, size, photoRef, comment, drawingData, options, isFullyPriced } = useCustomCake();
     const { t, lang } = useLanguage();
 
     const getOptionLabel = (id: string | null) => {
@@ -430,19 +432,21 @@ export function ReviewStep() {
                 )}
             </div>
 
-            <div style={{
-                marginTop: '12px',
-                padding: '16px',
-                background: '#FDF2F8',
-                borderRadius: '20px',
-                textAlign: 'center',
-                color: '#BE185D',
-                fontWeight: 600,
-                fontSize: '14px',
-                border: '1.5px dashed #FCE7F3'
-            }}>
-                {t('customPriceNote')}
-            </div>
+            {!isFullyPriced && (
+                <div style={{
+                    marginTop: '12px',
+                    padding: '16px',
+                    background: '#FDF2F8',
+                    borderRadius: '20px',
+                    textAlign: 'center',
+                    color: '#BE185D',
+                    fontWeight: 600,
+                    fontSize: '14px',
+                    border: '1.5px dashed #FCE7F3'
+                }}>
+                    {t('customPriceNote')}
+                </div>
+            )}
         </div>
     );
 }

@@ -36,6 +36,7 @@ interface CustomCakeContextType extends CustomCakeState {
     prevStep: () => void;
     reset: () => void;
     calculateTotal: () => number;
+    isFullyPriced: boolean;
 }
 
 const initialState: CustomCakeState = {
@@ -88,6 +89,14 @@ export function CustomCakeProvider({ children }: { children: ReactNode }) {
         }, 0);
     }, [state.cakeType, state.nachinka, state.size, state.options]);
 
+    const isFullyPriced = useMemo(() => {
+        const selectedIds = [state.cakeType, state.nachinka, state.size].filter(Boolean);
+        if (selectedIds.length < 3) return false;
+
+        const selectedOptions = state.options.filter(o => selectedIds.includes(o.id));
+        return selectedOptions.every(o => (Number(o.price) || 0) > 0);
+    }, [state.cakeType, state.nachinka, state.size, state.options]);
+
     const value = useMemo(() => ({
         ...state,
         setMode,
@@ -102,7 +111,8 @@ export function CustomCakeProvider({ children }: { children: ReactNode }) {
         prevStep,
         reset,
         calculateTotal,
-    }), [state]);
+        isFullyPriced,
+    }), [state, isFullyPriced, setMode, setCakeType, setPhotoRef, setComment, setNachinka, setSize, setDrawingData, setOptions, nextStep, prevStep, reset, calculateTotal]);
 
     return (
         <CustomCakeContext.Provider value={value}>

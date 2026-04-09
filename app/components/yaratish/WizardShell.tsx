@@ -33,7 +33,8 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
         options,
         setOptions,
         calculateTotal,
-        reset
+        reset,
+        isFullyPriced
     } = useCustomCake();
     const { step, nextStep, prevStep } = useCustomCake();
     const { addItem } = useCartActions();
@@ -170,7 +171,9 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
 
             <footer className={styles.footer}>
                 <div className={styles.priceInfo}>
-                    <span className={styles.priceLabel}>{t('estimatedPrice')}:</span>
+                    <span className={styles.priceLabel}>
+                        {isFullyPriced ? t('estimatedPrice').replace('*', '') : t('estimatedPrice')}:
+                    </span>
                     <span className={styles.priceValue}>
                         {calculateTotal() > 0 ? (
                             <>{calculateTotal().toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}</>
