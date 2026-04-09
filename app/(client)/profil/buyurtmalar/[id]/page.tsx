@@ -10,6 +10,7 @@ import { getLocalized } from '@/app/utils/i18n';
 import { createClient } from '@/app/utils/supabase/client';
 import { getAuthHeader } from '@/app/utils/telegram';
 import { useSupabase } from '@/app/context/AuthContext';
+import { TELEGRAM_CONFIG } from '@/app/utils/telegramConfig';
 
 // This matches the status structure for future backend integration
 import { ORDER_STATUSES as CENTRAL_STATUSES, getStatusConfig } from '@/app/utils/orderConfig';
@@ -271,6 +272,36 @@ export default function TrackingPage() {
                             </div>
                             <div className={styles.progressText}>
                                 {order.currentStep + 1} / {order.totalSteps}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Dedicated Support Card */}
+                    <div className={styles.card} style={{ border: '1px solid #FECDD3', background: 'linear-gradient(to right, #FFF1F2, #FFE4E6)' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                            <div style={{ background: '#BE185D', color: 'white', padding: '10px', borderRadius: '12px', display: 'flex' }}>
+                                <AlertCircle size={20} />
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#9D174D', margin: '0 0 4px' }}>
+                                    {t('needHelpTitle')}
+                                </h3>
+                                <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                                    <a 
+                                        href={TELEGRAM_CONFIG.supportLink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px', background: 'white', border: '1px solid #FDA4AF', borderRadius: '10px', color: '#BE185D', fontSize: '13px', fontWeight: 600, textDecoration: 'none' }}
+                                    >
+                                        {t('contactTelegram')}
+                                    </a>
+                                    <a 
+                                        href="tel:+998901234567"
+                                        style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px', background: '#BE185D', color: 'white', borderRadius: '10px', fontSize: '13px', fontWeight: 600, textDecoration: 'none' }}
+                                    >
+                                        {t('contactPhone')}
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>

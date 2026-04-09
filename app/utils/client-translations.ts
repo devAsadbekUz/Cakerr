@@ -293,6 +293,10 @@ const uz: Record<string, string | string[]> = {
     drawingRefLabel: "Chizma",
     adminMayChange: "Admin tomonidan o'zgartirilishi mumkin",
     customPriceNote: "🎂 Maxsus tort narxi buyurtma berilganidan so'ng admin bilan kelishiladi.",
+    selectTimeError: "Vaqtni tanlashni unutdingiz!",
+    needHelpTitle: "Sizga yordam kerakmi?",
+    contactTelegram: "Telegram orqali",
+    contactPhone: "Qo'ng'iroq qilish",
 };
 
 const ru: Record<string, string | string[]> = {
@@ -586,6 +590,10 @@ const ru: Record<string, string | string[]> = {
     drawingRefLabel: "Эскиз",
     adminMayChange: "Может быть изменено администратором",
     customPriceNote: "🎂 Цена особого торта будет согласована с админом после оформления заказа.",
+    selectTimeError: "Вы забыли выбрать время доставки!",
+    needHelpTitle: "Нужна помощь?",
+    contactTelegram: "Через Telegram",
+    contactPhone: "Позвонить",
 };
 
 export const clientTranslations: Record<Language, Record<string, string | string[]>> = { uz, ru };
