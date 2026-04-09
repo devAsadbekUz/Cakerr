@@ -159,6 +159,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                 return;
             }
             await fetchData();
+            router.refresh();
             setEditPriceItemId(null);
             setEditPriceValue('');
         } catch {

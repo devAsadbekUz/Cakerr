@@ -9,7 +9,8 @@ export const orderService = {
             if (limit) params.set('limit', String(limit));
             const url = `/api/admin/orders?${params.toString()}`;
             const response = await fetch(url, {
-                credentials: 'include'
+                credentials: 'include',
+                cache: 'no-store'
             });
 
             if (!response.ok) {
@@ -29,7 +30,8 @@ export const orderService = {
         try {
             const url = filterDays ? `/api/admin/orders?days=${filterDays}` : '/api/admin/orders';
             const response = await fetch(url, {
-                credentials: 'include'
+                credentials: 'include',
+                cache: 'no-store'
             });
 
             if (!response.ok) {
@@ -48,7 +50,8 @@ export const orderService = {
     async getOrderAdmin(orderId: string) {
         try {
             const response = await fetch(`/api/admin/orders/${orderId}`, {
-                credentials: 'include'
+                credentials: 'include',
+                cache: 'no-store'
             });
 
             if (!response.ok) {
@@ -67,7 +70,8 @@ export const orderService = {
     async getOrderLogsAdmin(orderId: string) {
         try {
             const response = await fetch(`/api/admin/orders/${orderId}/logs`, {
-                credentials: 'include'
+                credentials: 'include',
+                cache: 'no-store'
             });
 
             if (!response.ok) {

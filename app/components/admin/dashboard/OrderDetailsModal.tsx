@@ -80,6 +80,8 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
             const response = await fetch(`/api/admin/orders/${order.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                cache: 'no-store',
                 body: JSON.stringify({ item_id: itemId, unit_price: price })
             });
 
