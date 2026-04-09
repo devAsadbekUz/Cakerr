@@ -110,9 +110,16 @@ export async function updateOrderStatusAction(
                 user_id,
                 profiles (full_name, phone_number, telegram_id, tg_lang),
                 branches (name_uz, name_ru, address_uz, address_ru, location_link),
-                order_items (*)
+                order_items (*),
+                order_payment_logs (*)
             `)
             .single();
+
+        if (order) {
+            (order as any).payment_logs = (order.order_payment_logs || []).sort(
+                (a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            );
+        }
 
         if (updateError) {
             console.error('[Admin Order Action] Update error:', updateError);

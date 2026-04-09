@@ -341,8 +341,71 @@ export async function notifyCustomerPaymentReceived(orderId: string, increment: 
                 .from('orders')
                 .update({ client_tg_message_id: result.result.message_id })
                 .eq('id', orderId);
+            
+            // 6. SYNC: Update the Admin Group message as well
+            await updateAdminOrderMessage(orderId);
         }
     } catch (err) {
         console.error('[notifyPayment] Send error', err);
+    }
+}
+
+/**
+ * Re-fetches an order with its complete ledger and updates the corresponding
+ * message in the Admin Telegram Group.
+ */
+export async function updateAdminOrderMessage(orderId: string): Promise<void> {
+    const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+    if (!TELEGRAM_BOT_TOKEN) return;
+    const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
+
+    try {
+        // 1. Fetch complete order details including items, profile AND payment logs
+        const { data: order, error: fetchError } = await serviceClient
+            .from('orders')
+            .select(`
+                *,
+                profiles (full_name, phone_number, telegram_id, tg_lang),
+                branches (name_uz, name_ru, address_uz, address_ru, location_link),
+                order_items (*),
+                order_payment_logs (*)
+            `)
+            .eq('id', orderId)
+            .single();
+
+        if (fetchError || !order || !order.telegram_message_id || !order.telegram_chat_id) {
+            return;
+        }
+
+        // 2. Attach sorted payment logs to order object for the builder
+        order.payment_logs = (order.order_payment_logs || []).sort(
+            (a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+
+        // 3. Resolve language (Admin group follows Admin's language setting primarily)
+        const { data: settings } = await serviceClient.from('app_settings').select('value').eq('key', 'admin_tg_lang').single();
+        const lang = resolveOrderLanguage({
+            adminPreferredLang: settings?.value,
+            orderSavedLang: order.delivery_address?.lang,
+            fallbackLang: 'uz'
+        });
+
+        // 4. Build and send edit request
+        const text = buildOrderMessage(order, lang);
+        const inline_keyboard = getTelegramButtons(order.status, orderId, lang, order);
+
+        await fetch(`${TELEGRAM_API}/editMessageText`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: order.telegram_chat_id,
+                message_id: order.telegram_message_id,
+                text,
+                parse_mode: 'Markdown',
+                reply_markup: { inline_keyboard }
+            })
+        });
+    } catch (err) {
+        console.error('[updateAdminOrderMessage] Error:', err);
     }
 }

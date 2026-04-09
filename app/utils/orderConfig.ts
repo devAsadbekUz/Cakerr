@@ -284,17 +284,31 @@ export const buildOrderMessage = (order: any, lang: 'uz' | 'ru' = 'uz') => {
     const isConfirmedPlus = confirmedStatuses.includes(order.status);
 
     if (isConfirmedPlus) {
-        if (depositAmount > 0) {
-            const remaining = Math.max(0, Number(order.total_price ?? 0) - depositAmount);
-            const depositLabel = lang === 'uz' ? 'Avans' : 'Аванс';
+        if (depositAmount > 0 || order.payment_logs?.length > 0) {
+            const depositLabel = lang === 'uz' ? 'To\'lovlar' : 'Оплаты';
             const remainingLabel = lang === 'uz' ? 'Qoldiq' : 'Остаток';
-            messageText += `\n💵 *${depositLabel}:* ${depositAmount.toLocaleString()} ${t.som}`;
+            
+            // If we have detailed logs, show the ledger. Otherwise fallback to simple total.
+            let paymentSection = `\n💰 *${depositLabel}:*`;
+            if (order.payment_logs && order.payment_logs.length > 0) {
+                order.payment_logs.forEach((log: any) => {
+                    const amt = Number(log.amount);
+                    const sign = amt >= 0 ? '+' : '';
+                    const recordedBy = log.recorded_by_name ? ` (${tgEscape(log.recorded_by_name)})` : '';
+                    paymentSection += `\n  • ${sign}${amt.toLocaleString()} ${t.som}${recordedBy}`;
+                });
+            } else {
+                paymentSection += ` ${depositAmount.toLocaleString()} ${t.som}`;
+            }
+
+            const remaining = Math.max(0, Number(order.total_price ?? 0) - depositAmount);
             if (order.status === 'completed' && finalPayment > 0) {
                 const finalLabel = lang === 'uz' ? "Yakuniy to'lov" : 'Итог. оплата';
-                messageText += ` | *${finalLabel}:* ${finalPayment.toLocaleString()} ${t.som}`;
+                paymentSection += `\n💵 *${finalLabel}:* ${finalPayment.toLocaleString()} ${t.som}`;
             } else if (remaining > 0) {
-                messageText += ` | *${remainingLabel}:* ${remaining.toLocaleString()} ${t.som}`;
+                paymentSection += `\n💰 *${remainingLabel}:* ${remaining.toLocaleString()} ${t.som}`;
             }
+            messageText += paymentSection;
         } else if (order.status !== 'completed') {
             const noDepositLabel = lang === 'uz' ? 'Avans qabul qilinmagan' : 'Аванс не получен';
             messageText += `\n⚠️ _${noDepositLabel}_`;
