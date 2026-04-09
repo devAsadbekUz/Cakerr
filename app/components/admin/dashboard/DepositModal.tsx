@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Banknote, X } from 'lucide-react';
+import { Banknote, X, AlertTriangle } from 'lucide-react';
 
 type Props = {
     isOpen: boolean;
@@ -102,15 +102,28 @@ export function DepositModal({ isOpen, onClose, onConfirm, totalPrice, lang, dis
 
                 {/* Total reference */}
                 <div style={{
-                    background: '#F9FAFB', borderRadius: '12px', padding: '12px 16px',
+                    background: totalPrice === 0 ? '#FFF7ED' : '#F9FAFB', 
+                    borderRadius: '12px', padding: '12px 16px',
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    marginBottom: '16px', border: '1px solid #E5E7EB'
+                    marginBottom: '16px', border: `1px solid ${totalPrice === 0 ? '#FDBA74' : '#E5E7EB'}`
                 }}>
                     <span style={{ fontSize: '14px', color: '#6B7280', fontWeight: 600 }}>{c.totalLabel}</span>
                     <span style={{ fontSize: '16px', fontWeight: 800, color: '#BE185D', fontVariantNumeric: 'tabular-nums' }}>
                         {totalPrice.toLocaleString('en-US')} {c.som}
                     </span>
                 </div>
+
+                {totalPrice === 0 && (
+                    <div style={{ 
+                        marginBottom: '16px', padding: '10px 12px', background: '#FEF2F2', 
+                        border: '1px solid #FECACA', borderRadius: '10px', 
+                        fontSize: '13px', color: '#991B1B', fontWeight: 600,
+                        display: 'flex', alignItems: 'center', gap: '8px'
+                    }}>
+                        <AlertTriangle size={16} />
+                        {lang === 'uz' ? "Narx belgilanmagan. Avval narxni kiriting." : "Цена не установлена. Сначала установите цену."}
+                    </div>
+                )}
 
                 {/* Input */}
                 <div style={{ marginBottom: '8px' }}>
@@ -160,13 +173,13 @@ export function DepositModal({ isOpen, onClose, onConfirm, totalPrice, lang, dis
                     </button>
                     <button
                         onClick={handleConfirm}
-                        disabled={disabled || amount <= 0}
+                        disabled={disabled || amount <= 0 || totalPrice === 0}
                         style={{
                             flex: 2, padding: '12px', borderRadius: '10px', border: 'none',
-                            background: amount > 0 ? '#16A34A' : '#D1FAE5',
-                            color: amount > 0 ? 'white' : '#6EE7B7',
+                            background: (amount > 0 && totalPrice > 0) ? '#16A34A' : (totalPrice === 0 ? '#F3F4F6' : '#D1FAE5'),
+                            color: (amount > 0 && totalPrice > 0) ? 'white' : (totalPrice === 0 ? '#9CA3AF' : '#6EE7B7'),
                             fontWeight: 800, fontSize: '14px',
-                            cursor: amount > 0 ? 'pointer' : 'not-allowed',
+                            cursor: (amount > 0 && totalPrice > 0) ? 'pointer' : 'not-allowed',
                             transition: 'background 0.15s'
                         }}
                     >

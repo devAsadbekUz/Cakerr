@@ -61,6 +61,11 @@ export const OrderCard = memo(function OrderCard({ order, compact, onUpdate, onS
     const remaining = Math.max(0, totalPrice - depositAmount);
     const showPaymentBadge = ['confirmed', 'preparing', 'ready', 'delivering', 'completed'].includes(order.status);
     const noDepositWarning = depositAmount === 0 && ['confirmed', 'preparing', 'ready', 'delivering'].includes(order.status);
+    
+    // Block confirmation if any item is a custom order with price not yet set
+    const hasUnpricedCustomItem = order.status === 'new' && order.order_items?.some(
+        item => (item.configuration?.mode === 'upload' || item.configuration?.mode === 'wizard') && (!item.unit_price || item.unit_price === 0)
+    );
 
     const handleConfirmClick = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -234,9 +239,26 @@ export const OrderCard = memo(function OrderCard({ order, compact, onUpdate, onS
 
                 <div className={styles.orderActionContainer} onClick={(e) => e.stopPropagation()}>
                     {order.status === 'new' && (
-                        <button disabled={disabled} onClick={handleConfirmClick} className={`${styles.orderActionBtn} ${styles.orderActionBtnPrimary}`}>
-                            <CheckCircle2 size={16} /> {t('confirmOrder')}
-                        </button>
+                        <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+                            <button 
+                                disabled={disabled || !!hasUnpricedCustomItem} 
+                                onClick={handleConfirmClick} 
+                                className={`${styles.orderActionBtn} ${styles.orderActionBtnPrimary}`}
+                                style={{ flex: 2 }}
+                                title={hasUnpricedCustomItem ? (lang === 'uz' ? 'Tasdiqlashdan avval narxni belgilang' : 'Установите цену перед подтверждением') : ''}
+                            >
+                                <CheckCircle2 size={16} /> {t('confirmOrder')}
+                            </button>
+                            {hasUnpricedCustomItem && (
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); onSelect(order); }} // Opens the modal where they can set price inline
+                                    className={styles.orderActionBtn} 
+                                    style={{ flex: 1, background: '#FFF1F2', color: '#BE185D', border: '1.5px solid #F9A8D4', fontSize: '12px' }}
+                                >
+                                    🏷️ {t('setPrice')}
+                                </button>
+                            )}
+                        </div>
                     )}
                     {order.status === 'confirmed' && (
                         <button disabled={disabled} onClick={(e) => { e.stopPropagation(); onUpdate(order.id, 'preparing'); }} className={`${styles.orderActionBtn} ${styles.orderActionBtnPreparing}`}>
