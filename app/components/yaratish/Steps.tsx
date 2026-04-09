@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useCustomCake } from '@/app/context/CustomCakeContext';
 import styles from './Steps.module.css';
 import {
-    Upload, MessageSquare, Pencil, Trash2, Check, 
+    Upload, MessageSquare, Pencil, Trash2, Check,
     X, Camera, Star, Info, Palette, Layers, Maximize
 } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
@@ -30,11 +30,11 @@ export function TypeStep() {
                     >
                         <div className={styles.typeImageWrapper}>
                             {type.image_url ? (
-                                <Image 
-                                    src={type.image_url} 
-                                    alt={lang === 'uz' ? type.label_uz : (type.label_ru || type.label_uz)} 
-                                    fill 
-                                    style={{ objectFit: 'cover' }} 
+                                <Image
+                                    src={type.image_url}
+                                    alt={lang === 'uz' ? type.label_uz : (type.label_ru || type.label_uz)}
+                                    fill
+                                    style={{ objectFit: 'cover' }}
                                 />
                             ) : (
                                 <div className={styles.iconWrapper} style={{ width: '100%', height: '100%', borderRadius: 0 }}>
@@ -44,6 +44,9 @@ export function TypeStep() {
                         </div>
                         <span className={styles.typeLabel}>
                             {lang === 'uz' ? type.label_uz : (type.label_ru || type.label_uz)}
+                        </span>
+                        <span className={styles.typePrice}>
+                            {Number(type.price) > 0 ? `+ ${Number(type.price).toLocaleString()} ${t('som')}` : t('negotiable')}
                         </span>
                     </div>
                 ))}
@@ -150,7 +153,7 @@ export function DesignStep() {
     return (
         <div className={styles.stepContainer}>
             <h2 className={styles.stepTitle}>{t('stepDesign')}</h2>
-            
+
             {/* 1. Upload Photo */}
             <div className={styles.designSection}>
                 <div className={styles.uploadWrapper}>
@@ -166,12 +169,12 @@ export function DesignStep() {
                         <div className={styles.uploadBtn} onClick={() => fileInputRef.current?.click()}>
                             <Camera size={32} />
                             <span>{t('uploadPhoto')}</span>
-                            <input 
-                                type="file" 
-                                ref={fileInputRef} 
-                                hidden 
-                                accept="image/*" 
-                                onChange={handleFileUpload} 
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                hidden
+                                accept="image/*"
+                                onChange={handleFileUpload}
                             />
                         </div>
                     )}
@@ -182,7 +185,7 @@ export function DesignStep() {
             <div className={styles.designSection}>
                 <div className={styles.commentWrapper}>
                     <label className={styles.commentLabel}>2. {t('commentLabel')}</label>
-                    <textarea 
+                    <textarea
                         className={styles.textarea}
                         value={comment}
                         onChange={(e) => setComment(e.target.value)}
@@ -195,8 +198,8 @@ export function DesignStep() {
             <div className={styles.designSection}>
                 <div className={styles.drawingHeader}>
                     <label className={styles.commentLabel}>3. {t('drawingMode')}</label>
-                    <button 
-                        className={styles.toggleBtn} 
+                    <button
+                        className={styles.toggleBtn}
                         style={{ width: 'auto', padding: '6px 12px' }}
                         onClick={() => setIsDrawingOpen(!isDrawingOpen)}
                     >
@@ -254,10 +257,10 @@ export function DesignStep() {
 export function NachinkaStep() {
     const { nachinka, setNachinka, cakeType, options } = useCustomCake();
     const { t, lang } = useLanguage();
-    
+
     // Filter nachinka by parent cake type using many-to-many relationship
-    const availableNachinkas = options.filter(o => 
-        o.type === 'nachinka' && 
+    const availableNachinkas = options.filter(o =>
+        o.type === 'nachinka' &&
         (!cakeType || (o.parent_ids || []).includes(cakeType))
     );
 
@@ -274,11 +277,11 @@ export function NachinkaStep() {
                         >
                             <div className={styles.typeImageWrapper}>
                                 {n.image_url ? (
-                                    <Image 
-                                        src={n.image_url} 
-                                        alt={lang === 'uz' ? n.label_uz : (n.label_ru || n.label_uz)} 
-                                        fill 
-                                        style={{ objectFit: 'cover' }} 
+                                    <Image
+                                        src={n.image_url}
+                                        alt={lang === 'uz' ? n.label_uz : (n.label_ru || n.label_uz)}
+                                        fill
+                                        style={{ objectFit: 'cover' }}
                                     />
                                 ) : (
                                     <div className={styles.iconWrapper} style={{ width: '100%', height: '100%', borderRadius: 0 }}>
@@ -288,6 +291,9 @@ export function NachinkaStep() {
                             </div>
                             <span className={styles.typeLabel}>
                                 {lang === 'uz' ? n.label_uz : (n.label_ru || n.label_uz)}
+                            </span>
+                            <span className={styles.typePrice}>
+                                {Number(n.price) > 0 ? `+ ${Number(n.price).toLocaleString()} ${t('som')}` : t('negotiable')}
                             </span>
                         </div>
                     ))
@@ -307,18 +313,18 @@ export function NachinkaStep() {
 export function SizeStep() {
     const { size, setSize, cakeType, nachinka, options } = useCustomCake();
     const { t, lang } = useLanguage();
-    
+
     // Filter sizes by parent cake type AND/OR selected nachinka
     const availableSizes = options.filter(o => {
         if (o.type !== 'size') return false;
-        
+
         // Multi-relational filtering:
         // 1. Must be compatible with the selected Cake Type
         const isTypeMatch = !cakeType || (o.parent_ids || []).includes(cakeType);
-        
+
         // 2. Must be compatible with the selected Nachinka
         const isNachinkaMatch = !nachinka || (o.parent_ids || []).includes(nachinka);
-        
+
         return isTypeMatch && isNachinkaMatch;
     });
 
@@ -345,6 +351,9 @@ export function SizeStep() {
                                         {lang === 'uz' ? s.sub_label_uz : (s.sub_label_ru || s.sub_label_uz)}
                                     </span>
                                 )}
+                            </div>
+                            <div className={styles.sizePrice}>
+                                {Number(s.price) > 0 ? `+ ${Number(s.price).toLocaleString()} ${t('som')}` : t('negotiable')}
                             </div>
                             {size === s.id && <Check size={24} color="#BE185D" />}
                         </div>
@@ -420,7 +429,7 @@ export function ReviewStep() {
                     </div>
                 )}
             </div>
-            
+
             <div style={{
                 marginTop: '12px',
                 padding: '16px',

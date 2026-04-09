@@ -57,12 +57,12 @@ export function CustomCakeProvider({ children }: { children: ReactNode }) {
 
     const setMode = useCallback((mode: BuilderMode) => setState(prev => ({ ...prev, mode: 'wizard' })), []);
 
-    const setCakeType = useCallback((cakeType: string | null) => setState(prev => ({ 
-        ...prev, 
+    const setCakeType = useCallback((cakeType: string | null) => setState(prev => ({
+        ...prev,
         cakeType,
         // Reset dependent fields if cake type changes
         nachinka: null,
-        size: null 
+        size: null
     })), []);
 
     const setPhotoRef = useCallback((photoRef: string | null) => setState(prev => ({ ...prev, photoRef })), []);
@@ -80,8 +80,13 @@ export function CustomCakeProvider({ children }: { children: ReactNode }) {
     const reset = useCallback(() => setState(initialState), []);
 
     const calculateTotal = useCallback(() => {
-        return 0;
-    }, []);
+        const selectedIds = [state.cakeType, state.nachinka, state.size].filter(Boolean);
+        const selectedOptions = state.options.filter(o => selectedIds.includes(o.id));
+        
+        return selectedOptions.reduce((sum, o) => {
+            return sum + (Number(o.price) || 0);
+        }, 0);
+    }, [state.cakeType, state.nachinka, state.size, state.options]);
 
     const value = useMemo(() => ({
         ...state,

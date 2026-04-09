@@ -12,17 +12,27 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 
-export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [lang, setLangState] = useState<Language>('uz');
+interface LanguageProviderProps {
+    children: React.ReactNode;
+    forcedLang?: Language;
+}
+
+export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children, forcedLang }) => {
+    const [lang, setLangState] = useState<Language>(forcedLang || 'uz');
 
     useEffect(() => {
+        if (forcedLang) {
+            setLangState(forcedLang);
+            return;
+        }
+
         const savedLang = localStorage.getItem('client-lang') as Language;
         if (savedLang && (savedLang === 'uz' || savedLang === 'ru')) {
             setLangState(savedLang);
             // Sync cookie so Server Components can read the correct language
             document.cookie = `client-lang=${savedLang}; path=/; max-age=31536000; SameSite=Lax`;
         }
-    }, []);
+    }, [forcedLang]);
 
     const setLang = (newLang: Language) => {
         setLangState(newLang);

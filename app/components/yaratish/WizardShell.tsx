@@ -92,12 +92,13 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
         const selectedType = options.find(o => o.id === cakeType);
         const selectedNachinka = options.find(o => o.id === nachinka);
         const selectedSize = options.find(o => o.id === size);
+        const estimated_total = calculateTotal();
 
         const item: any = {
             id: crypto.randomUUID(),
             productId: '00000000-0000-0000-0000-000000000000',
             name: t('customCake'),
-            price: 0,
+            price: estimated_total,
             quantity: 1,
             image: photoRef || selectedType?.image_url || '/images/custom-cake-placeholder.jpg',
             portion: lang === 'uz' ? selectedSize?.label_uz : selectedSize?.label_ru || selectedSize?.label_uz,
@@ -114,7 +115,7 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
                 custom_note: comment,
                 drawing: drawingData,
                 pricing_type: 'hybrid',
-                estimated_total: 0
+                estimated_total: estimated_total
             }
         };
 
@@ -128,11 +129,19 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
         router.push('/savat');
     };
 
+    // Reset builder when the shell is unmounted to prevent stale data
+    useEffect(() => {
+        return () => {
+            reset();
+        };
+    }, [reset]);
+
     const handleBack = () => {
         if (step === 1) {
-            router.push('/');
             if (onClose) {
                 onClose();
+            } else {
+                router.push('/');
             }
         } else {
             prevStep();
@@ -160,6 +169,16 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
             </main>
 
             <footer className={styles.footer}>
+                <div className={styles.priceInfo}>
+                    <span className={styles.priceLabel}>{t('estimatedPrice')}:</span>
+                    <span className={styles.priceValue}>
+                        {calculateTotal() > 0 ? (
+                            <>{calculateTotal().toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}</>
+                        ) : (
+                            t('negotiable')
+                        )}
+                    </span>
+                </div>
                 <div className={styles.buttonGroup}>
                     <button className={styles.prevBtn} onClick={handleBack}>
                         <ChevronLeft size={20} style={{ marginRight: 4 }} />

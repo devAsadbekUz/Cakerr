@@ -226,6 +226,14 @@
     text-align: center;
 }
 
+.typePrice {
+    font-size: 12px;
+    font-weight: 600;
+    color: #BE185D;
+    text-align: center;
+    font-style: italic;
+}
+
 /* Step 2 - Design Details */
 .designSection {
     background: white;

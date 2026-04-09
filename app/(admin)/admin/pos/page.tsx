@@ -28,6 +28,7 @@ import { createClient } from '@/app/utils/supabase/client';
 import { Product, Category } from '@/app/types';
 import { getLocalized } from '@/app/utils/i18n';
 import WizardShell from '@/app/components/yaratish/WizardShell';
+import { LanguageProvider } from '@/app/context/LanguageContext';
 // PhotoUploadForm removed
 import { POSProductDetailModal } from '@/app/components/admin/pos/POSProductDetailModal';
 import styles from './page.module.css';
@@ -380,7 +381,13 @@ export default function PosPage() {
                                                     <div className={styles.itemMeta}>
                                                         {item.portion} {item.flavor ? `• ${item.flavor}` : ''}
                                                     </div>
-                                                    <div className={styles.itemPrice}>{(Number(item.price) * item.quantity).toLocaleString()} {t('som')}</div>
+                                                    <div className={styles.itemPrice}>
+                                                         {!item.price ? (
+                                                             <span style={{ color: '#BE185D', fontStyle: 'italic' }}>{t('negotiable')}</span>
+                                                         ) : (
+                                                             <>{(Number(item.price) * item.quantity).toLocaleString()} {t('som')}</>
+                                                         )}
+                                                     </div>
                                                 </div>
                                                 <div className={styles.itemQuantity}>
                                                     <button 
@@ -411,7 +418,13 @@ export default function PosPage() {
                                     <div className={styles.cartSummaryMini}>
                                         <div className={styles.totalRowMini}>
                                             <span>{t('total')}:</span>
-                                            <span>{subtotal.toLocaleString()} {t('som')}</span>
+                                            <span>
+                                                 {cart.some(item => !item.price) ? (
+                                                     <span style={{ color: '#BE185D', fontStyle: 'italic', fontSize: '14px' }}>{t('negotiable')}</span>
+                                                 ) : (
+                                                     <>{subtotal.toLocaleString()} {t('som')}</>
+                                                 )}
+                                             </span>
                                         </div>
                                         <button 
                                             className={styles.nextBtn}
@@ -633,7 +646,9 @@ export default function PosPage() {
                             <X size={20} />
                         </button>
                         {showBuilder === 'wizard' && (
-                            <WizardShell onItemComplete={handleBuilderComplete} onClose={() => setShowBuilder(null)} />
+                            <LanguageProvider forcedLang={lang as any}>
+                                <WizardShell onItemComplete={handleBuilderComplete} onClose={() => { setShowBuilder(null); resetBuilder(); }} />
+                            </LanguageProvider>
                         )}
                     </div>
                 </div>
