@@ -156,17 +156,26 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
         <div className={styles.container}>
             <header className={styles.header}>
                 <h1 className={styles.title}>{t('createCake')}</h1>
-                <p>{STEPS[step - 1]?.title} - {step}/{STEPS.length}</p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', color: '#64748B', fontWeight: 600 }}>
+                    <span>{STEPS[step - 1]?.title}</span>
+                    <span>{step} / {STEPS.length}</span>
+                </div>
                 <div className={styles.progressContainer}>
-                    <div
-                        className={styles.progressBar}
-                        style={{ width: `${progress}%` }}
-                    />
+                    {STEPS.map((_, i) => (
+                        <div key={i} className={styles.progressSegment}>
+                            <div
+                                className={styles.progressFill}
+                                style={{ width: i + 1 <= step ? '100% ' : '0%' }}
+                            />
+                        </div>
+                    ))}
                 </div>
             </header>
 
-            <main className={styles.stepContent}>
-                <CurrentStepComponent />
+            <main className={styles.stepContent} key={step}>
+                <div className={styles.stepEnter}>
+                    <CurrentStepComponent />
+                </div>
             </main>
 
             <footer className={styles.footer}>

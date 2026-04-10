@@ -82,7 +82,7 @@ const SYSTEM_PROMPT = `Sen TORTEL'E yordamchi botisan — premium tort va shirin
 
 ### BIZNES HAQIDA MA'LUMOT:
 - **Do'kon nomi:** TORTEL'E
-- **Asoschi:** Shokhrukh Akhmedov
+- **Asoschilar:** Shokhrukh Akhmedov va Shokhsanam Akhmedova
 - **Telefon:** 90 187 78 79
 - **Ish vaqti:** Har kuni 09:00 dan 21:00 gacha.
 - **Yetkazib berish:** Faqat Toshkent shahri ichida yetkazib beramiz.
@@ -120,6 +120,23 @@ export async function POST(request: NextRequest) {
         if (!messages || !Array.isArray(messages) || messages.length === 0) {
             return NextResponse.json(
                 { error: 'Xabar yuborilmadi' },
+                { status: 400 }
+            );
+        }
+
+        // 1. Safety Check: Session Depth Limit (Max 20 messages per conversation)
+        if (messages.length > 20) {
+            return NextResponse.json(
+                { error: 'Kichik tanaffus! Siz savollar limitiga yetdingiz. Batafsil ma\'lumot uchun bizga qo\'ng\'iroq qiling: 90 187 78 79' },
+                { status: 429 }
+            );
+        }
+
+        // 2. Safety Check: Max Character Limit per message (500 chars)
+        const lastUserMessage = messages[messages.length - 1];
+        if (lastUserMessage && lastUserMessage.content.length > 500) {
+            return NextResponse.json(
+                { error: 'Xabar juda uzun. Iltimos, 500 belgidan kamroq yozing.' },
                 { status: 400 }
             );
         }

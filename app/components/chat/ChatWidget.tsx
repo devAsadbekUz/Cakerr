@@ -263,30 +263,53 @@ export default function ChatWidget() {
                             </div>
                         )}
 
-                        {/* Input area */}
-                        <form className={styles.inputArea} onSubmit={handleSubmit}>
-                            <input
-                                ref={inputRef}
-                                className={styles.input}
-                                type="text"
-                                value={input}
-                                onChange={e => setInput(e.target.value)}
-                                onKeyDown={handleKeyDown}
-                                placeholder={t('chatPlaceholder')}
-                                disabled={isLoading}
-                                id="chat-input"
-                                autoComplete="off"
-                            />
-                            <button
-                                className={styles.sendButton}
-                                type="submit"
-                                disabled={!input.trim() || isLoading}
-                                aria-label="Yuborish"
-                                id="chat-send-btn"
-                            >
-                                <Send size={18} />
-                            </button>
-                        </form>
+                        {/* Input area or Limit reached message */}
+                        {messages.length >= 20 ? (
+                            <div style={{
+                                padding: '16px',
+                                background: '#FFF1F2',
+                                borderTop: '1px solid #FFE4E6',
+                                borderRadius: '0 0 16px 16px',
+                                textAlign: 'center',
+                                fontSize: '13px',
+                                color: '#BE185D',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '8px'
+                            }}>
+                                <div style={{ fontWeight: 800 }}>
+                                    Kichik tanaffus! Siz savollar limitiga yetdingiz.
+                                </div>
+                                <div style={{ fontSize: '12px', color: '#E11D48' }}>
+                                    Batafsil ma'lumot uchun bizga qo'ng'iroq qiling: <a href="tel:+998901877879" style={{ fontWeight: 800, color: '#BE185D' }}>90 187 78 79</a>
+                                </div>
+                            </div>
+                        ) : (
+                            <form className={styles.inputArea} onSubmit={handleSubmit}>
+                                <input
+                                    ref={inputRef}
+                                    className={styles.input}
+                                    type="text"
+                                    value={input}
+                                    onChange={e => setInput(e.target.value)}
+                                    onKeyDown={handleKeyDown}
+                                    placeholder={t('chatPlaceholder')}
+                                    disabled={isLoading}
+                                    id="chat-input"
+                                    autoComplete="off"
+                                    maxLength={500}
+                                />
+                                <button
+                                    className={styles.sendButton}
+                                    type="submit"
+                                    disabled={!input.trim() || isLoading}
+                                    aria-label="Yuborish"
+                                    id="chat-send-btn"
+                                >
+                                    <Send size={18} />
+                                </button>
+                            </form>
+                        )}
                     </div>
                 </>
             )}

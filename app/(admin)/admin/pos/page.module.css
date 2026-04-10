@@ -475,7 +475,6 @@
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    padding: 20px;
 }
 
 .modalContent {
@@ -487,6 +486,7 @@
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
     position: relative;
     overflow-y: auto;
+    transition: all 0.3s ease;
 }
 
 .closeModal {
@@ -497,13 +497,14 @@
     background: white;
     border: 1px solid #e2e8f0;
     color: #64748b;
-    width: 40px;
-    height: 40px;
-    border-radius: 20px;
+    width: 44px;
+    height: 44px;
+    border-radius: 22px;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
 
 .closeModal:hover {
@@ -528,6 +529,23 @@
         padding-bottom: 100px; /* room for FAB */
     }
 
+    .modalOverlay {
+        padding: 0;
+    }
+
+    .modalContent {
+        max-height: 100vh;
+        height: 100%;
+        max-width: none;
+        border-radius: 0;
+    }
+
+    .closeModal {
+        top: 12px;
+        right: 12px;
+        background: #f1f5f9;
+    }
+
     .productSection {
         padding: 12px;
         gap: 12px;
@@ -535,19 +553,24 @@
     }
 
     .categoryNav {
-        gap: 6px;
-        padding: 3px;
-        overflow-x: auto;
-        max-width: 100%;
-        scrollbar-width: none;
+        padding: 4px;
+        border-radius: 14px;
     }
-    .categoryNav::-webkit-scrollbar { display: none; }
 
     .categoryBtn {
-        padding: 8px 14px;
+        padding: 12px 18px; /* Larger touch target */
         font-size: 13px;
-        white-space: nowrap;
-        flex-shrink: 0;
+    }
+
+    .stepTab {
+        height: 48px; /* Standard mobile touch height */
+        font-size: 14px;
+    }
+
+    .grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        padding-bottom: 16px;
     }
 
     .searchContainer {

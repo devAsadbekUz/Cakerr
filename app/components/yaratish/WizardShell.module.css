@@ -1,59 +1,84 @@
 .container {
-    padding: 24px;
+    padding: clamp(12px, 4vw, 32px);
     padding-bottom: 120px;
     min-height: calc(100vh - 80px);
     display: flex;
     flex-direction: column;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 .header {
-    margin-bottom: 32px;
+    margin-bottom: clamp(16px, 5vw, 32px);
 }
 
 .title {
-    font-size: 28px;
+    font-size: clamp(20px, 6vw, 28px);
     font-weight: 800;
     color: hsl(var(--color-text));
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
 
+/* Modern Segmented Progress Bar */
 .progressContainer {
     width: 100%;
-    height: 8px;
-    background: hsl(var(--color-primary-light));
-    border-radius: 4px;
-    overflow: hidden;
+    height: 4px;
+    display: flex;
+    gap: 4px;
     margin-top: 16px;
 }
 
-.progressBar {
+.progressSegment {
+    flex: 1;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progressFill {
+    position: absolute;
+    top: 0;
+    left: 0;
     height: 100%;
     background: hsl(var(--color-primary));
-    transition: width 0.3s ease;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .stepContent {
     flex: 1;
-    animation: fadeIn 0.4s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.slideContainer {
+    display: flex;
+    width: 100%;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .footer {
-    position: sticky;
+    position: fixed;
     bottom: 0;
+    left: 0;
+    right: 0;
     margin-top: auto;
     width: 100%;
     padding: 16px 24px;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(16px);
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    border-top: 1px solid rgba(0, 0, 0, 0.08);
-    box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.05);
-    z-index: 100;
+    gap: 12px;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.04);
+    z-index: 1000;
 }
 
-.priceBar {
+.priceInfo {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -61,16 +86,16 @@
 }
 
 .priceLabel {
-    font-size: 13px;
-    font-weight: 600;
-    color: #6B7280;
+    font-size: 11px;
+    font-weight: 700;
+    color: #94A3B8;
     text-transform: uppercase;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.05em;
 }
 
 .priceValue {
     font-size: 20px;
-    font-weight: 800;
+    font-weight: 900;
     color: #BE185D;
 }
 
@@ -81,11 +106,11 @@
 
 .buttonGroup button {
     flex: 1;
-    padding: 16px;
-    border-radius: var(--radius-lg);
-    font-weight: 700;
+    height: 54px;
+    border-radius: 16px;
+    font-weight: 800;
     font-size: 16px;
-    transition: background-color, border-color, color, opacity, transform, box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -93,14 +118,14 @@
 }
 
 .prevBtn {
-    background: white;
-    border: 2px solid hsl(var(--color-primary));
-    color: hsl(var(--color-primary));
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    color: #64748B;
 }
 
 .prevBtn:active {
-    scale: 0.98;
-    background: hsl(var(--color-primary-light));
+    scale: 0.97;
+    background: #F1F5F9;
 }
 
 .nextBtn {
@@ -111,26 +136,45 @@
 }
 
 .nextBtn:active {
-    scale: 0.98;
-    filter: brightness(0.9);
+    scale: 0.97;
+    filter: brightness(0.95);
 }
 
 .nextBtn:disabled {
-    background: hsl(var(--color-text-light));
-    color: white;
-    opacity: 0.5;
+    background: #E2E8F0;
+    color: #94A3B8;
+    opacity: 0.8;
     box-shadow: none;
     cursor: not-allowed;
 }
 
-@keyframes fadeIn {
+/* Animations for sliding steps */
+.stepEnter {
+    animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.stepExit {
+    animation: slideOut 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes slideIn {
     from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translateX(30px);
     }
-
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideOut {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(-30px);
     }
 }
