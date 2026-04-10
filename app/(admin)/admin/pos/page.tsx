@@ -146,7 +146,26 @@ export default function PosPage() {
     const isSlotBlocked = (slotLabel: string) => {
         if (!deliveryInfo.date) return false;
         const dateStr = deliveryInfo.date.toISOString().split('T')[0];
-        return overrides.some(o => o.date === dateStr && (o.slot === null || o.slot === slotLabel));
+        
+        // 1. Check DB overrides
+        const hasOverride = overrides.some(o => o.date === dateStr && (o.slot === null || o.slot === slotLabel));
+        if (hasOverride) return true;
+
+        // 2. Check if the slot has already passed today
+        const todayStr = new Date().toISOString().split('T')[0];
+        if (dateStr === todayStr) {
+            const match = slotLabel.match(/^(\d{2}):/);
+            if (match) {
+                const slotStartHour = parseInt(match[1], 10);
+                const currentHour = new Date().getHours();
+                // Block if the current hour is at or past the slot's start hour
+                if (currentHour >= slotStartHour) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     };
 
     // ── Handlers ──────────────────────────────────────────────────────────────

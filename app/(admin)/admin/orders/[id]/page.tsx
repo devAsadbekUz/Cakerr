@@ -116,8 +116,10 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const canCancel = !['completed', 'cancelled'].includes(order.status);
 
     const depositAmount = order.deposit_amount ?? 0;
+    const finalPaymentAmount = order.final_payment_amount ?? 0;
+    const totalPaidAmount = depositAmount + finalPaymentAmount;
     const totalPrice = order.total_price ?? 0;
-    const remaining = Math.max(0, totalPrice - depositAmount);
+    const remaining = Math.max(0, totalPrice - totalPaidAmount);
     const showPaymentSection = ['confirmed', 'preparing', 'ready', 'delivering', 'completed'].includes(order.status);
     const noDepositWarning = depositAmount === 0 && ['confirmed', 'preparing', 'ready', 'delivering'].includes(order.status);
 
@@ -426,9 +428,21 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px' }}>
                                     <span style={{ color: '#6B7280' }}>{t('totalPaid')}:</span>
                                     <span style={{ fontWeight: 800, color: '#16A34A', fontVariantNumeric: 'tabular-nums' }}>
-                                        {depositAmount.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}
+                                        {totalPaidAmount.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}
                                     </span>
                                 </div>
+                                {finalPaymentAmount > 0 && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '10px', background: '#F9FAFB', borderRadius: '8px', border: '1px dashed #E5E7EB', marginTop: '4px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px', color: '#6B7280' }}>
+                                            <span>{lang === 'uz' ? "Avans (To'langan):" : "Аванс (Оплачено):"}</span>
+                                            <span>{depositAmount.toLocaleString()}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px', color: '#6B7280' }}>
+                                            <span>{lang === 'uz' ? "Yakuniy to'lov:" : "Финальная оплата:"}</span>
+                                            <span>{finalPaymentAmount.toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                )}
                                 <div style={{ height: '1px', background: '#E5E7EB' }} />
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px' }}>
                                     <span style={{ fontWeight: 700, color: '#111827' }}>{lang === 'uz' ? "Qoldiq:" : "Остаток:"}</span>

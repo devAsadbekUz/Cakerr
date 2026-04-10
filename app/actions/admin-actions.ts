@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { getTelegramButtons, buildOrderMessage, resolveOrderLanguage } from '@/app/utils/orderConfig';
 import { isAdminVerified } from '@/app/utils/admin-auth';
-import { notifyCustomerStatusChange } from '@/app/services/telegramNotificationService';
+import { notifyCustomerStatusChange, updateAdminOrderMessage } from '@/app/services/telegramNotificationService';
 import { serviceClient } from '@/app/utils/supabase/service';
 
 // Cache admin_tg_lang for 5 minutes — it almost never changes
@@ -159,20 +159,7 @@ export async function updateOrderStatusAction(
                 });
 
                 if (order.telegram_message_id && order.telegram_chat_id) {
-                    const messageText = buildOrderMessage(order, tgLang);
-                    const inline_keyboard = getTelegramButtons(newStatus, orderId, tgLang, order);
-
-                    await fetch(`${TELEGRAM_API}/editMessageText`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            chat_id: order.telegram_chat_id,
-                            message_id: order.telegram_message_id,
-                            text: messageText,
-                            parse_mode: 'Markdown',
-                            reply_markup: { inline_keyboard }
-                        })
-                    });
+                    await updateAdminOrderMessage(orderId);
                 }
 
                 await notifyCustomerStatusChange(orderId, newStatus, order);

@@ -216,12 +216,25 @@ export async function notifyCustomerPaymentReceived(orderId: string, increment: 
     const orderWithLogs = await fetchCustomerOrderContext(orderId);
     if (!orderWithLogs) return;
 
+    // 2. ALWAYS SYNC: Update the Admin Group message
+    // We do this first so that the shop staff sees the update even if the customer part fails.
+    try {
+        await updateAdminOrderMessage(orderId);
+    } catch (adminErr) {
+        console.error('[notifyPayment] Admin Sync Error:', adminErr);
+    }
+
+    // 3. Customer Notification (Private Chat)
     const profile = Array.isArray(orderWithLogs.profiles) ? orderWithLogs.profiles[0] : orderWithLogs.profiles;
-    if (!profile || !profile.telegram_id) return;
+    if (!profile || !profile.telegram_id) {
+        // POS orders often don't have a linked customer telegram_id. 
+        // We skip private notification but admin sync (Step 2) is already done.
+        return;
+    }
     
     const clientLang = resolveTgLang(profile.tg_lang);
 
-    // 2. Delete previous message if it exists
+    // 4. Delete previous message if it exists
     if (orderWithLogs.client_tg_message_id) {
         try {
             await fetch(`${TELEGRAM_API}/deleteMessage`, {
@@ -235,12 +248,9 @@ export async function notifyCustomerPaymentReceived(orderId: string, increment: 
         } catch (err) { console.error('[notifyPayment] Delete failed', err); }
     }
 
-    // 3. Build unified message
+    // 5. Build and Send unified message
     const clientMessage = buildCustomerStatusMessage(orderWithLogs, clientLang);
 
-    // 4. Send message
-
-    // 5. Send new message
     try {
         const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
             method: 'POST',
@@ -268,9 +278,6 @@ export async function notifyCustomerPaymentReceived(orderId: string, increment: 
                     client_tg_delete_at: deleteAt
                 })
                 .eq('id', orderId);
-            
-            // 6. SYNC: Update the Admin Group message as well
-            await updateAdminOrderMessage(orderId);
         }
     } catch (err) {
         console.error('[notifyPayment] Send error', err);
