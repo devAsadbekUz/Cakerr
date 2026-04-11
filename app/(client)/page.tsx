@@ -68,7 +68,7 @@ export default async function HomePage() {
   const displayCategories = categories.filter((c: any) => c.id !== 'custom');
 
   return (
-    <main style={{ paddingBottom: '100px', backgroundColor: '#F9FAFB', minHeight: '100vh', paddingTop: '260px' }}>
+    <main style={{ paddingBottom: '100px', backgroundColor: '#F9FAFB', minHeight: '100vh', paddingTop: '280px' }}>
       <HomepageShell categories={categories} productsByCategory={productsByCategory}>
         <div style={{ padding: '0 20px' }}>
           {/* Active order (client-side, user-specific) */}

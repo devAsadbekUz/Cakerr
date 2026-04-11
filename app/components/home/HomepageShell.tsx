@@ -32,7 +32,7 @@ export default function HomepageShell({ categories, productsByCategory, children
         isScrollingRef.current = true;
         const element = document.getElementById(`category-${id}`);
         if (element) {
-            const headerOffset = isHeaderCollapsed ? 150 : 215;
+            const headerOffset = isHeaderCollapsed ? 210 : 275;
             const elementPosition = element.getBoundingClientRect().top;
             const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
 
