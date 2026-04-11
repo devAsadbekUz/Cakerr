@@ -1,6 +1,7 @@
 .container {
-    padding: clamp(12px, 4vw, 32px);
-    padding-bottom: 120px;
+    padding: clamp(8px, 3vw, 32px);
+    padding-top: clamp(8px, 2vw, 24px);
+    padding-bottom: 180px;
     min-height: calc(100vh - 80px);
     display: flex;
     flex-direction: column;
@@ -9,11 +10,11 @@
 }
 
 .header {
-    margin-bottom: clamp(16px, 5vw, 32px);
+    margin-bottom: clamp(12px, 3vw, 24px);
 }
 
 .title {
-    font-size: clamp(20px, 6vw, 28px);
+    font-size: clamp(18px, 6vw, 26px);
     font-weight: 800;
     color: hsl(var(--color-text));
     margin-bottom: 4px;
@@ -25,7 +26,7 @@
     height: 4px;
     display: flex;
     gap: 4px;
-    margin-top: 16px;
+    margin-top: 12px;
 }
 
 .progressSegment {
@@ -60,22 +61,37 @@
 
 .footer {
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    margin-top: auto;
-    width: 100%;
-    padding: 16px 24px;
-    padding-bottom: calc(16px + env(safe-area-inset-bottom));
-    background: rgba(255, 255, 255, 0.85);
+    bottom: 92px; /* Lifted to clear BottomNav and ChatWidget */
+    left: 10px;
+    right: 10px;
+    width: calc(100% - 20px);
+    border-radius: 20px;
+    padding: 16px 20px;
+    background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    border-top: 1px solid rgba(0, 0, 0, 0.05);
-    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.04);
-    z-index: 1000;
+    gap: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+    z-index: 10000; /* Higher priority to stay on top of all widgets */
+}
+
+@media (min-width: 769px) {
+    .footer {
+        position: sticky;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        border-radius: 0;
+        padding: 20px 32px;
+        margin-top: 24px;
+        background: white;
+        border-top: 1px solid rgba(0, 0, 0, 0.08);
+        box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.03);
+    }
 }
 
 .priceInfo {

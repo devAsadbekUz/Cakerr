@@ -192,21 +192,21 @@
 
 .typeGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
 }
 
 .typeCard {
     background: white;
-    border-radius: 20px;
-    padding: 12px;
+    border-radius: 16px;
+    padding: 8px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     cursor: pointer;
     border: 2px solid transparent;
     transition: all 0.2s ease;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.04);
 }
 
 .typeCardActive {
@@ -217,22 +217,22 @@
 
 .typeImageWrapper {
     width: 100%;
-    aspect-ratio: 1;
+    aspect-ratio: 1.1;
     position: relative;
-    border-radius: 14px;
+    border-radius: 10px;
     overflow: hidden;
-    background: #F3F4F6;
+    background: #F8FAFC;
 }
 
 .typeLabel {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
-    color: #111827;
+    color: #1E293B;
     text-align: center;
 }
 
 .typePrice {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     color: #BE185D;
     text-align: center;
