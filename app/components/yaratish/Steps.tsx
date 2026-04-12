@@ -361,7 +361,7 @@ export function NachinkaStep({ loading }: { loading: boolean }) {
  * Step 4: Size - Filtered by parent cake type
  */
 export function SizeStep({ loading }: { loading: boolean }) {
-    const { size, setSize, cakeType, nachinka, options, isFullyPriced } = useCustomCake();
+    const { size, setSize, cakeType, nachinka, options, isFullyPriced, calculateTotal } = useCustomCake();
     const { t, lang } = useLanguage();
 
     // Filter sizes by parent cake type AND/OR selected nachinka
@@ -377,6 +377,8 @@ export function SizeStep({ loading }: { loading: boolean }) {
 
         return isTypeMatch && isNachinkaMatch;
     });
+
+    const total = calculateTotal();
 
     return (
         <div className={styles.stepContainer}>
@@ -418,7 +420,7 @@ export function SizeStep({ loading }: { loading: boolean }) {
                     </div>
                 )}
             </div>
-            {!isFullyPriced && (
+            {!isFullyPriced && total === 0 && (
                 <div className={styles.pricingNote}>
                     <Info size={18} />
                     {t('customPriceNote')}
@@ -432,8 +434,9 @@ export function SizeStep({ loading }: { loading: boolean }) {
  * Final Step: Review
  */
 export function ReviewStep() {
-    const { cakeType, nachinka, size, photoRef, comment, drawingData, options, isFullyPriced } = useCustomCake();
+    const { cakeType, nachinka, size, photoRef, comment, drawingData, options, isFullyPriced, calculateTotal } = useCustomCake();
     const { t, lang } = useLanguage();
+    const total = calculateTotal();
 
     const getOptionLabel = (id: string | null) => {
         const option = options.find(o => o.id === id);
@@ -486,7 +489,7 @@ export function ReviewStep() {
                 )}
             </div>
 
-            {!isFullyPriced && (
+            {!isFullyPriced && total === 0 && (
                 <div style={{
                     marginTop: '12px',
                     padding: '16px',
