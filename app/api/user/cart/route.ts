@@ -65,6 +65,43 @@ export async function GET(request: NextRequest) {
     }
 }
 
+// Helper function to upload Base64 images to Supabase Storage
+async function uploadBase64Image(supabase: any, base64String: string, userId: string, prefix: string): Promise<string | null> {
+    const fileName = `${userId}/${prefix}_${Date.now()}.png`; // Defaulting to png if split fails
+    try {
+        const matches = base64String.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+        if (!matches || matches.length !== 3) {
+            console.error('[Storage] Invalid base64 format received');
+            return null;
+        }
+
+        const mimeType = matches[1];
+        const base64Data = matches[2];
+        const buffer = Buffer.from(base64Data, 'base64');
+        const ext = mimeType.split('/')[1] || 'png';
+        const finalFileName = `${userId}/${prefix}_${Date.now()}.${ext}`;
+
+        const { error } = await supabase.storage
+            .from('custom-cakes')
+            .upload(finalFileName, buffer, { 
+                contentType: mimeType, 
+                upsert: false,
+                cacheControl: '3600'
+            });
+
+        if (error) {
+            console.error('[Storage Upload Error] Bucket: custom-cakes, File:', finalFileName, error);
+            return null;
+        }
+
+        const { data } = supabase.storage.from('custom-cakes').getPublicUrl(finalFileName);
+        return data.publicUrl;
+    } catch (err) {
+        console.error('[Storage Upload Exception] Fatal error during upload processing:', err);
+        return null;
+    }
+}
+
 export async function POST(request: NextRequest) {
     const userId = await getVerifiedUserId(request);
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -74,12 +111,39 @@ export async function POST(request: NextRequest) {
     try {
         const raw = await request.json();
 
-        // Batch insert path: used during guest cart migration (array of items, no duplicate check needed)
+        // Image upload handling for Cart items
+        const processItemImages = async (item: any) => {
+            if (!item.configuration) return;
+            const uploadTasks: Promise<void>[] = [];
+            
+            const photoKey = ['uploaded_photo_url', 'photo_ref', 'photoRef'].find(k => 
+                item.configuration[k]?.startsWith('data:image')
+            );
+            if (photoKey) {
+                uploadTasks.push(
+                    uploadBase64Image(supabase, item.configuration[photoKey], userId, 'photo')
+                        .then(url => { if (url) item.configuration[photoKey] = url; })
+                );
+            }
+            if (item.configuration.drawing?.startsWith('data:image')) {
+                uploadTasks.push(
+                    uploadBase64Image(supabase, item.configuration.drawing, userId, 'drawing')
+                        .then(url => { if (url) item.configuration.drawing = url; })
+                );
+            }
+            if (uploadTasks.length > 0) await Promise.all(uploadTasks);
+        };
+
+        // Batch insert path: used during guest cart migration
         if (Array.isArray(raw)) {
             const parsed = z.array(CartItemSchema).safeParse(raw);
             if (!parsed.success) {
                 return NextResponse.json({ error: 'Invalid batch data', details: parsed.error.flatten() }, { status: 400 });
             }
+            
+            // Batch upload all images in parallel
+            await Promise.all(parsed.data.map(item => processItemImages(item)));
+
             const rows = parsed.data.map(item => ({
                 user_id: userId,
                 product_id: item.product_id,
@@ -101,7 +165,11 @@ export async function POST(request: NextRequest) {
         if (!parsed.success) {
             return NextResponse.json({ error: 'Invalid cart item data', details: parsed.error.flatten() }, { status: 400 });
         }
-        const { product_id, quantity, portion, flavor, custom_note, configuration } = parsed.data;
+
+        const item = parsed.data;
+        await processItemImages(item);
+        
+        const { product_id, quantity, portion, flavor, custom_note, configuration } = item;
 
         // Single atomic upsert via RPC — increments quantity if row exists, inserts otherwise.
         // Custom cakes (nil UUID) are always inserted as new rows (no conflict possible on product_id).
@@ -156,6 +224,27 @@ export async function PUT(request: NextRequest) {
             return NextResponse.json({ error: 'Invalid update data', details: parsed.error.flatten() }, { status: 400 });
         }
         const { id, quantity, configuration, custom_note } = parsed.data;
+
+        // Image upload handling for PUT updates
+        if (configuration) {
+            const uploadTasks: Promise<void>[] = [];
+            const photoKey = ['uploaded_photo_url', 'photo_ref', 'photoRef'].find(k => 
+                configuration[k]?.startsWith('data:image')
+            );
+            if (photoKey) {
+                uploadTasks.push(
+                    uploadBase64Image(supabase, configuration[photoKey], userId, 'photo')
+                        .then(url => { if (url) configuration[photoKey] = url; })
+                );
+            }
+            if (configuration.drawing?.startsWith('data:image')) {
+                uploadTasks.push(
+                    uploadBase64Image(supabase, configuration.drawing, userId, 'drawing')
+                        .then(url => { if (url) configuration.drawing = url; })
+                );
+            }
+            if (uploadTasks.length > 0) await Promise.all(uploadTasks);
+        }
 
         const { data: updated, error } = await supabase
             .from('cart_items')

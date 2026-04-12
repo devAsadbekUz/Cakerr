@@ -239,6 +239,36 @@
     font-style: italic;
 }
 
+/* Skeleton Loaders */
+.skeleton {
+    background: #F1F5F9;
+    background: linear-gradient(
+        90deg,
+        #F1F5F9 25%,
+        #E2E8F0 50%,
+        #F1F5F9 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.emptyState {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 24px;
+    background: #F8FAFC;
+    border-radius: 20px;
+    border: 2px dashed #E2E8F0;
+    color: #64748B;
+    font-size: 14px;
+    font-weight: 500;
+}
+
 /* Step 2 - Design Details */
 .designSection {
     background: white;

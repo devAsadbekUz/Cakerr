@@ -13,7 +13,7 @@ import { useLanguage } from '@/app/context/LanguageContext';
 /**
  * Step 1: Cake Type Selection
  */
-export function TypeStep() {
+export function TypeStep({ loading }: { loading: boolean }) {
     const { cakeType, setCakeType, options } = useCustomCake();
     const { t, lang } = useLanguage();
     const types = options.filter(o => o.type === 'cake_type');
@@ -22,34 +22,40 @@ export function TypeStep() {
         <div className={styles.stepContainer}>
             <h2 className={styles.stepTitle}>{t('selectCakeType')}</h2>
             <div className={styles.typeGrid}>
-                {types.map((type) => (
-                    <div
-                        key={type.id}
-                        className={`${styles.typeCard} ${cakeType === type.id ? styles.typeCardActive : ''}`}
-                        onClick={() => setCakeType(type.id)}
-                    >
-                        <div className={styles.typeImageWrapper}>
-                            {type.image_url ? (
-                                <Image
-                                    src={type.image_url}
-                                    alt={lang === 'uz' ? type.label_uz : (type.label_ru || type.label_uz)}
-                                    fill
-                                    style={{ objectFit: 'cover' }}
-                                />
-                            ) : (
-                                <div className={styles.iconWrapper} style={{ width: '100%', height: '100%', borderRadius: 0 }}>
-                                    <Palette size={32} />
-                                </div>
-                            )}
+                {loading ? (
+                    Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className={`${styles.typeCard} ${styles.skeleton}`} style={{ height: '180px' }} />
+                    ))
+                ) : (
+                    types.map((type) => (
+                        <div
+                            key={type.id}
+                            className={`${styles.typeCard} ${cakeType === type.id ? styles.typeCardActive : ''}`}
+                            onClick={() => setCakeType(type.id)}
+                        >
+                            <div className={styles.typeImageWrapper}>
+                                {type.image_url ? (
+                                    <Image
+                                        src={type.image_url}
+                                        alt={lang === 'uz' ? type.label_uz : (type.label_ru || type.label_uz)}
+                                        fill
+                                        style={{ objectFit: 'cover' }}
+                                    />
+                                ) : (
+                                    <div className={styles.iconWrapper} style={{ width: '100%', height: '100%', borderRadius: 0 }}>
+                                        <Palette size={32} />
+                                    </div>
+                                )}
+                            </div>
+                            <span className={styles.typeLabel}>
+                                {lang === 'uz' ? type.label_uz : (type.label_ru || type.label_uz)}
+                            </span>
+                            <span className={styles.typePrice}>
+                                {Number(type.price) > 0 ? `+ ${Number(type.price).toLocaleString()} ${t('som')}` : t('negotiable')}
+                            </span>
                         </div>
-                        <span className={styles.typeLabel}>
-                            {lang === 'uz' ? type.label_uz : (type.label_ru || type.label_uz)}
-                        </span>
-                        <span className={styles.typePrice}>
-                            {Number(type.price) > 0 ? `+ ${Number(type.price).toLocaleString()} ${t('som')}` : t('negotiable')}
-                        </span>
-                    </div>
-                ))}
+                    ))
+                )}
             </div>
         </div>
     );
@@ -92,9 +98,44 @@ export function DesignStep() {
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            // Check for large files and compress them
             const reader = new FileReader();
             reader.onloadend = () => {
-                setPhotoRef(reader.result as string);
+                const img = new window.Image();
+                img.onload = () => {
+                    // Maximum dimensions for the compressed image
+                    const MAX_WIDTH = 1200;
+                    const MAX_HEIGHT = 1200;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                    } else {
+                        if (height > MAX_HEIGHT) {
+                            width *= MAX_HEIGHT / height;
+                            height = MAX_HEIGHT;
+                        }
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    if (ctx) {
+                        ctx.drawImage(img, 0, 0, width, height);
+                        // Export as JPEG with 0.7 quality
+                        const compressed = canvas.toDataURL('image/jpeg', 0.7);
+                        setPhotoRef(compressed);
+                    } else {
+                        // Fallback to original if canvas fails
+                        setPhotoRef(reader.result as string);
+                    }
+                };
+                img.src = reader.result as string;
             };
             reader.readAsDataURL(file);
         }
@@ -126,7 +167,7 @@ export function DesignStep() {
         if (!isDrawing) return;
         setIsDrawing(false);
         const canvas = canvasRef.current;
-        if (canvas) setDrawingData(canvas.toDataURL());
+        if (canvas) setDrawingData(canvas.toDataURL('image/jpeg', 0.7));
     };
 
     const getCoordinates = (e: React.MouseEvent | React.TouchEvent, canvas: HTMLCanvasElement) => {
@@ -259,7 +300,7 @@ export function DesignStep() {
 /**
  * Step 3: Nachinka (Ingredients) - Filtered by parent cake type
  */
-export function NachinkaStep() {
+export function NachinkaStep({ loading }: { loading: boolean }) {
     const { nachinka, setNachinka, cakeType, options } = useCustomCake();
     const { t, lang } = useLanguage();
 
@@ -273,7 +314,11 @@ export function NachinkaStep() {
         <div className={styles.stepContainer}>
             <h2 className={styles.stepTitle}>{t('selectNachinka')}</h2>
             <div className={styles.typeGrid}>
-                {availableNachinkas.length > 0 ? (
+                {loading ? (
+                    Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className={`${styles.typeCard} ${styles.skeleton}`} style={{ height: '180px' }} />
+                    ))
+                ) : availableNachinkas.length > 0 ? (
                     availableNachinkas.map((n) => (
                         <div
                             key={n.id}
@@ -303,7 +348,7 @@ export function NachinkaStep() {
                         </div>
                     ))
                 ) : (
-                    <div className={styles.emptyState} style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: '#9CA3AF' }}>
+                    <div className={styles.emptyState}>
                         {lang === 'uz' ? "Ushbu turdagi tort uchun nachinkalar topilmadi." : "Начинки для этого типа торта не найдены."}
                     </div>
                 )}
@@ -315,7 +360,7 @@ export function NachinkaStep() {
 /**
  * Step 4: Size - Filtered by parent cake type
  */
-export function SizeStep() {
+export function SizeStep({ loading }: { loading: boolean }) {
     const { size, setSize, cakeType, nachinka, options, isFullyPriced } = useCustomCake();
     const { t, lang } = useLanguage();
 
@@ -337,7 +382,11 @@ export function SizeStep() {
         <div className={styles.stepContainer}>
             <h2 className={styles.stepTitle}>{t('selectSize')}</h2>
             <div className={styles.sizeGrid}>
-                {availableSizes.length > 0 ? (
+                {loading ? (
+                    Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className={`${styles.sizeCard} ${styles.skeleton}`} style={{ height: '80px' }} />
+                    ))
+                ) : availableSizes.length > 0 ? (
                     availableSizes.map((s) => (
                         <div
                             key={s.id}

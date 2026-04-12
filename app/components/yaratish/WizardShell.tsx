@@ -41,6 +41,7 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
     const router = useRouter();
     const { t, lang } = useLanguage();
     const [optionsError, setOptionsError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
 
     const STEPS = [
         { title: t('stepType'), component: TypeStep },
@@ -52,12 +53,15 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
 
     useEffect(() => {
         const load = async () => {
+            setLoading(true);
             try {
                 const opts = await customCakeService.getOptions();
                 setOptions(opts);
             } catch (err) {
                 console.error('[WizardShell] Failed to load cake options:', err);
                 setOptionsError(t('optionsLoadError'));
+            } finally {
+                setLoading(false);
             }
         };
         load();
@@ -174,7 +178,7 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
 
             <main className={styles.stepContent} key={step}>
                 <div className={styles.stepEnter}>
-                    <CurrentStepComponent />
+                    <CurrentStepComponent loading={loading} />
                 </div>
             </main>
 

@@ -399,7 +399,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             } catch (err: any) {
                 console.error('[Cart] AddItem Error:', err);
                 setCart(snapshot);
-                alert(`Savatga qo'shishda xatolik yuz berdi: ${err.message}`);
+                const errorMsg = err.message === 'Failed to fetch' 
+                    ? "Rasm hajmi juda katta yoki internet uzildi. Iltimos, kichikroq rasm tanlang." 
+                    : err.message;
+                alert(`Savatga qo'shishda xatolik yuz berdi: ${errorMsg}`);
             }
         }, 150);
     }, [user]);
