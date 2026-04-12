@@ -43,12 +43,13 @@ export default async function AdminLayout({
     const role: 'owner' | 'staff' = roleHeader === 'staff' || roleCookie === 'staff' ? 'staff' : 'owner';
     const permissions = role === 'staff' ? parsePermissions(permissionsHeader) : [];
     const initialLang = parseLang(langCookie);
+    const username = headerStore.get('x-admin-username') || (role === 'owner' ? 'Owner' : 'Staff');
 
     return (
         <AdminLanguageProvider initialLang={initialLang}>
             {isAdminVerified ? (
                 <div className={styles.layout}>
-                    <AdminSidebar role={role} permissions={permissions} />
+                    <AdminSidebar role={role} permissions={permissions} username={username} />
                     <main className={styles.mainContent}>
                         {children}
                     </main>

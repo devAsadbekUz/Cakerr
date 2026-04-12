@@ -38,9 +38,10 @@ const MENU: MenuItem[] = [
 type AdminSidebarProps = {
     role: 'owner' | 'staff';
     permissions: string[];
+    username?: string;
 };
 
-export default function AdminSidebar({ role, permissions }: AdminSidebarProps) {
+export default function AdminSidebar({ role, permissions, username = 'Owner' }: AdminSidebarProps) {
     const { lang, setLang, t } = useAdminI18n();
     const pathname = usePathname();
     const router = useRouter();
@@ -66,7 +67,15 @@ export default function AdminSidebar({ role, permissions }: AdminSidebarProps) {
     return (
         <>
             <div className={styles.mobileHeader}>
-                <div className={styles.mobileLogo}>TORTEL&apos;E</div>
+                <div className={styles.mobileLogoGroup}>
+                    <div className={styles.mobileLogo}>TORTEL&apos;E</div>
+                    <div 
+                        className={styles.avatarCircleSmall}
+                        style={{ backgroundColor: stringToColor(username) }}
+                    >
+                        {username.charAt(0).toUpperCase()}
+                    </div>
+                </div>
                 <button className={styles.menuButton} onClick={() => setIsOpen(!isOpen)}>
                     {isOpen ? <X size={24} /> : <Menu size={24} />}
                 </button>
@@ -77,6 +86,15 @@ export default function AdminSidebar({ role, permissions }: AdminSidebarProps) {
             <aside className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : ''}`}>
                 <div className={styles.logo}>
                     <span className={styles.brandName}>TORTEL&apos;E</span>
+                    <div className={styles.userBadge}>
+                        <div 
+                            className={styles.avatarCircle}
+                            style={{ backgroundColor: stringToColor(username) }}
+                        >
+                            {username.charAt(0).toUpperCase()}
+                        </div>
+                        <span className={styles.usernameText}>{username}</span>
+                    </div>
                 </div>
 
                 <nav className={styles.nav}>
@@ -110,3 +128,12 @@ export default function AdminSidebar({ role, permissions }: AdminSidebarProps) {
         </>
     );
 }
+
+const stringToColor = (str: string) => {
+    const colors = ['#BE185D', '#9D174D', '#7C3AED', '#2563EB', '#059669', '#D97706'];
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
+};
