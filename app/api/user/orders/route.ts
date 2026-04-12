@@ -170,12 +170,19 @@ export async function POST(request: NextRequest) {
             const uploadTasks: Promise<void>[] = [];
             for (const item of items) {
                 if (!item.configuration) continue;
-                if (item.configuration.uploaded_photo_url?.startsWith('data:image')) {
+                
+                // Support multiple possible photo keys from different builder modes
+                const photoKey = ['uploaded_photo_url', 'photo_ref', 'photoRef'].find(k => 
+                    item.configuration[k]?.startsWith('data:image')
+                );
+
+                if (photoKey) {
                     uploadTasks.push(
-                        uploadBase64Image(supabase, item.configuration.uploaded_photo_url, userId, 'photo')
-                            .then(url => { if (url) item.configuration.uploaded_photo_url = url; })
+                        uploadBase64Image(supabase, item.configuration[photoKey], userId, 'photo')
+                            .then(url => { if (url) item.configuration[photoKey] = url; })
                     );
                 }
+
                 if (item.configuration.drawing?.startsWith('data:image')) {
                     uploadTasks.push(
                         uploadBase64Image(supabase, item.configuration.drawing, userId, 'drawing')

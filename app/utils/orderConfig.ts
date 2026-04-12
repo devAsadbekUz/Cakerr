@@ -257,14 +257,15 @@ export const buildOrderMessage = (order: any, lang: 'uz' | 'ru' = 'uz') => {
                     if (sizeLabel) messageText += `    🔹 *${labels.size}:* ${tgEscape(sizeLabel)}\n`;
 
                     // Add links for photos and drawings
-                    const photoUrl = cfg.uploaded_photo_url || cfg.photo_ref;
+                    const photoUrl = cfg.uploaded_photo_url || cfg.photo_ref || cfg.photoRef;
                     const drawingUrl = cfg.drawing;
 
-                    if (photoUrl) {
+                    // Safety: NEVER include base64 blobs in Telegram messages (limit is 4096 chars)
+                    if (photoUrl && photoUrl.startsWith('http')) {
                         const photoLabel = lang === 'uz' ? '🖼 Rasm ref' : '🖼 Фото реф';
                         messageText += `    🔹 *${photoLabel}:* [${labels.view}](${photoUrl})\n`;
                     }
-                    if (drawingUrl) {
+                    if (drawingUrl && drawingUrl.startsWith('http')) {
                         const drawingLabel = lang === 'uz' ? '✏️ Chizma' : '✏️ Рисунок';
                         messageText += `    🔹 *${drawingLabel}:* [${labels.view}](${drawingUrl})\n`;
                     }
