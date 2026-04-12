@@ -837,7 +837,10 @@ export default function CheckoutPage() {
                 </div>
 
                 <div className={styles.summary}>
-                    {cart.some(item => item.configuration?.mode === 'wizard' || item.configuration?.mode === 'upload') && (
+                    {cart.some(item => 
+                        (item.configuration?.mode === 'wizard' || item.configuration?.mode === 'upload') && 
+                        item.price === 0
+                    ) && (
                         <div style={{
                             marginBottom: '10px', padding: '10px 12px',
                             background: '#FDF2F8', border: '1px solid #FBCFE8',
