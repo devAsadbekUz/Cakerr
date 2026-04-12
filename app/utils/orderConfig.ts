@@ -238,12 +238,44 @@ export const buildOrderMessage = (order: any, lang: 'uz' | 'ru' = 'uz') => {
             if (isCustom) {
                 // Custom cake — show full configuration on separate lines
                 messageText += `  • ${item.quantity}x *${name}* - ${price}\n`;
-                const details: string[] = [];
-                const spongeLabel = lang === 'uz' ? (cfg.sponge_uz || cfg.sponge) : (cfg.sponge_ru || cfg.sponge);
-                const flavorLabel = lang === 'uz' ? (cfg.flavor_uz || cfg.flavor) : (cfg.flavor_ru || cfg.flavor);
-                if (spongeLabel) details.push(`Biskvit: ${tgEscape(spongeLabel)}`);
-                if (flavorLabel) details.push(`Krem: ${tgEscape(flavorLabel)}`);
-                if (details.length) messageText += `    🔹 ${details.join(' | ')}\n`;
+                
+                if (cfg.mode === 'wizard' || cfg.type_uz) {
+                    const viaLabel = lang === 'uz' ? '🎂 KONSTRUKTOR ORQALI' : '🎂 ЧЕРЕЗ КОНСТРУКТОР';
+                    const labels = {
+                        uz: { type: '🎨 Turi', filling: '🍯 Nachinka', size: "📏 O'lcham", view: "Ko'rish" },
+                        ru: { type: '🎨 Тип', filling: '🍯 Начинка', size: '📏 Размер', view: 'Посмотреть' }
+                    }[lang];
+
+                    messageText += `    _${viaLabel}_\n`;
+                    
+                    const typeLabel = lang === 'uz' ? (cfg.type_uz || cfg.type) : (cfg.type_ru || cfg.type_uz || cfg.type);
+                    const nachinkaLabel = lang === 'uz' ? (cfg.nachinka_uz || cfg.nachinka) : (cfg.nachinka_ru || cfg.nachinka_uz || cfg.nachinka);
+                    const sizeLabel = lang === 'uz' ? (cfg.size_uz || cfg.size) : (cfg.size_ru || cfg.size_uz || cfg.size);
+
+                    if (typeLabel) messageText += `    🔹 *${labels.type}:* ${tgEscape(typeLabel)}\n`;
+                    if (nachinkaLabel) messageText += `    🔹 *${labels.filling}:* ${tgEscape(nachinkaLabel)}\n`;
+                    if (sizeLabel) messageText += `    🔹 *${labels.size}:* ${tgEscape(sizeLabel)}\n`;
+
+                    // Add links for photos and drawings
+                    const photoUrl = cfg.uploaded_photo_url || cfg.photo_ref;
+                    const drawingUrl = cfg.drawing;
+
+                    if (photoUrl) {
+                        const photoLabel = lang === 'uz' ? '🖼 Rasm ref' : '🖼 Фото реф';
+                        messageText += `    🔹 *${photoLabel}:* [${labels.view}](${photoUrl})\n`;
+                    }
+                    if (drawingUrl) {
+                        const drawingLabel = lang === 'uz' ? '✏️ Chizma' : '✏️ Рисунок';
+                        messageText += `    🔹 *${drawingLabel}:* [${labels.view}](${drawingUrl})\n`;
+                    }
+                } else {
+                    const details: string[] = [];
+                    const spongeLabel = lang === 'uz' ? (cfg.sponge_uz || cfg.sponge) : (cfg.sponge_ru || cfg.sponge);
+                    const flavorLabel = lang === 'uz' ? (cfg.flavor_uz || cfg.flavor) : (cfg.flavor_ru || cfg.flavor);
+                    if (spongeLabel) details.push(`Biskvit: ${tgEscape(spongeLabel)}`);
+                    if (flavorLabel) details.push(`Krem: ${tgEscape(flavorLabel)}`);
+                    if (details.length) messageText += `    🔹 ${details.join(' | ')}\n`;
+                }
             } else {
                 // Standard product — compact format
                 const portionText = cfg.portion ? ` (${tgEscape(cfg.portion)})` : '';
