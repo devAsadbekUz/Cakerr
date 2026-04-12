@@ -133,6 +133,7 @@ const uz: Record<string, string | string[]> = {
     // SuccessModal
     orderAccepted: "Buyurtma qabul qilindi! 🎉",
     orderAcceptedMsg: "Buyurtmangiz uchun rahmat, tez orada jamoamiz sizga bog'lanadi",
+    successContactNote: "Savollaringiz bormi? Biz bilan bog'laning:",
     prepaymentRequired: "Avans to'lovi talab qilinadi",
     prepaymentNotice: "Buyurtmangiz tasdiqlanganidan so'ng kamida 50% avans to'lovi talab qilinadi. Menejer siz bilan bog'lanadi.",
     // CalendarModal
@@ -431,6 +432,7 @@ const ru: Record<string, string | string[]> = {
     // SuccessModal
     orderAccepted: "Заказ принят! 🎉",
     orderAcceptedMsg: "Спасибо за ваш заказ, наша команда свяжется с вами в ближайшее время",
+    successContactNote: "Есть вопросы? Свяжитесь с нами:",
     prepaymentRequired: "Требуется предоплата",
     prepaymentNotice: "После подтверждения заказа потребуется минимум 50% предоплата. Менеджер свяжется с вами для уточнения деталей.",
     // CalendarModal

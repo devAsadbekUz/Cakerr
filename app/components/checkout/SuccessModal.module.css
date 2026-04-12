@@ -106,7 +106,43 @@
     height: 100%;
     background: #E91E63;
     width: 0%;
-    animation: fill 3s linear forwards;
+    animation: fill 8s linear forwards;
+}
+
+.contactSection {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #F3F4F6;
+}
+
+.contactNote {
+    font-size: 13px;
+    color: #6B7280;
+    margin-bottom: 12px;
+    font-weight: 500;
+}
+
+.contactButtons {
+    display: flex;
+    gap: 8px;
+}
+
+.contactBtn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.contactBtn:active {
+    transform: scale(0.96);
 }
 
 @keyframes fill {
@@ -117,4 +153,27 @@
     to {
         width: 100%;
     }
+}
+
+.okBtn {
+    width: 100%;
+    margin-top: 24px;
+    padding: 14px;
+    background: #BE185D;
+    color: white;
+    border: none;
+    border-radius: 16px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(190, 24, 93, 0.2);
+}
+
+.okBtn:active {
+    transform: scale(0.98);
+}
+
+.okBtn:hover {
+    background: #9D174D;
 }

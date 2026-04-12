@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { Check, X } from 'lucide-react';
+import { Check, X, Phone, Send } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import styles from './SuccessModal.module.css';
 import { useLanguage } from '@/app/context/LanguageContext';
+import { TELEGRAM_CONFIG } from '@/app/utils/telegramConfig';
 
 interface SuccessModalProps {
     isOpen: boolean;
@@ -44,7 +45,7 @@ export default function SuccessModal({ isOpen, onClose }: SuccessModalProps) {
 
             const redirectTimer = setTimeout(() => {
                 onClose();
-            }, 3000);
+            }, 8000);
 
             return () => {
                 cancelAnimationFrame(rafId);
@@ -77,8 +78,36 @@ export default function SuccessModal({ isOpen, onClose }: SuccessModalProps) {
                 <h2 className={styles.title}>{t('orderAccepted')}</h2>
                 <p className={styles.message}>{t('orderAcceptedMsg')}</p>
 
+                <div className={styles.contactSection}>
+                    <p className={styles.contactNote}>{t('successContactNote')}</p>
+                    <div className={styles.contactButtons}>
+                        <a 
+                            href="tel:+998901877879"
+                            className={styles.contactBtn}
+                            style={{ background: '#BE185D', color: 'white' }}
+                        >
+                            <Phone size={18} />
+                            {t('contactPhone')}
+                        </a>
+                        <a 
+                            href={TELEGRAM_CONFIG.supportLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={styles.contactBtn}
+                            style={{ background: '#FFFFFF', color: '#BE185D', border: '1.5px solid #FBCFE8' }}
+                        >
+                            <Send size={18} />
+                            {t('contactTelegram')}
+                        </a>
+                    </div>
+                </div>
+
+                <button className={styles.okBtn} onClick={onClose}>
+                    {t('understood') || 'OK'}
+                </button>
+
                 <div className={styles.progressBar}>
-                    <div className={styles.progressFill} />
+                    <div className={styles.progressFill} style={{ animationDuration: '8s' }} />
                 </div>
 
                 <style jsx>{`
