@@ -18,7 +18,7 @@ import {
     useSortable
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { createClient } from '@/app/utils/supabase/client';
+import { uploadImageAction } from '@/app/actions/image-actions';
 import Image from 'next/image';
 import { Upload, X, Loader2, GripVertical } from 'lucide-react';
 import styles from './MultiImageUpload.module.css';
@@ -97,7 +97,6 @@ function SortableImage({ id, url, onRemove }: SortableItemProps) {
 export default function MultiImageUpload({ value = [], onChange, bucket = 'images' }: MultiImageUploadProps) {
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const supabase = createClient();
 
     // Fix: Add distance threshold to PointerSensor to prevent it from intercepting clicks
     const sensors = useSensors(
@@ -120,18 +119,16 @@ export default function MultiImageUpload({ value = [], onChange, bucket = 'image
             const newUrls: string[] = [...value];
 
             for (const file of files) {
-                const fileExt = file.name.split('.').pop();
-                const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-                const filePath = `${fileName}`;
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('bucket', bucket);
 
-                const { error: uploadError } = await supabase.storage
-                    .from(bucket)
-                    .upload(filePath, file);
+                const result = await uploadImageAction(formData);
 
-                if (uploadError) throw uploadError;
-
-                const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
-                newUrls.push(data.publicUrl);
+                if (result.error) throw new Error(result.error);
+                if (result.url) {
+                    newUrls.push(result.url);
+                }
             }
 
             onChange(newUrls);
