@@ -38,6 +38,7 @@ const SESSION_KEY = 'tg_session';
 
 export interface TelegramSession {
     token: string;
+    refreshToken?: string; // 1-year token used to silently renew the access token
     user: {
         id: string;
         full_name: string;

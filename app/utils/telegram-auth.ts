@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/app/utils/supabase/server';
+import { verifyCustomerToken } from '@/app/utils/customerToken';
 
 /**
  * Verified Telegram user data extracted from initData
@@ -219,11 +220,19 @@ export async function getVerifiedUserId(request: Request): Promise<string | null
         }
     }
 
-    // 2. Try Bearer token (fallback / browser / legacy)
+    // 2. Try Bearer token
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');
 
     if (token) {
+        // 2a. Try as a customer JWT first — fast, no DB hit
+        const customerPayload = await verifyCustomerToken(token);
+        if (customerPayload) {
+            if (cacheKey) _authCache.set(cacheKey, { profileId: customerPayload.profileId, expiresAt: Date.now() + AUTH_CACHE_TTL_MS });
+            return customerPayload.profileId;
+        }
+
+        // 2b. Legacy: look up in telegram_sessions table (old sessions pre-JWT migration)
         const { data, error } = await supabase
             .from('telegram_sessions')
             .select('profile_id, expires_at')
@@ -237,8 +246,6 @@ export async function getVerifiedUserId(request: Request): Promise<string | null
             return data.profile_id;
         } else if (data) {
             console.error(`[AUTH] FAIL: Legacy session found for ${data.profile_id} but it is EXPIRED.`);
-        } else {
-            console.error('[AUTH] FAIL: Legacy token not found in database.');
         }
     }
 

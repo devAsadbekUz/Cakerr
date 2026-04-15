@@ -46,6 +46,24 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const supabase = createClient();
 const OWNER_EMAIL = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'moida.buvayda@gmail.com').toLowerCase();
 
+/**
+ * Decode the `exp` Unix timestamp from a JWT payload without verifying the signature.
+ * Safe to run client-side — we only need to know if the token is expired, not if it's
+ * tamper-proof (the server enforces that on every API call).
+ */
+function decodeTokenExpiry(token: string): number | null {
+    try {
+        const parts = token.split('.');
+        if (parts.length !== 3) return null;
+        const encoded = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const padded  = encoded + '='.repeat((4 - (encoded.length % 4)) % 4);
+        const payload = JSON.parse(atob(padded));
+        return typeof payload.exp === 'number' ? payload.exp : null;
+    } catch {
+        return null;
+    }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<UnifiedUser | null>(null);
     const [loading, setLoading] = useState(true);
@@ -205,11 +223,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             };
                             updateUserIfChanged(u);
                             setupCoinSubscription(u.id);
-                            // Keep stored session fresh so it works as fallback next time
+                            // Keep stored session fresh so the PWA works between Telegram opens
                             storeSession({
-                                token: 'tg-auto',
+                                token: data.token,
+                                refreshToken: data.refreshToken,
                                 user: data.user,
-                                expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+                                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
                             });
                             setLoading(false);
                             return;
@@ -236,18 +255,72 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 return; // Never fall through to Supabase for Telegram users
 
             } else if (storedTgSession) {
-                // If not in TG but have session (browser testing)
+                // Not in Telegram (PWA / browser) but have a stored session.
                 setIsTelegram(true);
+
+                // Check whether the access token is still valid by decoding its exp claim.
+                const tokenExp = decodeTokenExpiry(storedTgSession.token);
+                const isExpired = !tokenExp || Math.floor(Date.now() / 1000) > tokenExp;
+
+                if (isExpired && storedTgSession.refreshToken) {
+                    // Silently exchange the refresh token for a new access token.
+                    // This is the path that keeps 2-month-gap users logged in.
+                    try {
+                        const refreshRes = await fetch('/api/auth/refresh', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ refreshToken: storedTgSession.refreshToken }),
+                        });
+                        const refreshData = await refreshRes.json();
+
+                        if (refreshData.token) {
+                            // Got a new access token — update the stored session and proceed
+                            const updatedSession = {
+                                ...storedTgSession,
+                                token: refreshData.token,
+                                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                            };
+                            storeSession(updatedSession);
+                            const u = {
+                                ...updatedSession.user,
+                                user_metadata: {
+                                    full_name: updatedSession.user.full_name,
+                                    avatar_url: updatedSession.user.avatar_url,
+                                },
+                            };
+                            if (isMounted) {
+                                updateUserIfChanged(u);
+                                setupCoinSubscription(updatedSession.user.id);
+                                setLoading(false);
+                            }
+                            return;
+                        }
+                    } catch (e) {
+                        console.warn('[Auth] Silent refresh failed (network?):', e);
+                        // Network error — trust the stored user data for now so the app
+                        // remains usable offline; we'll retry on next open.
+                    }
+
+                    // Refresh token rejected by server (revoked / expired) — clear session.
+                    // The user will see a logged-out state and be prompted to open via Telegram.
+                    clearSession();
+                    if (isMounted) setLoading(false);
+                    return;
+                }
+
+                // Token is still valid (or no refresh token to try) — use stored session.
                 const u = {
                     ...storedTgSession.user,
                     user_metadata: {
                         full_name: storedTgSession.user.full_name,
-                        avatar_url: storedTgSession.user.avatar_url
-                    }
+                        avatar_url: storedTgSession.user.avatar_url,
+                    },
                 };
-                updateUserIfChanged(u);
-                setupCoinSubscription(storedTgSession.user.id);
-                setLoading(false);
+                if (isMounted) {
+                    updateUserIfChanged(u);
+                    setupCoinSubscription(storedTgSession.user.id);
+                    setLoading(false);
+                }
                 return;
             }
 
@@ -335,25 +408,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     const data = await res.json();
                     if (data.error) throw new Error(data.error);
 
-                    // Fetch full profile from /api/user/me to get coins, role, username, etc.
-                    // /api/auth/telegram only returns a minimal subset
+                    // Fetch full profile from /api/user/me — it also issues a fresh token + refresh token.
+                    // /api/auth/telegram only returns a minimal user subset.
                     let fullUser = data.user;
+                    let accessToken: string = data.token;
+                    let refreshToken: string = data.refreshToken;
                     try {
                         const meRes = await fetch('/api/user/me', {
                             headers: { 'X-Telegram-Init-Data': initData }
                         });
                         const meData = await meRes.json();
                         if (meData.authenticated && meData.user) {
-                            fullUser = meData.user;
+                            fullUser    = meData.user;
+                            accessToken = meData.token;
+                            refreshToken = meData.refreshToken;
                         }
                     } catch (e) {
                         console.warn('[Auth] Could not fetch full profile after contact share, using minimal data', e);
                     }
 
                     storeSession({
-                        token: 'tg-auto',
+                        token: accessToken,
+                        refreshToken,
                         user: fullUser,
-                        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+                        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
                     });
 
                     const u = {
@@ -374,9 +452,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [setupCoinSubscription, updateUserIfChanged]);
 
     const logout = useCallback(() => {
+        const session = getStoredSession();
         setUser(null);
         clearSession();
         supabase.auth.signOut();
+
+        // Revoke the refresh token server-side so it can't be used to re-authenticate
+        // even if someone still has a copy of it (e.g. stolen device).
+        if (session?.refreshToken) {
+            fetch('/api/auth/refresh', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ refreshToken: session.refreshToken }),
+            }).catch(() => {}); // fire-and-forget; failure is non-critical
+        }
     }, []);
 
     const getAuthHeader = useCallback(() => {

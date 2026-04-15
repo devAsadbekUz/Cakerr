@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyTelegramRequest } from '@/app/utils/telegram-auth';
+import { signCustomerToken, generateRefreshToken, hashRefreshToken } from '@/app/utils/customerToken';
 
 const supabaseService = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,25 +10,26 @@ const supabaseService = createClient(
 
 /**
  * GET /api/user/me
- * Retrieves (and auto-creates) the user profile based on Telegram initData.
- * This is the main entry point for Telegram auth. No tokens needed.
+ * Verifies Telegram initData, finds or creates the user profile,
+ * and issues a fresh access token + refresh token on every call.
+ *
+ * Called on every Telegram Mini App open — so the stored session in
+ * localStorage is always kept up-to-date. The PWA uses the stored
+ * refresh token to silently renew the access token without Telegram.
  */
 export async function GET(request: NextRequest) {
-    // 1. Verify Telegram signature
     const tgUser = verifyTelegramRequest(request);
 
     if (!tgUser) {
-        return NextResponse.json({
-            error: 'Invalid or missing Telegram authentication data',
-            authenticated: false
-        }, { status: 401 });
+        return NextResponse.json(
+            { error: 'Invalid or missing Telegram authentication data', authenticated: false },
+            { status: 401 }
+        );
     }
 
-    const supabase = supabaseService;
-
     try {
-        // 2. Look up profile by telegram_id
-        let { data: profile, error } = await supabase
+        // ── 1. Find or create profile ─────────────────────────────────────────
+        let { data: profile, error } = await supabaseService
             .from('profiles')
             .select('*')
             .eq('telegram_id', tgUser.telegram_id)
@@ -38,19 +40,17 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Database error' }, { status: 500 });
         }
 
-        // 3. Auto-create profile if doesn't exist
         if (!profile) {
             console.log('[User API] New user detected, creating profile:', tgUser.telegram_id);
-
             const fullName = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ');
 
-            const { data: newProfile, error: createError } = await supabase
+            const { data: newProfile, error: createError } = await supabaseService
                 .from('profiles')
                 .insert({
                     telegram_id: tgUser.telegram_id,
                     full_name: fullName || 'Telegram User',
                     username: tgUser.username,
-                    role: 'customer' // Default role
+                    role: 'customer',
                 })
                 .select()
                 .single();
@@ -59,21 +59,42 @@ export async function GET(request: NextRequest) {
                 console.error('[User API] Error creating profile:', createError.message);
                 return NextResponse.json({ error: 'Failed to create profile' }, { status: 500 });
             }
-
             profile = newProfile;
-        } else {
-            // Update username if it changed or was empty
-            if (tgUser.username && profile.username !== tgUser.username) {
-                await supabase
-                    .from('profiles')
-                    .update({ username: tgUser.username })
-                    .eq('telegram_id', tgUser.telegram_id);
-            }
+        } else if (tgUser.username && profile.username !== tgUser.username) {
+            await supabaseService
+                .from('profiles')
+                .update({ username: tgUser.username })
+                .eq('telegram_id', tgUser.telegram_id);
         }
 
-        // 4. Return profile data with an "authenticated" flag
+        // ── 2. Issue tokens ───────────────────────────────────────────────────
+        const rawRefreshToken = generateRefreshToken();
+        const [accessToken, refreshTokenHash] = await Promise.all([
+            signCustomerToken(profile.id),
+            hashRefreshToken(rawRefreshToken),
+        ]);
+
+        // Replace any existing refresh tokens for this profile (one active token per user).
+        // This keeps the table clean and ensures the PWA always has the latest token
+        // after the user opens the Mini App.
+        await supabaseService
+            .from('customer_refresh_tokens')
+            .delete()
+            .eq('profile_id', profile.id);
+
+        await supabaseService
+            .from('customer_refresh_tokens')
+            .insert({
+                profile_id: profile.id,
+                token_hash: refreshTokenHash,
+                expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+            });
+
+        // ── 3. Return ─────────────────────────────────────────────────────────
         return NextResponse.json({
             authenticated: true,
+            token: accessToken,
+            refreshToken: rawRefreshToken,
             user: {
                 id: profile.id,
                 full_name: profile.full_name,
@@ -82,8 +103,8 @@ export async function GET(request: NextRequest) {
                 username: profile.username,
                 role: profile.role,
                 coins: profile.coins || 0,
-                has_phone: !!profile.phone_number
-            }
+                has_phone: !!profile.phone_number,
+            },
         });
 
     } catch (err: any) {
