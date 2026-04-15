@@ -228,7 +228,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                                 token: data.token,
                                 refreshToken: data.refreshToken,
                                 user: data.user,
-                                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+                                expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
                             });
                             setLoading(false);
                             return;
@@ -431,7 +431,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         token: accessToken,
                         refreshToken,
                         user: fullUser,
-                        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+                        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
                     });
 
                     const u = {
