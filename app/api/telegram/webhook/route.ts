@@ -198,7 +198,19 @@ export async function POST(request: NextRequest) {
                         throw profileError;
                     }
 
-                    // 2. Clear any legacy sessions for this user (cleanup)
+                    // 2. Store phone → Telegram link so the OTP flow can find this user
+                    // This is what allows PWA users to log in via phone + OTP sent to Telegram
+                    await supabase
+                        .from('telegram_phone_links')
+                        .upsert({
+                            phone: normalizedPhone,
+                            telegram_id: telegramId,
+                            telegram_chat_id: chatId,
+                            telegram_username: username || null,
+                            first_name: firstName || null,
+                        }, { onConflict: 'phone' });
+
+                    // 3. Clear any legacy sessions for this user (cleanup)
                     await supabase
                         .from('telegram_sessions')
                         .delete()

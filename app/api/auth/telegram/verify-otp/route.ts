@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import crypto from 'crypto';
+import { signCustomerToken, generateRefreshToken, hashRefreshToken } from '@/app/utils/customerToken';
 
 /**
  * POST /api/auth/telegram/verify-otp
- * Verify OTP code and create session
+ * Verify OTP code and create a proper JWT session (access token + refresh token).
  */
 export async function POST(request: NextRequest) {
     const supabase = createClient(
@@ -19,10 +19,10 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Phone and code required' }, { status: 400 });
         }
 
-        // Normalize phone number to +998XXXXXXXXX format
+        // ── 1. Normalize phone ────────────────────────────────────────────────
         let normalizedPhone = phone.replace(/[\s\-\(\)]/g, '');
         if (normalizedPhone.startsWith('+998')) {
-            // Already correct
+            // already correct
         } else if (normalizedPhone.startsWith('998')) {
             normalizedPhone = '+' + normalizedPhone;
         } else if (normalizedPhone.startsWith('8')) {
@@ -31,58 +31,54 @@ export async function POST(request: NextRequest) {
             normalizedPhone = '+998' + normalizedPhone;
         }
 
-        // Load OTP rows for this phone so we can validate the submitted code
+        // ── 2. Validate OTP code ──────────────────────────────────────────────
         const { data: allCodes, error: allError } = await supabase
             .from('telegram_otp_codes')
             .select('*')
             .eq('phone', normalizedPhone);
 
-        // If no codes exist at all for this phone
         if (!allCodes || allCodes.length === 0) {
             console.warn('[OTP Verify] No OTP codes found for phone', {
                 phone: normalizedPhone,
-                error: allError?.message || null
+                error: allError?.message || null,
             });
             return NextResponse.json({
                 error: 'invalid_code',
-                message: 'Kod noto\'g\'ri yoki eskirgan. Yangi kod oling.'
+                message: 'Kod noto\'g\'ri yoki eskirgan. Yangi kod oling.',
             }, { status: 400 });
         }
 
-        // Find matching code
         const matchingCode = allCodes.find(c => c.code === code);
 
         if (!matchingCode) {
             return NextResponse.json({
                 error: 'invalid_code',
-                message: 'Kod noto\'g\'ri yoki eskirgan. Yangi kod oling.'
+                message: 'Kod noto\'g\'ri yoki eskirgan. Yangi kod oling.',
             }, { status: 400 });
         }
 
-        // Check if already verified
         if (matchingCode.verified) {
             return NextResponse.json({
                 error: 'already_used',
-                message: 'Bu kod allaqachon ishlatilgan'
+                message: 'Bu kod allaqachon ishlatilgan.',
             }, { status: 400 });
         }
 
-        // Check if expired
         if (new Date(matchingCode.expires_at) < new Date()) {
             return NextResponse.json({
                 error: 'expired',
-                message: 'Kod eskirgan. Yangi kod oling.'
+                message: 'Kod eskirgan. Yangi kod oling.',
             }, { status: 400 });
         }
 
-        // 2. Mark OTP as verified
+        // ── 3. Mark OTP as used ───────────────────────────────────────────────
         await supabase
             .from('telegram_otp_codes')
             .update({ verified: true })
             .eq('id', matchingCode.id);
 
-        // 3. Get phone link for Telegram info
-        const { data: phoneLink, error: phoneLinkError } = await supabase
+        // ── 4. Look up phone → Telegram link ──────────────────────────────────
+        const { data: phoneLink } = await supabase
             .from('telegram_phone_links')
             .select('*')
             .eq('phone', normalizedPhone)
@@ -91,11 +87,11 @@ export async function POST(request: NextRequest) {
         if (!phoneLink) {
             return NextResponse.json({
                 error: 'no_phone_link',
-                message: 'Telefon raqami Telegramga ulanmagan'
+                message: 'Telefon raqami Telegramga ulanmagan.',
             }, { status: 400 });
         }
 
-        // 4. Create or update profile
+        // ── 5. Find or create profile ─────────────────────────────────────────
         const { data: existingProfile } = await supabase
             .from('profiles')
             .select('*')
@@ -107,96 +103,86 @@ export async function POST(request: NextRequest) {
         if (existingProfile) {
             const { data, error } = await supabase
                 .from('profiles')
-                .update({
-                    phone_number: normalizedPhone,
-                    updated_at: new Date().toISOString()
-                })
+                .update({ phone_number: normalizedPhone, updated_at: new Date().toISOString() })
                 .eq('telegram_id', phoneLink.telegram_id)
                 .select()
                 .single();
 
             if (error) {
                 console.error('[OTP Verify] Profile update failed:', error.message);
-                return NextResponse.json({
-                    error: 'profile_update_failed',
-                    message: 'Profil yangilanmadi'
-                }, { status: 500 });
+                return NextResponse.json({ error: 'profile_update_failed', message: 'Profil yangilanmadi.' }, { status: 500 });
             }
             profile = data;
         } else {
-            const newId = crypto.randomUUID();
             const { data, error } = await supabase
                 .from('profiles')
                 .insert({
-                    id: newId,
                     telegram_id: phoneLink.telegram_id,
                     phone_number: normalizedPhone,
                     full_name: phoneLink.first_name || 'Mijoz',
-                    role: 'customer'
+                    role: 'customer',
                 })
                 .select()
                 .single();
 
             if (error) {
                 console.error('[OTP Verify] Profile create failed:', error.message);
-                return NextResponse.json({
-                    error: 'profile_create_failed',
-                    message: 'Profil yaratilmadi'
-                }, { status: 500 });
+                return NextResponse.json({ error: 'profile_create_failed', message: 'Profil yaratilmadi.' }, { status: 500 });
             }
             profile = data;
         }
 
-        // 5. Create session token
-        const token = crypto.randomUUID();
-        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+        // ── 6. Issue JWT access token + refresh token ─────────────────────────
+        const rawRefreshToken = generateRefreshToken();
+        const [accessToken, refreshTokenHash] = await Promise.all([
+            signCustomerToken(profile.id),
+            hashRefreshToken(rawRefreshToken),
+        ]);
 
-        // Delete old sessions
+        // Replace any existing refresh tokens for this user
         await supabase
-            .from('telegram_sessions')
+            .from('customer_refresh_tokens')
             .delete()
-            .eq('telegram_id', phoneLink.telegram_id);
+            .eq('profile_id', profile.id);
 
-        // Create new session
-        const { error: sessionError } = await supabase.from('telegram_sessions').insert({
-            profile_id: profile.id,
-            token,
-            telegram_id: phoneLink.telegram_id,
-            expires_at: expiresAt.toISOString()
-        });
+        await supabase
+            .from('customer_refresh_tokens')
+            .insert({
+                profile_id: profile.id,
+                token_hash: refreshTokenHash,
+                expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+            });
 
-        if (sessionError) {
-            console.error('[OTP Verify] Session creation failed:', sessionError.message);
-            return NextResponse.json({
-                error: 'session_failed',
-                message: 'Sessiya yaratilmadi'
-            }, { status: 500 });
-        }
-
-        // 6. Clean up OTP codes
+        // ── 7. Clean up ───────────────────────────────────────────────────────
+        // Remove used OTP codes
         await supabase
             .from('telegram_otp_codes')
             .delete()
             .eq('phone', normalizedPhone);
 
+        // Remove any legacy telegram_sessions entries for this user
+        await supabase
+            .from('telegram_sessions')
+            .delete()
+            .eq('telegram_id', phoneLink.telegram_id);
+
+        // ── 8. Return ─────────────────────────────────────────────────────────
         return NextResponse.json({
             success: true,
-            token,
+            token: accessToken,
+            refreshToken: rawRefreshToken,
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
             user: {
                 id: profile.id,
                 full_name: profile.full_name,
                 phone_number: profile.phone_number,
                 telegram_id: profile.telegram_id,
-                avatar_url: profile.avatar_url
+                avatar_url: profile.avatar_url,
             },
-            expiresAt: expiresAt.toISOString()
         });
 
     } catch (error: any) {
         console.error('[OTP Verify] Server error:', error?.message || error);
-        return NextResponse.json({
-            error: 'server_error',
-            message: 'Server xatosi'
-        }, { status: 500 });
+        return NextResponse.json({ error: 'server_error', message: 'Server xatosi.' }, { status: 500 });
     }
 }

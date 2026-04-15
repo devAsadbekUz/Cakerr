@@ -25,8 +25,8 @@ function b64urlDecodeBytes(str: string): ArrayBuffer {
 }
 
 function getSecret(): string {
-    const secret = process.env.ADMIN_STAFF_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!secret) throw new Error('ADMIN_STAFF_SECRET is not set');
+    const secret = process.env.ADMIN_STAFF_SECRET;
+    if (!secret) throw new Error('ADMIN_STAFF_SECRET environment variable is not configured');
     return secret;
 }
 
@@ -57,7 +57,7 @@ export async function signStaffToken(
 
 export async function verifyStaffToken(token: string): Promise<StaffPayload | null> {
     try {
-        const secret = process.env.ADMIN_STAFF_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
+        const secret = process.env.ADMIN_STAFF_SECRET;
         if (!secret) return null;
 
         const parts = token.split('.');

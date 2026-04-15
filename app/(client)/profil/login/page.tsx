@@ -139,8 +139,9 @@ function LoginContent() {
             // Success - store session and redirect
             storeSession({
                 token: data.token,
+                refreshToken: data.refreshToken,
                 user: data.user,
-                expiresAt: data.expiresAt
+                expiresAt: data.expiresAt,
             });
 
             // Force page reload to update auth state
