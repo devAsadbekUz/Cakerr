@@ -583,7 +583,7 @@ export default function PosPage() {
                                     <input
                                         type="date"
                                         className={styles.input}
-                                        value={deliveryInfo.date ? deliveryInfo.date.toISOString().split('T')[0] : ''}
+                                        value={deliveryInfo.date ? format(deliveryInfo.date, 'yyyy-MM-dd') : ''}
                                         onChange={(e) => {
                                             const dateVal = e.target.value;
                                             if (!dateVal) {
