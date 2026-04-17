@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isAdminVerified } from '@/app/utils/admin-auth';
 import { sanitizeAdminOrder } from '@/app/(admin)/admin/orders/orders-data';
 import { serviceClient } from '@/app/utils/supabase/service';
+import { updateAdminOrderMessage } from '@/app/services/telegramNotificationService';
 
 export async function PATCH(
     request: NextRequest,
@@ -71,6 +72,9 @@ export async function PATCH(
         }
     }
 
+    // 4. Sync with Telegram immediately to show updated prices
+    await updateAdminOrderMessage(id);
+    
     return NextResponse.json({ success: true });
 }
 

@@ -155,56 +155,25 @@ export async function POST(
         }
 
         // ── Sync to Telegram ──────────────────────────────────────────────────
-        const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-        if (TELEGRAM_BOT_TOKEN) {
-            try {
-                const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
+        try {
+            // CENTRALIZED SYNC: This handles both Admin Group update AND Customer notify logic if needed
+            const { updateAdminOrderMessage } = await import('@/app/services/telegramNotificationService');
+            await updateAdminOrderMessage(orderId);
+            
+            // Still notify customer separately as that handles private chat logic
+            await notifyCustomerStatusChange(orderId, newStatus, order);
 
-                const deliveryAddr = (order.delivery_address || {}) as any;
-                const tgLang = resolveOrderLanguage({
-                    orderSavedLang: deliveryAddr.lang,
-                    adminPreferredLang: await getAdminTgLang(),
-                    fallbackLang: lang
-                });
-
-                // Task A: Update Admin Group Message
-                if (order.telegram_message_id && order.telegram_chat_id) {
-                    const messageText = buildOrderMessage(order, tgLang);
-                    const inline_keyboard = getTelegramButtons(newStatus, orderId, tgLang, order);
-
-                    const tgRes = await fetch(`${TELEGRAM_API}/editMessageText`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            chat_id: order.telegram_chat_id,
-                            message_id: order.telegram_message_id,
-                            text: messageText,
-                            parse_mode: 'Markdown',
-                            reply_markup: { inline_keyboard }
-                        })
-                    });
-
-                    const tgResult = await tgRes.json();
-                    if (!tgResult.ok) {
-                        console.error('[AdminStatusSync] Telegram Edit Error:', tgResult);
-                    }
-                }
-
-                // Task B: Notify customer
-                await notifyCustomerStatusChange(orderId, newStatus, order);
-
-                // Task C: Heal delivery_address.lang if missing
-                const needsHealing = !deliveryAddr.lang || (typeof deliveryAddr.lang === 'string' && deliveryAddr.lang.includes('"'));
-                if (needsHealing) {
-                    const healedAddress = typeof deliveryAddr === 'string'
-                        ? { street: deliveryAddr, lang: tgLang }
-                        : { ...deliveryAddr, lang: tgLang };
-                    await serviceClient.from('orders').update({ delivery_address: healedAddress }).eq('id', orderId);
-                }
-
-            } catch (syncErr) {
-                console.error('[AdminStatusSync] Sync Error:', syncErr);
+            // Task C: Heal delivery_address.lang if missing (Safety check)
+            const deliveryAddr = (order.delivery_address || {}) as any;
+            const needsHealing = !deliveryAddr.lang || (typeof deliveryAddr.lang === 'string' && deliveryAddr.lang.includes('"'));
+            if (needsHealing) {
+                const healedAddress = typeof deliveryAddr === 'string'
+                    ? { street: deliveryAddr, lang: lang }
+                    : { ...deliveryAddr, lang: lang };
+                await serviceClient.from('orders').update({ delivery_address: healedAddress }).eq('id', orderId);
             }
+        } catch (syncErr) {
+            console.error('[AdminStatusSync] Sync Error:', syncErr);
         }
 
         return NextResponse.json({ success: true, order });
