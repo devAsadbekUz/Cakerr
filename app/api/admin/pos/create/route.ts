@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { headers } from 'next/headers';
 import { notifyAdminNewOrder } from '@/app/services/telegramNotificationService';
+import { uploadBase64Image } from '@/app/utils/supabase/storageUtils';
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -35,6 +36,34 @@ export async function POST(req: NextRequest) {
         const DELIVERY_FEE = 40000;
         const itemsTotal = items.reduce((sum: number, item: any) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 1), 0);
         const serverTotal = itemsTotal + (deliveryInfo.delivery_type === 'delivery' ? DELIVERY_FEE : 0);
+
+        // 0. Intercept Base64 strings and upload them to Storage before saving to DB
+        // Support multiple possible photo keys from builder
+        if (items && items.length > 0) {
+            const uploadTasks: Promise<void>[] = [];
+            for (const item of items) {
+                if (!item.configuration) continue;
+                
+                const photoKey = ['uploaded_photo_url', 'photo_ref', 'photoRef'].find(k => 
+                    item.configuration[k]?.startsWith('data:image')
+                );
+
+                if (photoKey) {
+                    uploadTasks.push(
+                        uploadBase64Image(supabaseAdmin, item.configuration[photoKey], staffIdHeader || 'staff', 'photo')
+                            .then(url => { if (url) item.configuration[photoKey] = url; })
+                    );
+                }
+
+                if (item.configuration.drawing?.startsWith('data:image')) {
+                    uploadTasks.push(
+                        uploadBase64Image(supabaseAdmin, item.configuration.drawing, staffIdHeader || 'staff', 'drawing')
+                            .then(url => { if (url) item.configuration.drawing = url; })
+                    );
+                }
+            }
+            if (uploadTasks.length > 0) await Promise.all(uploadTasks);
+        }
 
         // 1. Prepare data for RPC
         const orderData = {

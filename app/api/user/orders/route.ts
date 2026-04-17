@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getVerifiedUserId } from '@/app/utils/telegram-auth';
 import { z } from 'zod';
+import { uploadBase64Image } from '@/app/utils/supabase/storageUtils';
 
 const supabaseService = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -99,42 +100,6 @@ export async function GET(request: NextRequest) {
     }
 }
 
-// Helper function to upload Base64 images to Supabase Storage
-async function uploadBase64Image(supabase: any, base64String: string, userId: string, prefix: string): Promise<string | null> {
-    const fileName = `${userId}/${prefix}_${Date.now()}.png`; // Defaulting to png if split fails
-    try {
-        const matches = base64String.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-        if (!matches || matches.length !== 3) {
-            console.error('[Storage] Invalid base64 format received');
-            return null;
-        }
-
-        const mimeType = matches[1];
-        const base64Data = matches[2];
-        const buffer = Buffer.from(base64Data, 'base64');
-        const ext = mimeType.split('/')[1] || 'png';
-        const finalFileName = `${userId}/${prefix}_${Date.now()}.${ext}`;
-
-        const { error } = await supabase.storage
-            .from('custom-cakes')
-            .upload(finalFileName, buffer, { 
-                contentType: mimeType, 
-                upsert: false,
-                cacheControl: '3600'
-            });
-
-        if (error) {
-            console.error('[Storage Upload Error] Bucket: custom-cakes, File:', finalFileName, error);
-            return null;
-        }
-
-        const { data } = supabase.storage.from('custom-cakes').getPublicUrl(finalFileName);
-        return data.publicUrl;
-    } catch (err) {
-        console.error('[Storage Upload Exception] Fatal error during upload processing:', err);
-        return null;
-    }
-}
 
 /**
  * POST /api/user/orders

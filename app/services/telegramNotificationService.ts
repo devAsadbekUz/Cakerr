@@ -161,17 +161,39 @@ export async function notifyAdminNewOrder(orderId: string): Promise<boolean> {
         // 3. Construct message and buttons
         const text = buildOrderMessage(order, finalLang);
         const inline_keyboard = getTelegramButtons('new', orderId, finalLang, order);
+        
+        // 4. Resolve primary photo if any exists in custom items
+        let primaryPhotoUrl: string | null = null;
+        if (order.order_items && order.order_items.length > 0) {
+            for (const item of order.order_items) {
+                const cfg = item.configuration || {};
+                const photoUrl = cfg.uploaded_photo_url || cfg.photo_ref || cfg.photoRef;
+                if (photoUrl && typeof photoUrl === 'string' && photoUrl.startsWith('http')) {
+                    primaryPhotoUrl = photoUrl;
+                    break;
+                }
+            }
+        }
 
-        // 4. Send to Telegram
-        const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
+        // 5. Send to Telegram (Photo with Caption OR Text Message)
+        const endpoint = primaryPhotoUrl ? 'sendPhoto' : 'sendMessage';
+        const payload: any = {
+            chat_id: TELEGRAM_CHAT_ID,
+            parse_mode: 'Markdown',
+            reply_markup: { inline_keyboard }
+        };
+
+        if (primaryPhotoUrl) {
+            payload.photo = primaryPhotoUrl;
+            payload.caption = text;
+        } else {
+            payload.text = text;
+        }
+
+        const res = await fetch(`${TELEGRAM_API}/${endpoint}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: TELEGRAM_CHAT_ID,
-                text,
-                parse_mode: 'Markdown',
-                reply_markup: { inline_keyboard }
-            })
+            body: JSON.stringify(payload)
         });
 
         if (!res.ok) {
