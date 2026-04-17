@@ -72,6 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const subscriptionRef = useRef<any>(null);
     const coinUserIdRef = useRef<string | null>(null);
     const lastFetchedUserIdRef = useRef<string | null>(null);
+    const resumeTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
     const setupCoinSubscription = useCallback((userId: string) => {
         coinUserIdRef.current = userId;
@@ -92,7 +93,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     return { ...current, coins: payload.new?.coins || 0 };
                 });
             })
-            .subscribe();
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log('[Auth] Coins subscription joined');
+                }
+            });
     }, []);
 
     const updateUserIfChanged = useCallback((newData: UnifiedUser | null) => {
@@ -339,13 +344,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         init();
 
         // On Android/Telegram, WebSocket channels drop when the screen is locked.
-        // Only reconnect if the channel has actually dropped — avoids tearing down
-        // a healthy subscription every time the user switches apps.
+        // We add a 2-second "stabilization" delay before reconnecting to allow the 
+        // OS to finish its primary wake-up tasks (network/bridge).
         const handleVisibilityChange = () => {
+            if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+
             if (document.visibilityState === 'visible' && coinUserIdRef.current) {
-                if (subscriptionRef.current?.state !== 'joined') {
-                    setupCoinSubscription(coinUserIdRef.current);
-                }
+                resumeTimerRef.current = setTimeout(() => {
+                    // Only re-subscribe if the channel isn't healthy
+                    const currentState = subscriptionRef.current?.state;
+                    if (currentState !== 'joined' && currentState !== 'joining' && coinUserIdRef.current) {
+                        console.log('[Auth] Stabilized — resuming coins subscription');
+                        setupCoinSubscription(coinUserIdRef.current);
+                    }
+                }, 2000); 
             }
         };
         document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -372,6 +384,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             isMounted = false;
             subscription.unsubscribe();
             document.removeEventListener('visibilitychange', handleVisibilityChange);
+            if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
             if (subscriptionRef.current) supabase.removeChannel(subscriptionRef.current);
         };
     }, [fetchProfile, setupCoinSubscription]);
