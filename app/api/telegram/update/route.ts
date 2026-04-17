@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getStatusConfig, getTelegramButtons, buildOrderMessage } from '@/app/utils/orderConfig';
 
+function isPhotoOrder(order: any): boolean {
+    if (!order.order_items || order.order_items.length === 0) return false;
+    return order.order_items.some((item: any) => {
+        const cfg = item.configuration || {};
+        const photoUrl = cfg.uploaded_photo_url || cfg.photo_ref || cfg.photoRef;
+        return photoUrl && typeof photoUrl === 'string' && photoUrl.startsWith('http');
+    });
+}
+
 export async function POST(request: NextRequest) {
     console.log('[Telegram Update] Received request');
     try {
@@ -66,18 +75,27 @@ export async function POST(request: NextRequest) {
         const inline_keyboard = getTelegramButtons(newStatus, orderId, lang as 'uz' | 'ru');
 
         // Edit Telegram message
+        const hasPhoto = isPhotoOrder(order);
+        const endpoint = hasPhoto ? 'editMessageCaption' : 'editMessageText';
+        const payload: any = {
+            chat_id: order.telegram_chat_id,
+            message_id: order.telegram_message_id,
+            parse_mode: 'Markdown',
+            reply_markup: { inline_keyboard }
+        };
+
+        if (hasPhoto) {
+            payload.caption = messageText;
+        } else {
+            payload.text = messageText;
+        }
+
         const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
-        console.log('[Telegram Update] Sending editMessageText to Telegram...');
-        const response = await fetch(`${TELEGRAM_API}/editMessageText`, {
+        console.log(`[Telegram Update] Sending ${endpoint} to Telegram...`);
+        const response = await fetch(`${TELEGRAM_API}/${endpoint}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: order.telegram_chat_id,
-                message_id: order.telegram_message_id,
-                text: messageText,
-                parse_mode: 'Markdown',
-                reply_markup: { inline_keyboard }
-            })
+            body: JSON.stringify(payload)
         });
 
         const result = await response.json();

@@ -14,6 +14,15 @@ function safeName(name: string): string {
     return name.replace(/[*_`[\]()~>#+=|{}.!\\]/g, '');
 }
 
+function isPhotoOrder(order: any): boolean {
+    if (!order.order_items || order.order_items.length === 0) return false;
+    return order.order_items.some((item: any) => {
+        const cfg = item.configuration || {};
+        const photoUrl = cfg.uploaded_photo_url || cfg.photo_ref || cfg.photoRef;
+        return photoUrl && typeof photoUrl === 'string' && photoUrl.startsWith('http');
+    });
+}
+
 /**
  * Synchronizes the persistent blue "Menu" button for a specific user.
  * This ensures the button is localized and points to the correct Mini App URL.
@@ -335,6 +344,7 @@ export async function POST(request: NextRequest) {
                     { text: extractedLang === 'ru' ? '⬅️ Назад' : '⬅️ Orqaga', callback_data: `backcancel_${orderId}_${extractedLang}` }
                 ]];
 
+                const hasPhoto = isPhotoOrder({ order_items: [] }); // precancel prompt is always text
                 await fetch(`${TELEGRAM_API}/editMessageText`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -372,10 +382,21 @@ export async function POST(request: NextRequest) {
                     const lang = resolveOrderLanguage({ orderSavedLang: deliveryAddr.lang, adminPreferredLang: adminSettings?.value, fallbackLang: extractedLang }) as 'uz' | 'ru';
                     const restoredText = buildOrderMessage(order, lang);
                     const restoredKeyboard = getTelegramButtons(order.status, orderId, lang, order);
-                    await fetch(`${TELEGRAM_API}/editMessageText`, {
+                    const hasPhoto = isPhotoOrder(order);
+                    const endpoint = hasPhoto ? 'editMessageCaption' : 'editMessageText';
+                    const payload: any = {
+                        chat_id: chatId, 
+                        message_id: messageId, 
+                        parse_mode: 'Markdown', 
+                        reply_markup: { inline_keyboard: restoredKeyboard }
+                    };
+                    if (hasPhoto) payload.caption = restoredText;
+                    else payload.text = restoredText;
+
+                    await fetch(`${TELEGRAM_API}/${endpoint}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ chat_id: chatId, message_id: messageId, text: restoredText, parse_mode: 'Markdown', reply_markup: { inline_keyboard: restoredKeyboard } })
+                        body: JSON.stringify(payload)
                     });
                 }
 
@@ -434,10 +455,21 @@ export async function POST(request: NextRequest) {
                     const { data: adminSettings } = await supabase.from('app_settings').select('value').eq('key', 'admin_tg_lang').single();
                     const lang = resolveOrderLanguage({ orderSavedLang: deliveryAddr.lang, adminPreferredLang: adminSettings?.value, fallbackLang: extractedLang }) as 'uz' | 'ru';
                     const cancelledText = buildOrderMessage(cancelledOrder, lang);
-                    await fetch(`${TELEGRAM_API}/editMessageText`, {
+                    const hasPhoto = isPhotoOrder(cancelledOrder);
+                    const endpoint = hasPhoto ? 'editMessageCaption' : 'editMessageText';
+                    const payload: any = {
+                        chat_id: chatId, 
+                        message_id: messageId, 
+                        parse_mode: 'Markdown', 
+                        reply_markup: { inline_keyboard: [] }
+                    };
+                    if (hasPhoto) payload.caption = cancelledText;
+                    else payload.text = cancelledText;
+
+                    await fetch(`${TELEGRAM_API}/${endpoint}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ chat_id: chatId, message_id: messageId, text: cancelledText, parse_mode: 'Markdown', reply_markup: { inline_keyboard: [] } })
+                        body: JSON.stringify(payload)
                     });
                     await notifyCustomerStatusChange(orderId, 'cancelled', cancelledOrder);
                 }
@@ -544,16 +576,21 @@ export async function POST(request: NextRequest) {
             const updatedText = buildOrderMessage(order, orderLang as 'uz' | 'ru');
             const inline_keyboard = getTelegramButtons(newStatus, orderId, orderLang as 'uz' | 'ru', order);
 
-            await fetch(`${TELEGRAM_API}/editMessageText`, {
+            const hasPhoto = isPhotoOrder(order);
+            const endpoint = hasPhoto ? 'editMessageCaption' : 'editMessageText';
+            const payload: any = {
+                chat_id: chatId,
+                message_id: messageId,
+                parse_mode: 'Markdown',
+                reply_markup: { inline_keyboard }
+            };
+            if (hasPhoto) payload.caption = updatedText;
+            else payload.text = updatedText;
+
+            await fetch(`${TELEGRAM_API}/${endpoint}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chat_id: chatId,
-                    message_id: messageId,
-                    text: updatedText,
-                    parse_mode: 'Markdown',
-                    reply_markup: { inline_keyboard }
-                })
+                body: JSON.stringify(payload)
             });
 
             // Notify the client directly if they have a telegram_id linked
