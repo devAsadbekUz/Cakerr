@@ -147,7 +147,7 @@ export default function TrackingPage() {
                     filter: `id=eq.${orderId}`
                 },
                 () => {
-                    fetchOrderSafe();
+                    fetchOrder();
                 }
             )
             .subscribe((status: string) => {
