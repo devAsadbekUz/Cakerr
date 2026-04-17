@@ -354,15 +354,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (document.visibilityState === 'visible') {
                 setIsResuming(true);
                 
-                resumeTimerRef.current = setTimeout(() => {
-                    setIsResuming(false);
-                    // Only re-subscribe if the channel isn't healthy
-                    const currentState = subscriptionRef.current?.state;
-                    if (currentState !== 'joined' && currentState !== 'joining' && coinUserIdRef.current) {
-                        console.log('[Auth] Stabilized — resuming coins subscription');
-                        setupCoinSubscription(coinUserIdRef.current);
-                    }
-                }, 3000); 
+                requestAnimationFrame(() => {
+                    resumeTimerRef.current = setTimeout(() => {
+                        setIsResuming(false);
+                        // Only re-subscribe if the channel isn't healthy
+                        const currentState = subscriptionRef.current?.state;
+                        if (currentState !== 'joined' && currentState !== 'joining' && coinUserIdRef.current) {
+                            console.log('[Auth] Stabilized — resuming coins subscription');
+                            setupCoinSubscription(coinUserIdRef.current);
+                        }
+                    }, 1500); 
+                });
             }
         };
         document.addEventListener('visibilitychange', handleVisibilityChange);

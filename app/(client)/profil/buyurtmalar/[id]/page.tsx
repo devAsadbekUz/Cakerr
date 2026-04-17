@@ -132,40 +132,9 @@ export default function TrackingPage() {
         // (Telegram initData not yet populated) → 401 → spurious auth error.
         if (authLoading) return;
 
-        let abortController = new AbortController();
-        let pollInterval: ReturnType<typeof setInterval> | null = null;
-
-        const fetchOrderSafe = () => {
-            abortController.abort();
-            abortController = new AbortController();
-            fetchOrder(abortController.signal);
-        };
-
-        const startPolling = () => {
-            if (pollInterval) return;
-            pollInterval = setInterval(fetchOrderSafe, 5000);
-        };
-
-        const stopPolling = () => {
-            if (pollInterval) {
-                clearInterval(pollInterval);
-                pollInterval = null;
-            }
-            abortController.abort();
-        };
-
-        const handleVisibilityChange = () => {
-            if (document.visibilityState === 'visible') {
-                fetchOrderSafe();
-                startPolling();
-            } else {
-                stopPolling();
-            }
-        };
+        const abortController = new AbortController();
 
         fetchOrder(abortController.signal);
-        startPolling();
-        document.addEventListener('visibilitychange', handleVisibilityChange);
 
         const channel = supabase
             .channel(`order-tracking-${orderId}`)
@@ -190,8 +159,7 @@ export default function TrackingPage() {
             });
 
         return () => {
-            stopPolling();
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            abortController.abort();
             supabase.removeChannel(channel);
         };
     }, [orderId, supabase, authLoading]);

@@ -50,7 +50,7 @@ const withPWA = require("@ducanh2912/next-pwa").default({
       },
       {
         urlPattern: /^(?!\/admin\/|\/api\/admin\/).*\/\_next\/static\/.*/i,
-        handler: "StaleWhileRevalidate",
+        handler: "CacheFirst",
         options: {
           cacheName: "next-static-js-assets",
           expiration: {
@@ -90,15 +90,19 @@ const nextConfig = {
   async headers() {
     return [
       {
+        source: '/admin/:path*',
+        headers: [{ key: 'X-Frame-Options', value: 'DENY' }],
+      },
+      {
+        source: '/api/admin/:path*',
+        headers: [{ key: 'X-Frame-Options', value: 'DENY' }],
+      },
+      {
         source: '/(.*)',
         headers: [
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff',
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
           },
           {
             key: 'X-XSS-Protection',

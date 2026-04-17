@@ -7,14 +7,7 @@ export function createClient() {
     if (!clientInstance) {
         clientInstance = createBrowserClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!.trim(),
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!.trim(),
-            {
-                realtime: {
-                    params: {
-                        worker: true
-                    }
-                }
-            }
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!.trim()
         );
     }
     return clientInstance;

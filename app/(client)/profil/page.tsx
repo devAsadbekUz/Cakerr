@@ -135,12 +135,6 @@ export default function ProfilPage() {
     useEffect(() => {
         fetchProfileData(true); // Initial load shows loading state
 
-        const handleVisibilityChange = () => {
-            if (document.visibilityState === 'visible') {
-                fetchProfileData();
-            }
-        };
-        document.addEventListener('visibilitychange', handleVisibilityChange);
 
         let channel: ReturnType<typeof supabase.channel> | null = null;
 
@@ -178,7 +172,6 @@ export default function ProfilPage() {
         }
 
         return () => {
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
             if (channel) supabase.removeChannel(channel);
         };
     }, [user?.id]);

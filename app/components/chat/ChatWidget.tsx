@@ -25,6 +25,7 @@ export default function ChatWidget() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const readerRef = useRef<ReadableStreamDefaultReader | null>(null);
+    const abortRef = useRef<AbortController | null>(null);
 
     // Keep welcome message in sync with language
     useEffect(() => {
@@ -62,7 +63,21 @@ export default function ChatWidget() {
             if (readerRef.current) {
                 readerRef.current.cancel();
             }
+            abortRef.current?.abort();
         };
+    }, []);
+
+    // Cancel streaming on hide
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'hidden') {
+                abortRef.current?.abort();
+                readerRef.current?.cancel();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }, []);
 
     const sendMessage = async (content: string) => {
@@ -95,11 +110,15 @@ export default function ChatWidget() {
             content: m.content,
         }));
 
+        const controller = new AbortController();
+        abortRef.current = controller;
+
         try {
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ messages: apiMessages }),
+                signal: controller.signal,
             });
 
             if (!response.ok) {
@@ -164,6 +183,7 @@ export default function ChatWidget() {
         } finally {
             setIsLoading(false);
             readerRef.current = null;
+            abortRef.current = null;
         }
     };
 
