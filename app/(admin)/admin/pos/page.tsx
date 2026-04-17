@@ -95,7 +95,7 @@ export default function PosPage() {
                 const endDate = format(rangeEnd, 'yyyy-MM-dd');
 
                 const [pData, cData, sData, ovData] = await Promise.all([
-                    adminFetch<Product>({ table: 'products', filterColumn: 'is_available', filterValue: 'true' }),
+                    adminFetch<Product>({ table: 'products', filterColumn: 'is_available', filterValue: 'true', filterNull: 'deleted_at' }),
                     adminFetch<Category>({ table: 'categories', orderBy: 'sort_order', orderAsc: true }),
                     availabilityService.getGlobalSlots(),
                     availabilityService.getOverrides(startDate, endDate)
