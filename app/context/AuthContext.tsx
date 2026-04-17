@@ -33,6 +33,7 @@ interface AuthContextType {
     user: UnifiedUser | null;
     loading: boolean;
     isTelegram: boolean;
+    isResuming: boolean;
     // Common Auth Methods
     loginWithTelegram: () => Promise<void>;
     logout: () => void;
@@ -68,6 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<UnifiedUser | null>(null);
     const [loading, setLoading] = useState(true);
     const [isTelegram, setIsTelegram] = useState(false);
+    const [isResuming, setIsResuming] = useState(false);
     const initializedRef = useRef(false);
     const subscriptionRef = useRef<any>(null);
     const coinUserIdRef = useRef<string | null>(null);
@@ -344,20 +346,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         init();
 
         // On Android/Telegram, WebSocket channels drop when the screen is locked.
-        // We add a 2-second "stabilization" delay before reconnecting to allow the 
+        // We add a 3-second "stabilization" delay before reconnecting to allow the 
         // OS to finish its primary wake-up tasks (network/bridge).
         const handleVisibilityChange = () => {
             if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
 
-            if (document.visibilityState === 'visible' && coinUserIdRef.current) {
+            if (document.visibilityState === 'visible') {
+                setIsResuming(true);
+                
                 resumeTimerRef.current = setTimeout(() => {
+                    setIsResuming(false);
                     // Only re-subscribe if the channel isn't healthy
                     const currentState = subscriptionRef.current?.state;
                     if (currentState !== 'joined' && currentState !== 'joining' && coinUserIdRef.current) {
                         console.log('[Auth] Stabilized — resuming coins subscription');
                         setupCoinSubscription(coinUserIdRef.current);
                     }
-                }, 2000); 
+                }, 3000); 
             }
         };
         document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -496,11 +501,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         loading,
         isTelegram,
+        isResuming,
         loginWithTelegram,
         logout,
         getAuthHeader,
         supabase
-    }), [user, loading, isTelegram, loginWithTelegram, logout, getAuthHeader]);
+    }), [user, loading, isTelegram, isResuming, loginWithTelegram, logout, getAuthHeader]);
 
     return (
         <AuthContext.Provider value={value}>
@@ -517,14 +523,15 @@ export const useAuth = () => {
 
 // Aliases for compatibility
 export const useSupabase = () => {
-    const { user, loading, isTelegram } = useAuth();
-    return { user, loading, isTelegramUser: isTelegram };
+    const { user, loading, isTelegram, isResuming } = useAuth();
+    return { user, loading, isTelegramUser: isTelegram, isResuming };
 };
 
 export const useTelegram = () => {
-    const { isTelegram, user, loading, loginWithTelegram, logout, getAuthHeader } = useAuth();
+    const { isTelegram, isResuming, user, loading, loginWithTelegram, logout, getAuthHeader } = useAuth();
     return { 
         isTelegram, 
+        isResuming,
         user: user as any, 
         loading, 
         login: loginWithTelegram, 
