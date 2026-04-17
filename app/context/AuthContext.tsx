@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     return { ...current, coins: payload.new?.coins || 0 };
                 });
             })
-            .subscribe((status) => {
+            .subscribe((status: string) => {
                 if (status === 'SUBSCRIBED') {
                     console.log('[Auth] Coins subscription joined');
                 }
