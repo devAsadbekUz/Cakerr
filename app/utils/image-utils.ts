@@ -15,7 +15,11 @@ export async function compressImage(file: File, maxWidth = 1200, maxHeight = 120
             fileToCompress = new File([blob], newName, { type: 'image/jpeg', lastModified: Date.now() });
         } catch (err) {
             console.error('[compressImage] HEIC conversion failed:', err);
-            return file;
+            throw new Error(
+                'HEIC rasmni avtomatik o\'girish muvaffaqiyatsiz bo\'ldi. ' +
+                'Iltimos, telefoningizda rasmni JPG formatga o\'giring va qayta urinib ko\'ring. ' +
+                '(Could not auto-convert HEIC. Please convert to JPG on your phone and try again.)'
+            );
         }
     }
 
