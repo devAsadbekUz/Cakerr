@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getLocalized } from '@/app/utils/i18n';
 import { X, Loader2, Save, Globe } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import ImageUpload from '@/app/components/admin/ImageUpload';
@@ -28,8 +29,25 @@ export default function CategoryForm({ isOpen, onClose, category, onSuccess }: C
         if (category) {
             const getInitialLabel = (val: any) => {
                 if (!val) return { uz: '', ru: '' };
-                if (typeof val === 'string') return { uz: val, ru: '' };
-                return { uz: val.uz || '', ru: val.ru || '' };
+                
+                // Already an object
+                if (typeof val === 'object') {
+                    return { uz: val.uz || '', ru: val.ru || '' };
+                }
+
+                // If it's a string, it might be stringified JSON
+                if (typeof val === 'string' && val.trim().startsWith('{')) {
+                    try {
+                        const parsed = JSON.parse(val.trim());
+                        return { 
+                            uz: getLocalized(parsed, 'uz'), 
+                            ru: getLocalized(parsed, 'ru') 
+                        };
+                    } catch (e) {
+                        // Not valid JSON, treat as uz
+                    }
+                }
+                return { uz: val, ru: '' };
             };
             setLabel(getInitialLabel(category.label));
             setIcon(category.icon || '🎂');

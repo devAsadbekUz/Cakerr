@@ -2,6 +2,7 @@
 
 import React, { useMemo } from 'react';
 import ProductCard from './ProductCard';
+import { getLocalized } from '@/app/utils/i18n';
 import { Product } from '@/app/types';
 import styles from './ProductGrid.module.css';
 import { useSearch } from '../home/HomepageShell';
@@ -19,10 +20,11 @@ export default function ProductGrid({ products, searchTerm: propSearchTerm, prio
     const filteredProducts = useMemo(() => {
         if (!activeSearchTerm) return products;
         const term = activeSearchTerm.toLowerCase();
-        return products.filter(product => 
-            product.title.toLowerCase().includes(term) || 
-            product.subtitle?.toLowerCase().includes(term)
-        );
+        return products.filter(product => {
+            const localizedTitle = getLocalized(product.title, 'uz').toLowerCase();
+            const localizedSubtitle = getLocalized(product.subtitle || '', 'uz').toLowerCase();
+            return localizedTitle.includes(term) || localizedSubtitle.includes(term);
+        });
     }, [products, activeSearchTerm]);
 
     if (filteredProducts.length === 0) return null;

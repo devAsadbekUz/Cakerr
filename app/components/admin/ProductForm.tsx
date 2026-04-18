@@ -19,7 +19,7 @@ interface ProductFormProps {
 }
 
 export default function ProductForm({ isOpen, onClose, product, categories, onSuccess }: ProductFormProps) {
-    const { t } = useAdminI18n();
+    const { lang, t } = useAdminI18n();
     const [activeTab, setActiveTab] = useState<'uz' | 'ru'>('uz');
     const [title, setTitle] = useState<{ uz: string; ru: string }>({ uz: '', ru: '' });
     const [subtitle, setSubtitle] = useState<{ uz: string; ru: string }>({ uz: '', ru: '' });
