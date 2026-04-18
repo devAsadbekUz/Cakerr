@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
     DndContext, 
     closestCenter,
@@ -38,6 +38,21 @@ interface SortableItemProps {
 
 function SortableImage({ id, url, onRemove, version, onReload }: SortableItemProps & { version: number; onReload: () => void }) {
     const [hasError, setHasError] = useState(false);
+    const retryCountRef = useRef(0);
+
+    useEffect(() => {
+        setHasError(false);
+        retryCountRef.current = 0;
+    }, [url]);
+
+    const handleImageError = () => {
+        if (retryCountRef.current < 2) {
+            retryCountRef.current++;
+            setTimeout(() => onReload(), 1500);
+        } else {
+            setHasError(true);
+        }
+    };
     const {
         attributes,
         listeners,
@@ -65,7 +80,8 @@ function SortableImage({ id, url, onRemove, version, onReload }: SortableItemPro
                 className={styles.image}
                 style={{ objectFit: 'cover' }}
                 sizes="(max-width: 768px) 33vw, 150px"
-                onError={() => setHasError(true)}
+                onError={handleImageError}
+                onLoad={() => setHasError(false)}
             />
 
             {hasError && (
@@ -154,21 +170,14 @@ export default function MultiImageUpload({ value = [], onChange, bucket = 'image
             const newUrls: string[] = [...value];
 
             for (const file of files) {
-                // 1. HEIC Detection (iPhone format)
-                const isHEIC = file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
-                if (isHEIC) {
-                    alert("iPhone formatidagi rasm (.HEIC) aniqlandi. Iltimos, uni JPG rasmga aylantiring yoki boshqa rasm yuklang. (iPhone HEIC format detected. Please convert to JPG.)");
-                    continue;
-                }
-
-                // 2. Validation
+                // 1. Validation (HEIC is auto-converted in compressImage)
                 const validation = validateImage(file);
                 if (!validation.valid) {
                     alert(validation.error);
                     continue;
                 }
 
-                // 3. Compression (to avoid 413 Payload Too Large)
+                // 2. Compression (to avoid 413 Payload Too Large)
                 const optimizedFile = await compressImage(file);
 
                 const formData = new FormData();

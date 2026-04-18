@@ -1,16 +1,31 @@
-/**
- * Client-side utility to compress and resize images before upload.
- * This helps avoid hitting server body size limits and makes uploads faster.
- */
 export async function compressImage(file: File, maxWidth = 1200, maxHeight = 1200, quality = 0.8): Promise<File | Blob> {
-    // Only compress images
-    if (!file.type.startsWith('image/')) {
-        return file;
+    let fileToCompress = file;
+
+    // Auto-convert HEIC/HEIF to JPEG (iPhone format)
+    const fileName = file.name.toLowerCase();
+    const isHEIC = fileName.endsWith('.heic') || fileName.endsWith('.heif') ||
+                   file.type === 'image/heic' || file.type === 'image/heif';
+
+    if (isHEIC) {
+        try {
+            const heic2any = (await import('heic2any')).default;
+            const converted = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+            const blob = Array.isArray(converted) ? converted[0] : converted;
+            const newName = file.name.replace(/\.(heic|heif)$/i, '.jpg');
+            fileToCompress = new File([blob], newName, { type: 'image/jpeg', lastModified: Date.now() });
+        } catch (err) {
+            console.error('[compressImage] HEIC conversion failed:', err);
+            return file;
+        }
     }
 
-    return new Promise((resolve, reject) => {
+    if (!fileToCompress.type.startsWith('image/')) {
+        return fileToCompress;
+    }
+
+    return new Promise((resolve) => {
         const reader = new FileReader();
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(fileToCompress);
         reader.onload = (event) => {
             const img = new Image();
             img.src = event.target?.result as string;
@@ -18,7 +33,6 @@ export async function compressImage(file: File, maxWidth = 1200, maxHeight = 120
                 let width = img.width;
                 let height = img.height;
 
-                // Calculate new dimensions while maintaining aspect ratio
                 if (width > height) {
                     if (width > maxWidth) {
                         height = Math.round((height * maxWidth) / width);
@@ -37,59 +51,46 @@ export async function compressImage(file: File, maxWidth = 1200, maxHeight = 120
 
                 const ctx = canvas.getContext('2d');
                 if (!ctx) {
-                    return resolve(file); // Fallback to original
+                    return resolve(fileToCompress);
                 }
 
                 ctx.drawImage(img, 0, 0, width, height);
 
-                // Convert to blob
                 canvas.toBlob(
                     (blob) => {
                         if (blob) {
-                            // Create a new file from the blob to preserve filename if possible
-                            const compressedFile = new File([blob], file.name, {
+                            const compressedFile = new File([blob], fileToCompress.name, {
                                 type: 'image/jpeg',
                                 lastModified: Date.now(),
                             });
                             resolve(compressedFile);
                         } else {
-                            resolve(file);
+                            resolve(fileToCompress);
                         }
                     },
                     'image/jpeg',
                     quality
                 );
             };
-            img.onerror = () => resolve(file);
+            img.onerror = () => resolve(fileToCompress);
         };
-        reader.onerror = () => resolve(file);
+        reader.onerror = () => resolve(fileToCompress);
     });
 }
 
-/**
- * Validates file size and type
- */
 export function validateImage(file: File, maxSizeMB = 10): { valid: boolean; error?: string } {
-    const fileName = file.name.toLowerCase();
     const fileType = file.type.toLowerCase();
+    const fileName = file.name.toLowerCase();
 
-    // 1. Explicitly catch HEIC/HEIF (unsupported by canvas in most browsers)
-    const isHEIC = fileName.endsWith('.heic') || fileName.endsWith('.heif') || 
+    // Allow HEIC/HEIF through — they get auto-converted in compressImage
+    const isHEIC = fileName.endsWith('.heic') || fileName.endsWith('.heif') ||
                    fileType === 'image/heic' || fileType === 'image/heif';
 
-    if (isHEIC) {
-        return { 
-            valid: false, 
-            error: "iPhone formatidagi rasm (.HEIC) aniqlandi. Iltimos, uni JPG rasmga aylantiring. (iPhone HEIC format detected. Please convert to JPG.)" 
-        };
-    }
-
-    // 2. General image check
-    if (!fileType.startsWith('image/') && fileType !== '') {
+    // Reject non-image files (but allow empty type since HEIC sometimes reports as such)
+    if (!isHEIC && fileType !== '' && !fileType.startsWith('image/')) {
         return { valid: false, error: 'Faqat rasm yuklash mumkin (Only images are allowed)' };
     }
 
-    // 3. Size check
     if (file.size > maxSizeMB * 1024 * 1024) {
         return { valid: false, error: `Rasm hajmi ${maxSizeMB}MB dan oshmasligi kerak (Image size must be less than ${maxSizeMB}MB)` };
     }

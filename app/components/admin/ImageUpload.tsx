@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { uploadImageAction } from '@/app/actions/image-actions';
 import { compressImage, validateImage } from '@/app/utils/image-utils';
 import Image from 'next/image';
-import { Image as ImageIcon, Upload, X, Loader2 } from 'lucide-react';
+import { Upload, X, Loader2 } from 'lucide-react';
 
 interface ImageUploadProps {
     value: string;
@@ -17,6 +17,22 @@ export default function ImageUpload({ value, onChange, bucket = 'images' }: Imag
     const [hasError, setHasError] = useState(false);
     const [version, setVersion] = useState(0);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const retryCountRef = useRef(0);
+
+    // Reset error and retry count whenever the image URL changes
+    useEffect(() => {
+        setHasError(false);
+        retryCountRef.current = 0;
+    }, [value]);
+
+    const handleImageError = () => {
+        if (retryCountRef.current < 2) {
+            retryCountRef.current++;
+            setTimeout(() => setVersion(v => v + 1), 1500);
+        } else {
+            setHasError(true);
+        }
+    };
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         try {
@@ -60,6 +76,7 @@ export default function ImageUpload({ value, onChange, bucket = 'images' }: Imag
     const handleReload = (e: React.MouseEvent) => {
         e.stopPropagation();
         setHasError(false);
+        retryCountRef.current = 0;
         setVersion(v => v + 1);
     };
 
@@ -69,13 +86,14 @@ export default function ImageUpload({ value, onChange, bucket = 'images' }: Imag
         <div style={{ width: '100%' }}>
             {value && value.startsWith('http') ? (
                 <div style={{ position: 'relative', width: '100%', height: '200px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #E5E7EB', background: '#F9FAFB' }}>
-                    <Image 
-                        src={displayUrl} 
-                        alt="Uploaded" 
-                        fill 
-                        style={{ objectFit: 'cover' }} 
+                    <Image
+                        src={displayUrl}
+                        alt="Uploaded"
+                        fill
+                        style={{ objectFit: 'cover' }}
                         sizes="(max-width: 768px) 100vw, 33vw"
-                        onError={() => setHasError(true)}
+                        onError={handleImageError}
+                        onLoad={() => setHasError(false)}
                     />
                     
                     {hasError && (
