@@ -2,11 +2,8 @@
 
 import { serviceClient } from '@/app/utils/supabase/service';
 import { isAdminVerified } from '@/app/utils/admin-auth';
+import sharp from 'sharp';
 
-/**
- * Server action to upload an image to Supabase Storage using the Service Role.
- * This bypasses RLS while still verifying that the requester is a verified admin/staff member.
- */
 export async function uploadImageAction(formData: FormData) {
     if (!await isAdminVerified()) {
         throw new Error('Unauthorized: Staff access required');
@@ -20,28 +17,42 @@ export async function uploadImageAction(formData: FormData) {
     }
 
     try {
-        const mimeToExt: Record<string, string> = {
-            'image/jpeg': 'jpg',
-            'image/png': 'png',
-            'image/webp': 'webp',
-            'image/gif': 'gif',
-            'image/avif': 'avif',
-        };
-        const fileExt = mimeToExt[file.type] || file.name.split('.').pop() || 'jpg';
+        const originalName = file.name.toLowerCase();
+        const isHEIC = originalName.endsWith('.heic') || originalName.endsWith('.heif') ||
+                       file.type === 'image/heic' || file.type === 'image/heif';
+
+        let buffer: Buffer = Buffer.from(await file.arrayBuffer());
+        let contentType = file.type || 'image/jpeg';
+        let fileExt: string;
+
+        if (isHEIC) {
+            // Convert HEIC to JPEG server-side using sharp (native libheif — supports all variants)
+            buffer = await sharp(buffer)
+                .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
+                .jpeg({ quality: 85 })
+                .toBuffer();
+            contentType = 'image/jpeg';
+            fileExt = 'jpg';
+        } else {
+            const mimeToExt: Record<string, string> = {
+                'image/jpeg': 'jpg',
+                'image/png': 'png',
+                'image/webp': 'webp',
+                'image/gif': 'gif',
+                'image/avif': 'avif',
+            };
+            fileExt = mimeToExt[file.type] || file.name.split('.').pop() || 'jpg';
+        }
+
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const filePath = `${fileName}`;
 
-        console.log(`[Upload Action] Starting upload for ${file.name} to ${bucket}. Size: ${file.size} bytes`);
+        console.log(`[Upload Action] Uploading ${file.name} → ${fileName} (${contentType}), ${buffer.length} bytes`);
 
-        // Convert File to ArrayBuffer for Supabase upload
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-
-        const { data, error: uploadError } = await serviceClient.storage
+        const { error: uploadError } = await serviceClient.storage
             .from(bucket)
-            .upload(filePath, buffer, {
-                contentType: file.type,
-                upsert: false
+            .upload(fileName, buffer, {
+                contentType,
+                upsert: false,
             });
 
         if (uploadError) {
@@ -49,17 +60,14 @@ export async function uploadImageAction(formData: FormData) {
             throw new Error(`Supabase Storage Error: ${uploadError.message}`);
         }
 
-        console.log(`[Upload Action] Successfully uploaded: ${filePath}`);
-
-        // Generate public URL
         const { data: { publicUrl } } = serviceClient.storage
             .from(bucket)
-            .getPublicUrl(filePath);
+            .getPublicUrl(fileName);
 
-        return { url: publicUrl, path: filePath };
+        console.log(`[Upload Action] Done: ${publicUrl}`);
+        return { url: publicUrl, path: fileName };
     } catch (error: any) {
         console.error('[Upload Action] Exception:', error);
-        // Ensure we always return an error message that can be parsed
         return { error: error.message || 'An unknown error occurred during upload' };
     }
 }

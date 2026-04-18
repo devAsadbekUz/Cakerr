@@ -1,35 +1,20 @@
 export async function compressImage(file: File, maxWidth = 1200, maxHeight = 1200, quality = 0.8): Promise<File | Blob> {
-    let fileToCompress = file;
-
-    // Auto-convert HEIC/HEIF to JPEG (iPhone format)
     const fileName = file.name.toLowerCase();
     const isHEIC = fileName.endsWith('.heic') || fileName.endsWith('.heif') ||
                    file.type === 'image/heic' || file.type === 'image/heif';
 
+    // HEIC files are converted server-side by sharp — skip client-side processing
     if (isHEIC) {
-        try {
-            const heic2any = (await import('heic2any')).default;
-            const converted = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
-            const blob = Array.isArray(converted) ? converted[0] : converted;
-            const newName = file.name.replace(/\.(heic|heif)$/i, '.jpg');
-            fileToCompress = new File([blob], newName, { type: 'image/jpeg', lastModified: Date.now() });
-        } catch (err) {
-            console.error('[compressImage] HEIC conversion failed:', err);
-            throw new Error(
-                'HEIC rasmni avtomatik o\'girish muvaffaqiyatsiz bo\'ldi. ' +
-                'Iltimos, telefoningizda rasmni JPG formatga o\'giring va qayta urinib ko\'ring. ' +
-                '(Could not auto-convert HEIC. Please convert to JPG on your phone and try again.)'
-            );
-        }
+        return file;
     }
 
-    if (!fileToCompress.type.startsWith('image/')) {
-        return fileToCompress;
+    if (!file.type.startsWith('image/')) {
+        return file;
     }
 
     return new Promise((resolve) => {
         const reader = new FileReader();
-        reader.readAsDataURL(fileToCompress);
+        reader.readAsDataURL(file);
         reader.onload = (event) => {
             const img = new Image();
             img.src = event.target?.result as string;
@@ -54,43 +39,39 @@ export async function compressImage(file: File, maxWidth = 1200, maxHeight = 120
                 canvas.height = height;
 
                 const ctx = canvas.getContext('2d');
-                if (!ctx) {
-                    return resolve(fileToCompress);
-                }
+                if (!ctx) return resolve(file);
 
                 ctx.drawImage(img, 0, 0, width, height);
 
                 canvas.toBlob(
                     (blob) => {
                         if (blob) {
-                            const compressedFile = new File([blob], fileToCompress.name, {
+                            resolve(new File([blob], file.name, {
                                 type: 'image/jpeg',
                                 lastModified: Date.now(),
-                            });
-                            resolve(compressedFile);
+                            }));
                         } else {
-                            resolve(fileToCompress);
+                            resolve(file);
                         }
                     },
                     'image/jpeg',
                     quality
                 );
             };
-            img.onerror = () => resolve(fileToCompress);
+            img.onerror = () => resolve(file);
         };
-        reader.onerror = () => resolve(fileToCompress);
+        reader.onerror = () => resolve(file);
     });
 }
 
-export function validateImage(file: File, maxSizeMB = 10): { valid: boolean; error?: string } {
+export function validateImage(file: File, maxSizeMB = 12): { valid: boolean; error?: string } {
     const fileType = file.type.toLowerCase();
     const fileName = file.name.toLowerCase();
 
-    // Allow HEIC/HEIF through — they get auto-converted in compressImage
     const isHEIC = fileName.endsWith('.heic') || fileName.endsWith('.heif') ||
                    fileType === 'image/heic' || fileType === 'image/heif';
 
-    // Reject non-image files (but allow empty type since HEIC sometimes reports as such)
+    // Reject non-image files (allow HEIC and empty-type files through)
     if (!isHEIC && fileType !== '' && !fileType.startsWith('image/')) {
         return { valid: false, error: 'Faqat rasm yuklash mumkin (Only images are allowed)' };
     }
