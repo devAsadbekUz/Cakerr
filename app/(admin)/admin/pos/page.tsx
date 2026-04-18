@@ -145,14 +145,14 @@ export default function PosPage() {
 
     const isSlotBlocked = (slotLabel: string) => {
         if (!deliveryInfo.date) return false;
-        const dateStr = deliveryInfo.date.toISOString().split('T')[0];
-        
+        const dateStr = format(deliveryInfo.date, 'yyyy-MM-dd');
+
         // 1. Check DB overrides
         const hasOverride = overrides.some(o => o.date === dateStr && (o.slot === null || o.slot === slotLabel));
         if (hasOverride) return true;
 
         // 2. Check if the slot has already passed today
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = format(new Date(), 'yyyy-MM-dd');
         if (dateStr === todayStr) {
             const match = slotLabel.match(/^(\d{2}):/);
             if (match) {
@@ -603,7 +603,7 @@ export default function PosPage() {
                                             setDeliveryInfo({ date: newDate, ...(slotNowBlocked ? { slot: '' } : {}) });
                                             setError(null);
                                         }}
-                                        min={new Date().toISOString().split('T')[0]}
+                                        min={format(new Date(), 'yyyy-MM-dd')}
                                     />
                                 </div>
                                 <div className={styles.formControl}>
