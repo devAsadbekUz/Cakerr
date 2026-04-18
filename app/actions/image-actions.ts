@@ -20,7 +20,14 @@ export async function uploadImageAction(formData: FormData) {
     }
 
     try {
-        const fileExt = file.name.split('.').pop();
+        const mimeToExt: Record<string, string> = {
+            'image/jpeg': 'jpg',
+            'image/png': 'png',
+            'image/webp': 'webp',
+            'image/gif': 'gif',
+            'image/avif': 'avif',
+        };
+        const fileExt = mimeToExt[file.type] || file.name.split('.').pop() || 'jpg';
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         const filePath = `${fileName}`;
 
