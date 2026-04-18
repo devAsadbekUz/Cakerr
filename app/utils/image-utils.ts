@@ -70,10 +70,26 @@ export async function compressImage(file: File, maxWidth = 1200, maxHeight = 120
  * Validates file size and type
  */
 export function validateImage(file: File, maxSizeMB = 10): { valid: boolean; error?: string } {
-    if (!file.type.startsWith('image/')) {
+    const fileName = file.name.toLowerCase();
+    const fileType = file.type.toLowerCase();
+
+    // 1. Explicitly catch HEIC/HEIF (unsupported by canvas in most browsers)
+    const isHEIC = fileName.endsWith('.heic') || fileName.endsWith('.heif') || 
+                   fileType === 'image/heic' || fileType === 'image/heif';
+
+    if (isHEIC) {
+        return { 
+            valid: false, 
+            error: "iPhone formatidagi rasm (.HEIC) aniqlandi. Iltimos, uni JPG rasmga aylantiring. (iPhone HEIC format detected. Please convert to JPG.)" 
+        };
+    }
+
+    // 2. General image check
+    if (!fileType.startsWith('image/') && fileType !== '') {
         return { valid: false, error: 'Faqat rasm yuklash mumkin (Only images are allowed)' };
     }
 
+    // 3. Size check
     if (file.size > maxSizeMB * 1024 * 1024) {
         return { valid: false, error: `Rasm hajmi ${maxSizeMB}MB dan oshmasligi kerak (Image size must be less than ${maxSizeMB}MB)` };
     }

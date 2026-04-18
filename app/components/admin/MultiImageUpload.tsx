@@ -36,7 +36,7 @@ interface SortableItemProps {
     onRemove: (url: string) => void;
 }
 
-function SortableImage({ id, url, onRemove }: SortableItemProps) {
+function SortableImage({ id, url, onRemove, version, onReload }: SortableItemProps & { version: number; onReload: () => void }) {
     const [hasError, setHasError] = useState(false);
     const {
         attributes,
@@ -54,10 +54,12 @@ function SortableImage({ id, url, onRemove }: SortableItemProps) {
         opacity: isDragging ? 0.5 : 1,
     };
 
+    const displayUrl = `${url}${url.includes('?') ? '&' : '?'}v=${version}`;
+
     return (
         <div ref={setNodeRef} style={style} className={styles.item}>
             <Image 
-                src={url} 
+                src={displayUrl} 
                 alt="Product" 
                 fill 
                 className={styles.image}
@@ -68,8 +70,28 @@ function SortableImage({ id, url, onRemove }: SortableItemProps) {
 
             {hasError && (
                 <div className={styles.errorOverlay}>
-                    <ImageOff size={20} />
-                    <span>Format xatosi (Bad format)</span>
+                    <ImageOff size={18} />
+                    <span style={{ fontSize: '9px', fontWeight: 600 }}>Xatolik</span>
+                    <button 
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setHasError(false);
+                            onReload();
+                        }}
+                        style={{
+                            marginTop: '4px',
+                            padding: '2px 6px',
+                            background: 'white',
+                            border: '1px solid #FECACA',
+                            borderRadius: '4px',
+                            fontSize: '9px',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                        }}
+                    >
+                        Yangilash
+                    </button>
                 </div>
             )}
             
@@ -106,7 +128,10 @@ function SortableImage({ id, url, onRemove }: SortableItemProps) {
 
 export default function MultiImageUpload({ value = [], onChange, bucket = 'images' }: MultiImageUploadProps) {
     const [uploading, setUploading] = useState(false);
+    const [version, setVersion] = useState(0);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleReload = () => setVersion(v => v + 1);
 
     // Fix: Add distance threshold to PointerSensor to prevent it from intercepting clicks
     const sensors = useSensors(
@@ -210,6 +235,8 @@ export default function MultiImageUpload({ value = [], onChange, bucket = 'image
                                 id={item.id} 
                                 url={item.url} 
                                 onRemove={handleRemove} 
+                                version={version}
+                                onReload={handleReload}
                             />
                         ))}
                     </SortableContext>

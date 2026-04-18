@@ -14,6 +14,8 @@ interface ImageUploadProps {
 
 export default function ImageUpload({ value, onChange, bucket = 'images' }: ImageUploadProps) {
     const [uploading, setUploading] = useState(false);
+    const [hasError, setHasError] = useState(false);
+    const [version, setVersion] = useState(0);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -29,6 +31,7 @@ export default function ImageUpload({ value, onChange, bucket = 'images' }: Imag
             }
 
             setUploading(true);
+            setHasError(false);
 
             // 2. Compression
             const optimizedFile = await compressImage(file);
@@ -43,6 +46,7 @@ export default function ImageUpload({ value, onChange, bucket = 'images' }: Imag
             if (result.error) throw new Error(result.error);
             if (result.url) {
                 onChange(result.url);
+                setVersion(v => v + 1); // Reset version on new upload
             }
         } catch (error: any) {
             console.error('[ImageUpload] Error:', error);
@@ -53,18 +57,56 @@ export default function ImageUpload({ value, onChange, bucket = 'images' }: Imag
         }
     };
 
+    const handleReload = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setHasError(false);
+        setVersion(v => v + 1);
+    };
+
+    const displayUrl = value ? `${value}${value.includes('?') ? '&' : '?'}v=${version}` : '';
+
     return (
         <div style={{ width: '100%' }}>
             {value && value.startsWith('http') ? (
-                <div style={{ position: 'relative', width: '100%', height: '200px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #E5E7EB' }}>
-                    <Image src={value} alt="Uploaded" fill style={{ objectFit: 'cover' }} sizes="(max-width: 768px) 100vw, 33vw" />
+                <div style={{ position: 'relative', width: '100%', height: '200px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #E5E7EB', background: '#F9FAFB' }}>
+                    <Image 
+                        src={displayUrl} 
+                        alt="Uploaded" 
+                        fill 
+                        style={{ objectFit: 'cover' }} 
+                        sizes="(max-width: 768px) 100vw, 33vw"
+                        onError={() => setHasError(true)}
+                    />
+                    
+                    {hasError && (
+                        <div style={{ 
+                            position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', 
+                            alignItems: 'center', justifyContent: 'center', background: '#FEF2F2', 
+                            color: '#991B1B', gap: '8px', zIndex: 5 
+                        }}>
+                             <span style={{ fontSize: '12px', fontWeight: 600 }}>Format xatosi (Bad format)</span>
+                             <button 
+                                type="button" 
+                                onClick={handleReload}
+                                style={{ 
+                                    padding: '6px 12px', background: 'white', border: '1px solid #FECACA', 
+                                    borderRadius: '6px', fontSize: '11px', fontWeight: 700, cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', gap: '4px'
+                                }}
+                             >
+                                Qayta yuklash (Reload)
+                             </button>
+                        </div>
+                    )}
+
                     <button
                         type="button"
-                        onClick={() => onChange('')}
+                        onClick={() => { onChange(''); setHasError(false); }}
                         style={{
                             position: 'absolute', top: '8px', right: '8px',
                             background: 'white', border: 'none', borderRadius: '50%',
-                            padding: '6px', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                            padding: '6px', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                            zIndex: 10
                         }}
                     >
                         <X size={16} />
