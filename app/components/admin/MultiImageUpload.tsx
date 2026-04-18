@@ -19,6 +19,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { uploadImageAction } from '@/app/actions/image-actions';
+import { compressImage, validateImage } from '@/app/utils/image-utils';
 import Image from 'next/image';
 import { Upload, X, Loader2, GripVertical } from 'lucide-react';
 import styles from './MultiImageUpload.module.css';
@@ -119,13 +120,30 @@ export default function MultiImageUpload({ value = [], onChange, bucket = 'image
             const newUrls: string[] = [...value];
 
             for (const file of files) {
+                // 1. Validation
+                const validation = validateImage(file);
+                if (!validation.valid) {
+                    alert(validation.error);
+                    continue;
+                }
+
+                // 2. Compression (to avoid 413 Payload Too Large)
+                const optimizedFile = await compressImage(file);
+
                 const formData = new FormData();
-                formData.append('file', file);
+                formData.append('file', optimizedFile);
                 formData.append('bucket', bucket);
 
                 const result = await uploadImageAction(formData);
 
-                if (result.error) throw new Error(result.error);
+                if (result.error) {
+                    // Provide a more helpful message for common failures
+                    if (result.error.includes('unexpected response')) {
+                        throw new Error("Server bilan bog'lanishda xatolik. Rasm juda katta bo'lishi mumkin. (Network error, the image might be too large)");
+                    }
+                    throw new Error(result.error);
+                }
+                
                 if (result.url) {
                     newUrls.push(result.url);
                 }
@@ -133,7 +151,8 @@ export default function MultiImageUpload({ value = [], onChange, bucket = 'image
 
             onChange(newUrls);
         } catch (error: any) {
-            alert('Yuklashda xatolik: ' + error.message);
+            console.error('[MultiImageUpload] Upload error:', error);
+            alert("Yuklashda xatolik (Upload error): " + error.message);
         } finally {
             setUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = '';

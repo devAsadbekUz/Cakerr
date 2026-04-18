@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { createClient } from '@/app/utils/supabase/client';
+import { uploadImageAction } from '@/app/actions/image-actions';
+import { compressImage, validateImage } from '@/app/utils/image-utils';
 import Image from 'next/image';
 import { Image as ImageIcon, Upload, X, Loader2 } from 'lucide-react';
 
@@ -14,32 +15,41 @@ interface ImageUploadProps {
 export default function ImageUpload({ value, onChange, bucket = 'images' }: ImageUploadProps) {
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const supabase = createClient();
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         try {
-            setUploading(true);
             const file = e.target.files?.[0];
             if (!file) return;
 
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-            const filePath = `${fileName}`;
-
-            const { error: uploadError } = await supabase.storage
-                .from(bucket)
-                .upload(filePath, file);
-
-            if (uploadError) {
-                throw uploadError;
+            // 1. Validation
+            const validation = validateImage(file);
+            if (!validation.valid) {
+                 alert(validation.error);
+                 return;
             }
 
-            const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
-            onChange(data.publicUrl);
+            setUploading(true);
+
+            // 2. Compression
+            const optimizedFile = await compressImage(file);
+
+            // 3. Server-side upload via action (bypasses RLS)
+            const formData = new FormData();
+            formData.append('file', optimizedFile);
+            formData.append('bucket', bucket);
+
+            const result = await uploadImageAction(formData);
+
+            if (result.error) throw new Error(result.error);
+            if (result.url) {
+                onChange(result.url);
+            }
         } catch (error: any) {
-            alert('Upload error: ' + error.message);
+            console.error('[ImageUpload] Error:', error);
+            alert('Yuklashda xatolik (Upload error): ' + error.message);
         } finally {
             setUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
         }
     };
 

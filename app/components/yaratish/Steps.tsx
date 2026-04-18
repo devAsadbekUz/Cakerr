@@ -9,6 +9,7 @@ import {
     X, Camera, Star, Info, Palette, Layers, Maximize
 } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
+import { compressImage, validateImage } from '@/app/utils/image-utils';
 
 /**
  * Step 1: Cake Type Selection
@@ -95,49 +96,35 @@ export function DesignStep() {
         }
     }, [isDrawingOpen, drawingData, color]);
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            // Check for large files and compress them
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const img = new window.Image();
-                img.onload = () => {
-                    // Maximum dimensions for the compressed image
-                    const MAX_WIDTH = 1200;
-                    const MAX_HEIGHT = 1200;
-                    let width = img.width;
-                    let height = img.height;
+            // 1. Validation
+            const validation = validateImage(file, 10);
+            if (!validation.valid) {
+                alert(validation.error);
+                return;
+            }
 
-                    if (width > height) {
-                        if (width > MAX_WIDTH) {
-                            height *= MAX_WIDTH / width;
-                            width = MAX_WIDTH;
-                        }
-                    } else {
-                        if (height > MAX_HEIGHT) {
-                            width *= MAX_HEIGHT / height;
-                            height = MAX_HEIGHT;
-                        }
-                    }
+            try {
+                // 2. Standardized Compression (resizes and optimizes)
+                // We use 1000x1000 and 0.7 quality for reference photos to keep base64 strings small
+                const optimizedFile = await compressImage(file, 1000, 1000, 0.7);
 
-                    const canvas = document.createElement('canvas');
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    if (ctx) {
-                        ctx.drawImage(img, 0, 0, width, height);
-                        // Export as JPEG with 0.7 quality
-                        const compressed = canvas.toDataURL('image/jpeg', 0.7);
-                        setPhotoRef(compressed);
-                    } else {
-                        // Fallback to original if canvas fails
-                        setPhotoRef(reader.result as string);
-                    }
+                // 3. Convert back to Data URL for the state/cart context
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setPhotoRef(reader.result as string);
                 };
-                img.src = reader.result as string;
-            };
-            reader.readAsDataURL(file);
+                reader.readAsDataURL(optimizedFile);
+            } catch (err) {
+                console.error('[DesignStep] Compression failed, falling back to original:', err);
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setPhotoRef(reader.result as string);
+                };
+                reader.readAsDataURL(file);
+            }
         }
     };
 

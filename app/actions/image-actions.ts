@@ -24,6 +24,8 @@ export async function uploadImageAction(formData: FormData) {
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         const filePath = `${fileName}`;
 
+        console.log(`[Upload Action] Starting upload for ${file.name} to ${bucket}. Size: ${file.size} bytes`);
+
         // Convert File to ArrayBuffer for Supabase upload
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
@@ -37,8 +39,10 @@ export async function uploadImageAction(formData: FormData) {
 
         if (uploadError) {
             console.error('[Upload Action] Supabase error:', uploadError);
-            throw new Error(uploadError.message);
+            throw new Error(`Supabase Storage Error: ${uploadError.message}`);
         }
+
+        console.log(`[Upload Action] Successfully uploaded: ${filePath}`);
 
         // Generate public URL
         const { data: { publicUrl } } = serviceClient.storage
@@ -48,6 +52,7 @@ export async function uploadImageAction(formData: FormData) {
         return { url: publicUrl, path: filePath };
     } catch (error: any) {
         console.error('[Upload Action] Exception:', error);
-        return { error: error.message };
+        // Ensure we always return an error message that can be parsed
+        return { error: error.message || 'An unknown error occurred during upload' };
     }
 }
