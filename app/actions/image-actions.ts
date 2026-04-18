@@ -2,7 +2,6 @@
 
 import { serviceClient } from '@/app/utils/supabase/service';
 import { isAdminVerified } from '@/app/utils/admin-auth';
-import sharp from 'sharp';
 
 export async function uploadImageAction(formData: FormData) {
     if (!await isAdminVerified()) {
@@ -17,43 +16,23 @@ export async function uploadImageAction(formData: FormData) {
     }
 
     try {
-        const originalName = file.name.toLowerCase();
-        const isHEIC = originalName.endsWith('.heic') || originalName.endsWith('.heif') ||
-                       file.type === 'image/heic' || file.type === 'image/heif';
-
-        let buffer: Buffer = Buffer.from(await file.arrayBuffer());
-        let contentType = file.type || 'image/jpeg';
-        let fileExt: string;
-
-        if (isHEIC) {
-            // Convert HEIC to JPEG server-side using sharp (native libheif — supports all variants)
-            buffer = await sharp(buffer)
-                .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
-                .jpeg({ quality: 85 })
-                .toBuffer();
-            contentType = 'image/jpeg';
-            fileExt = 'jpg';
-        } else {
-            const mimeToExt: Record<string, string> = {
-                'image/jpeg': 'jpg',
-                'image/png': 'png',
-                'image/webp': 'webp',
-                'image/gif': 'gif',
-                'image/avif': 'avif',
-            };
-            fileExt = mimeToExt[file.type] || file.name.split('.').pop() || 'jpg';
-        }
-
+        const mimeToExt: Record<string, string> = {
+            'image/jpeg': 'jpg',
+            'image/png': 'png',
+            'image/webp': 'webp',
+            'image/gif': 'gif',
+            'image/avif': 'avif',
+        };
+        const fileExt = mimeToExt[file.type] || file.name.split('.').pop() || 'jpg';
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-        console.log(`[Upload Action] Uploading ${file.name} → ${fileName} (${contentType}), ${buffer.length} bytes`);
+        console.log(`[Upload Action] ${file.name} → ${fileName} (${file.type}), ${file.size} bytes`);
+
+        const buffer = Buffer.from(await file.arrayBuffer());
 
         const { error: uploadError } = await serviceClient.storage
             .from(bucket)
-            .upload(fileName, buffer, {
-                contentType,
-                upsert: false,
-            });
+            .upload(fileName, buffer, { contentType: file.type, upsert: false });
 
         if (uploadError) {
             console.error('[Upload Action] Supabase error:', uploadError);

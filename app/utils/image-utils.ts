@@ -1,16 +1,59 @@
+async function resizeAndExportJpeg(
+    source: HTMLImageElement | ImageBitmap,
+    width: number,
+    height: number,
+    maxWidth: number,
+    maxHeight: number,
+    quality: number,
+    fileName: string,
+): Promise<File> {
+    let w = width;
+    let h = height;
+
+    if (w > h) {
+        if (w > maxWidth) { h = Math.round((h * maxWidth) / w); w = maxWidth; }
+    } else {
+        if (h > maxHeight) { w = Math.round((w * maxHeight) / h); h = maxHeight; }
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas context unavailable');
+    ctx.drawImage(source as CanvasImageSource, 0, 0, w, h);
+
+    return new Promise<File>((resolve, reject) => {
+        canvas.toBlob((blob) => {
+            if (blob) resolve(new File([blob], fileName, { type: 'image/jpeg', lastModified: Date.now() }));
+            else reject(new Error('Canvas toBlob failed'));
+        }, 'image/jpeg', quality);
+    });
+}
+
 export async function compressImage(file: File, maxWidth = 1200, maxHeight = 1200, quality = 0.8): Promise<File | Blob> {
     const fileName = file.name.toLowerCase();
     const isHEIC = fileName.endsWith('.heic') || fileName.endsWith('.heif') ||
                    file.type === 'image/heic' || file.type === 'image/heif';
 
-    // HEIC files are converted server-side by sharp — skip client-side processing
     if (isHEIC) {
-        return file;
+        // Use the browser's native HEIC decoder (works on Safari/WebKit — the same platform iPhones use)
+        try {
+            const bitmap = await createImageBitmap(file);
+            const outName = file.name.replace(/\.(heic|heif)$/i, '.jpg');
+            const result = await resizeAndExportJpeg(bitmap, bitmap.width, bitmap.height, maxWidth, maxHeight, quality, outName);
+            bitmap.close();
+            return result;
+        } catch {
+            throw new Error(
+                'HEIC formatni o\'qib bo\'lmadi. Iltimos, Safari brauzeridan foydalaning ' +
+                'yoki iPhone\'da: Fotolar → Ulashish → Variantlar → Ko\'proq moslik (JPG). ' +
+                '(HEIC not supported in this browser. Open in Safari or export as JPG from iPhone Photos.)'
+            );
+        }
     }
 
-    if (!file.type.startsWith('image/')) {
-        return file;
-    }
+    if (!file.type.startsWith('image/')) return file;
 
     return new Promise((resolve) => {
         const reader = new FileReader();
@@ -18,45 +61,12 @@ export async function compressImage(file: File, maxWidth = 1200, maxHeight = 120
         reader.onload = (event) => {
             const img = new Image();
             img.src = event.target?.result as string;
-            img.onload = () => {
-                let width = img.width;
-                let height = img.height;
-
-                if (width > height) {
-                    if (width > maxWidth) {
-                        height = Math.round((height * maxWidth) / width);
-                        width = maxWidth;
-                    }
-                } else {
-                    if (height > maxHeight) {
-                        width = Math.round((width * maxHeight) / height);
-                        height = maxHeight;
-                    }
+            img.onload = async () => {
+                try {
+                    resolve(await resizeAndExportJpeg(img, img.width, img.height, maxWidth, maxHeight, quality, file.name));
+                } catch {
+                    resolve(file);
                 }
-
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-
-                const ctx = canvas.getContext('2d');
-                if (!ctx) return resolve(file);
-
-                ctx.drawImage(img, 0, 0, width, height);
-
-                canvas.toBlob(
-                    (blob) => {
-                        if (blob) {
-                            resolve(new File([blob], file.name, {
-                                type: 'image/jpeg',
-                                lastModified: Date.now(),
-                            }));
-                        } else {
-                            resolve(file);
-                        }
-                    },
-                    'image/jpeg',
-                    quality
-                );
             };
             img.onerror = () => resolve(file);
         };
@@ -71,7 +81,6 @@ export function validateImage(file: File, maxSizeMB = 12): { valid: boolean; err
     const isHEIC = fileName.endsWith('.heic') || fileName.endsWith('.heif') ||
                    fileType === 'image/heic' || fileType === 'image/heif';
 
-    // Reject non-image files (allow HEIC and empty-type files through)
     if (!isHEIC && fileType !== '' && !fileType.startsWith('image/')) {
         return { valid: false, error: 'Faqat rasm yuklash mumkin (Only images are allowed)' };
     }
