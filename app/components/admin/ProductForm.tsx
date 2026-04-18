@@ -8,6 +8,7 @@ import LanguageTabs from '@/app/components/admin/LanguageTabs';
 import { Product } from '@/app/types';
 import { adminInsert, adminUpdate } from '@/app/utils/adminApi';
 import { useAdminI18n } from '@/app/context/AdminLanguageContext';
+import { getLocalized } from '@/app/utils/i18n';
 
 interface ProductFormProps {
     isOpen: boolean;
@@ -156,7 +157,7 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
 
         setLoading(true);
 
-        const categoryLabel = categories.find(c => c.id === categoryId)?.label || t('other');
+        const categoryRawLabel = categories.find(c => c.id === categoryId)?.label || t('other');
 
         const productData = {
             title,
@@ -165,7 +166,7 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
             base_price: Number(basePrice),
             price: Number(basePrice),
             category_id: categoryId,
-            category: categoryLabel,
+            category: categoryRawLabel,
             image_url: images.length > 0 ? images[0] : '', 
             images: images,
             variants: variants.map(v => ({ ...v, price: Number(v.price) })),
@@ -274,7 +275,7 @@ export default function ProductForm({ isOpen, onClose, product, categories, onSu
                             >
                                 <option value="">{t('all')}</option>
                                 {categories.map(c => (
-                                    <option key={c.id} value={c.id}>{c.icon} {c.label}</option>
+                                    <option key={c.id} value={c.id}>{c.icon} {getLocalized(c.label, lang)}</option>
                                 ))}
                             </select>
                         </div>

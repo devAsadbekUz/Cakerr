@@ -21,7 +21,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { uploadImageAction } from '@/app/actions/image-actions';
 import { compressImage, validateImage } from '@/app/utils/image-utils';
 import Image from 'next/image';
-import { Upload, X, Loader2, GripVertical } from 'lucide-react';
+import { Upload, X, Loader2, GripVertical, ImageOff } from 'lucide-react';
 import styles from './MultiImageUpload.module.css';
 
 interface MultiImageUploadProps {
@@ -37,6 +37,7 @@ interface SortableItemProps {
 }
 
 function SortableImage({ id, url, onRemove }: SortableItemProps) {
+    const [hasError, setHasError] = useState(false);
     const {
         attributes,
         listeners,
@@ -62,7 +63,15 @@ function SortableImage({ id, url, onRemove }: SortableItemProps) {
                 className={styles.image}
                 style={{ objectFit: 'cover' }}
                 sizes="(max-width: 768px) 33vw, 150px"
+                onError={() => setHasError(true)}
             />
+
+            {hasError && (
+                <div className={styles.errorOverlay}>
+                    <ImageOff size={20} />
+                    <span>Format xatosi (Bad format)</span>
+                </div>
+            )}
             
             {/* Drag Handle Overlay */}
             <div 
@@ -120,14 +129,21 @@ export default function MultiImageUpload({ value = [], onChange, bucket = 'image
             const newUrls: string[] = [...value];
 
             for (const file of files) {
-                // 1. Validation
+                // 1. HEIC Detection (iPhone format)
+                const isHEIC = file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
+                if (isHEIC) {
+                    alert("iPhone formatidagi rasm (.HEIC) aniqlandi. Iltimos, uni JPG rasmga aylantiring yoki boshqa rasm yuklang. (iPhone HEIC format detected. Please convert to JPG.)");
+                    continue;
+                }
+
+                // 2. Validation
                 const validation = validateImage(file);
                 if (!validation.valid) {
                     alert(validation.error);
                     continue;
                 }
 
-                // 2. Compression (to avoid 413 Payload Too Large)
+                // 3. Compression (to avoid 413 Payload Too Large)
                 const optimizedFile = await compressImage(file);
 
                 const formData = new FormData();

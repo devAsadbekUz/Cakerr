@@ -3,7 +3,7 @@
 import React, { memo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ShoppingCart, Heart } from 'lucide-react';
+import { ShoppingCart, Heart, ImageOff } from 'lucide-react';
 import styles from './ProductCard.module.css';
 import { useCartActions } from '@/app/context/CartContext';
 import { useFavorites, useIsFavorite } from '@/app/context/FavoritesContext';
@@ -25,6 +25,7 @@ interface ProductProps {
 }
 
 function ProductCardComponent({ id, title, price, image, images, tag, isReady, variants, priority }: ProductProps) {
+    const [hasError, setHasError] = React.useState(false);
     const { lang, t } = useLanguage();
     const { addItem } = useCartActions();
     const { toggleFavorite } = useFavorites();
@@ -72,6 +73,7 @@ function ProductCardComponent({ id, title, price, image, images, tag, isReady, v
                         fill
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         priority={priority}
+                        onError={() => setHasError(true)}
                     />
                 ) : (
                     <div className={styles.productImage} style={{
@@ -84,6 +86,13 @@ function ProductCardComponent({ id, title, price, image, images, tag, isReady, v
                         fontWeight: 600
                     }}>
                         {t('rasmYoq')}
+                    </div>
+                )}
+
+                {hasError && (
+                    <div className={styles.imageOverlayError}>
+                        <ImageOff size={32} />
+                        <span>Format xatosi</span>
                     </div>
                 )}
 

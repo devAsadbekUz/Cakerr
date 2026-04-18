@@ -5,7 +5,7 @@
  * @returns Translated string
  */
 export function getLocalized(data: any, lang: 'uz' | 'ru'): string {
-    if (!data) return '';
+    if (data === undefined || data === null) return '';
 
     // Fast path: already an object
     if (typeof data === 'object') {
@@ -20,17 +20,13 @@ export function getLocalized(data: any, lang: 'uz' | 'ru'): string {
     if (typeof data !== 'string') return String(data);
 
     // If it's a string, check if it's JSON (fast check)
-    // Most content in our DB for bilingual fields is stored as stringified JSON or plain string
-    const firstChar = data[0];
-    if (firstChar === '{' || firstChar === '[') {
+    const trimmed = data.trim();
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
         try {
-            const parsed = JSON.parse(data);
-            if (parsed && typeof parsed === 'object') {
-                const val = parsed[lang];
-                if (val !== undefined && val !== null && val !== '') {
-                    return val;
-                }
-                return parsed['uz'] || parsed['ru'] || '';
+            const parsed = JSON.parse(trimmed);
+            if (parsed !== null) {
+                // Recursively call to handle double-encoding or objects
+                return getLocalized(parsed, lang);
             }
         } catch (e) {
             // Not valid JSON, fall through to returning as is
