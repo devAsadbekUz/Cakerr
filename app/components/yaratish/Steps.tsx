@@ -305,33 +305,38 @@ export function NachinkaStep({ loading }: { loading: boolean }) {
     return (
         <div className={styles.stepContainer}>
             <h2 className={styles.stepTitle}>{t('selectNachinka')}</h2>
-            <div className={styles.list}>
+            <div className={styles.typeGrid}>
                 {loading ? (
-                    Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className={`${styles.listItem} ${styles.skeleton}`} style={{ height: '70px' }} />
+                    Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className={`${styles.typeCard} ${styles.skeleton}`} style={{ height: '180px' }} />
                     ))
                 ) : ingredients.length > 0 ? (
                     ingredients.map((item) => (
                         <div
                             key={item.id}
-                            className={`${styles.listItem} ${nachinka === item.id ? styles.listItemActive : ''}`}
+                            className={`${styles.typeCard} ${nachinka === item.id ? styles.typeCardActive : ''}`}
                             onClick={() => setNachinka(item.id)}
                         >
-                            <div className={styles.listItemImage}>
+                            <div className={styles.typeImageWrapper}>
                                 {item.image_url ? (
-                                    <Image src={item.image_url} alt={item.label_uz} fill style={{ objectFit: 'cover' }} />
+                                    <Image
+                                        src={item.image_url}
+                                        alt={lang === 'uz' ? item.label_uz : (item.label_ru || item.label_uz)}
+                                        fill
+                                        style={{ objectFit: 'cover' }}
+                                    />
                                 ) : (
                                     <div className={styles.iconWrapper} style={{ width: '100%', height: '100%', borderRadius: 0 }}>
-                                        <Layers size={24} />
+                                        <Layers size={32} />
                                     </div>
                                 )}
                             </div>
-                            <span className={styles.listItemText}>
+                            <span className={styles.typeLabel}>
                                 {lang === 'uz' ? item.label_uz : (item.label_ru || item.label_uz)}
                             </span>
-                            <div className={styles.iconWrapper} style={{ width: '32px', height: '32px', flexShrink: 0 }}>
-                                {nachinka === item.id ? <Check size={18} /> : <div style={{ width: 18 }} />}
-                            </div>
+                            <span className={styles.typePrice}>
+                                {Number(item.price) > 0 ? `+ ${Number(item.price).toLocaleString()} ${t('som')}` : ''}
+                            </span>
                         </div>
                     ))
                 ) : (
