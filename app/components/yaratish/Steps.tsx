@@ -317,10 +317,19 @@ export function NachinkaStep({ loading }: { loading: boolean }) {
                             className={`${styles.listItem} ${nachinka === item.id ? styles.listItemActive : ''}`}
                             onClick={() => setNachinka(item.id)}
                         >
-                            <span style={{ fontWeight: 700 }}>
+                            <div className={styles.listItemImage}>
+                                {item.image_url ? (
+                                    <Image src={item.image_url} alt={item.label_uz} fill style={{ objectFit: 'cover' }} />
+                                ) : (
+                                    <div className={styles.iconWrapper} style={{ width: '100%', height: '100%', borderRadius: 0 }}>
+                                        <Layers size={24} />
+                                    </div>
+                                )}
+                            </div>
+                            <span className={styles.listItemText}>
                                 {lang === 'uz' ? item.label_uz : (item.label_ru || item.label_uz)}
                             </span>
-                            <div className={styles.iconWrapper} style={{ width: '32px', height: '32px' }}>
+                            <div className={styles.iconWrapper} style={{ width: '32px', height: '32px', flexShrink: 0 }}>
                                 {nachinka === item.id ? <Check size={18} /> : <div style={{ width: 18 }} />}
                             </div>
                         </div>

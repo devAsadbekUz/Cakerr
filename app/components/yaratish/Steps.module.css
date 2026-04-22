@@ -398,15 +398,32 @@
 
 .listItem {
     background: white;
-    padding: 16px 20px;
+    padding: 12px 16px;
     border-radius: 20px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 16px;
     cursor: pointer;
     border: 2px solid transparent;
     transition: all 0.2s ease;
     box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.listItemImage {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    background: #F8FAFC;
+    flex-shrink: 0;
+}
+
+.listItemText {
+    flex: 1;
+    font-weight: 700;
+    font-size: 15px;
+    color: #1E293B;
 }
 
 .listItemActive {
