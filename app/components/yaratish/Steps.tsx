@@ -337,7 +337,7 @@ export function NachinkaStep({ loading }: { loading: boolean }) {
  * Step 4: Size Selection
  */
 export function SizeStep({ loading }: { loading: boolean }) {
-    const { size, setSize, options } = useCustomCake();
+    const { size, setSize, cakeType, options } = useCustomCake();
     const { t, lang } = useLanguage();
     // Filter sizes that belong to the selected cake type (supporting many-to-many)
     const sizes = options.filter(o => 
