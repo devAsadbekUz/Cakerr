@@ -289,9 +289,104 @@ export function DesignStep() {
 }
 
 /**
- * Step 3: Nachinka (Ingredients) - Filtered by parent cake type (unchanged code skipped for brevity, but stays same)
+ * Step 3: Nachinka (Ingredients) - Filtered by parent cake type
  */
-// ... (NachinkaStep and SizeStep stays here)
+export function NachinkaStep({ loading }: { loading: boolean }) {
+    const { nachinka, setNachinka, cakeType, options } = useCustomCake();
+    const { t, lang } = useLanguage();
+
+    // Filter ingredients that belong to the selected cake type (supporting many-to-many)
+    const ingredients = options.filter(o => 
+        o.type === 'nachinka' && 
+        cakeType && 
+        o.parent_ids?.includes(cakeType)
+    );
+
+    return (
+        <div className={styles.stepContainer}>
+            <h2 className={styles.stepTitle}>{t('selectNachinka')}</h2>
+            <div className={styles.list}>
+                {loading ? (
+                    Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className={`${styles.listItem} ${styles.skeleton}`} style={{ height: '70px' }} />
+                    ))
+                ) : ingredients.length > 0 ? (
+                    ingredients.map((item) => (
+                        <div
+                            key={item.id}
+                            className={`${styles.listItem} ${nachinka === item.id ? styles.listItemActive : ''}`}
+                            onClick={() => setNachinka(item.id)}
+                        >
+                            <span style={{ fontWeight: 700 }}>
+                                {lang === 'uz' ? item.label_uz : (item.label_ru || item.label_uz)}
+                            </span>
+                            <div className={styles.iconWrapper} style={{ width: '32px', height: '32px' }}>
+                                {nachinka === item.id ? <Check size={18} /> : <div style={{ width: 18 }} />}
+                            </div>
+                        </div>
+                    ))
+                ) : (
+                    <div className={styles.emptyState}>{t('noNachinkaAvailable')}</div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+/**
+ * Step 4: Size Selection
+ */
+export function SizeStep({ loading }: { loading: boolean }) {
+    const { size, setSize, options } = useCustomCake();
+    const { t, lang } = useLanguage();
+    // Filter sizes that belong to the selected cake type (supporting many-to-many)
+    const sizes = options.filter(o => 
+        o.type === 'size' && 
+        (!cakeType || o.parent_ids?.includes(cakeType))
+    );
+
+    return (
+        <div className={styles.stepContainer}>
+            <h2 className={styles.stepTitle}>{t('selectSize')}</h2>
+            <div className={styles.sizeGrid}>
+                {loading ? (
+                    Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className={`${styles.sizeCard} ${styles.skeleton}`} style={{ height: '80px' }} />
+                    ))
+                ) : (
+                    sizes.map((item) => (
+                        <div
+                            key={item.id}
+                            className={`${styles.sizeCard} ${size === item.id ? styles.sizeCardActive : ''}`}
+                            onClick={() => setSize(item.id)}
+                        >
+                            <div className={styles.sizeCircle}>
+                                <span>{item.label_uz.split(' ')[0]}</span>
+                            </div>
+                            <div className={styles.sizeInfo}>
+                                <span className={styles.sizeLabel}>
+                                    {lang === 'uz' ? item.label_uz : (item.label_ru || item.label_uz)}
+                                </span>
+                                <span className={styles.sizeSubLabel}>
+                                    {lang === 'uz' ? item.sub_label_uz : item.sub_label_ru}
+                                </span>
+                            </div>
+                            {Number(item.price) > 0 && (
+                                <span className={styles.sizePrice}>
+                                    {Number(item.price).toLocaleString()} {t('som')}
+                                </span>
+                            )}
+                        </div>
+                    ))
+                )}
+            </div>
+            <div className={styles.pricingNote}>
+                <Info size={16} />
+                <span>{t('estimatedPriceNote')}</span>
+            </div>
+        </div>
+    );
+}
 
 /**
  * Final Step: Review

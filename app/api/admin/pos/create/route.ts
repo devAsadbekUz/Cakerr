@@ -38,32 +38,40 @@ export async function POST(req: NextRequest) {
         const serverTotal = itemsTotal + (deliveryInfo.delivery_type === 'delivery' ? DELIVERY_FEE : 0);
 
         // 0. Intercept Base64 strings and upload them to Storage before saving to DB
-        // Support multiple possible photo keys from builder
+        // All uploads run in parallel across all items, deduplicated by base64 content
         if (items && items.length > 0) {
             const uploadTasks: Promise<void>[] = [];
+            const base64Map = new Map<string, Promise<string | null>>();
+
+            const getCachedUpload = (base64: string, prefix: string) => {
+                if (!base64Map.has(base64)) {
+                    base64Map.set(base64, uploadBase64Image(supabaseAdmin, base64, staffIdHeader || 'staff', prefix));
+                }
+                return base64Map.get(base64)!;
+            };
+
             for (const item of items) {
                 if (!item.configuration) continue;
                 
-                // 0. Intercept Base64 strings and upload them to Storage before saving to DB
-                // Support multiple possible photo keys from builder
                 const photoKeys = ['uploaded_photo_url', 'photo_ref', 'photoRef'];
                 
                 // 1. Process individual keys
                 for (const key of photoKeys) {
-                    if (item.configuration[key]?.startsWith('data:image')) {
+                    const base64 = item.configuration[key];
+                    if (base64?.startsWith('data:image')) {
                         uploadTasks.push(
-                            uploadBase64Image(supabaseAdmin, item.configuration[key], staffIdHeader || 'staff', 'photo')
+                            getCachedUpload(base64, 'photo')
                                 .then(url => { if (url) item.configuration[key] = url; })
                         );
                     }
                 }
 
-                // 2. Process photo_refs array (New implementation)
+                // 2. Process photo_refs array
                 if (Array.isArray(item.configuration.photo_refs)) {
                     item.configuration.photo_refs.forEach((ref: any, idx: number) => {
                         if (typeof ref === 'string' && ref.startsWith('data:image')) {
                             uploadTasks.push(
-                                uploadBase64Image(supabaseAdmin, ref, staffIdHeader || 'staff', `photo_${idx}`)
+                                getCachedUpload(ref, `photo_${idx}`)
                                     .then(url => { 
                                         if (url && item.configuration.photo_refs) {
                                             item.configuration.photo_refs[idx] = url;
@@ -76,7 +84,7 @@ export async function POST(req: NextRequest) {
 
                 if (item.configuration.drawing?.startsWith('data:image')) {
                     uploadTasks.push(
-                        uploadBase64Image(supabaseAdmin, item.configuration.drawing, staffIdHeader || 'staff', 'drawing')
+                        getCachedUpload(item.configuration.drawing, 'drawing')
                             .then(url => { if (url) item.configuration.drawing = url; })
                     );
                 }

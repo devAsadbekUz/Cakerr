@@ -130,31 +130,40 @@ export async function POST(request: NextRequest) {
         const { order, items, coins_spent, promo_code_id } = parsed.data;
 
         // 1. Intercept Base64 strings and upload them to Storage before saving to DB
-        // All uploads run in parallel across all items
+        // All uploads run in parallel across all items, deduplicated by base64 content
         if (items && items.length > 0) {
             const uploadTasks: Promise<void>[] = [];
+            const base64Map = new Map<string, Promise<string | null>>();
+
+            const getCachedUpload = (base64: string, prefix: string) => {
+                if (!base64Map.has(base64)) {
+                    base64Map.set(base64, uploadBase64Image(supabase, base64, userId, prefix));
+                }
+                return base64Map.get(base64)!;
+            };
+
             for (const item of items) {
                 if (!item.configuration) continue;
                 
-                // Support multiple possible photo keys from different builder modes
                 const photoKeys = ['uploaded_photo_url', 'photo_ref', 'photoRef'];
                 
                 // 1. Process individual keys
                 for (const key of photoKeys) {
-                    if (item.configuration[key]?.startsWith('data:image')) {
+                    const base64 = item.configuration[key];
+                    if (base64?.startsWith('data:image')) {
                         uploadTasks.push(
-                            uploadBase64Image(supabase, item.configuration[key], userId, 'photo')
+                            getCachedUpload(base64, 'photo')
                                 .then(url => { if (url) item.configuration[key] = url; })
                         );
                     }
                 }
 
-                // 2. Process photo_refs array (New implementation)
+                // 2. Process photo_refs array
                 if (Array.isArray(item.configuration.photo_refs)) {
                     item.configuration.photo_refs.forEach((ref: any, idx: number) => {
                         if (typeof ref === 'string' && ref.startsWith('data:image')) {
                             uploadTasks.push(
-                                uploadBase64Image(supabase, ref, userId, `photo_${idx}`)
+                                getCachedUpload(ref, `photo_${idx}`)
                                     .then(url => { 
                                         if (url && item.configuration.photo_refs) {
                                             item.configuration.photo_refs[idx] = url;
@@ -167,7 +176,7 @@ export async function POST(request: NextRequest) {
 
                 if (item.configuration.drawing?.startsWith('data:image')) {
                     uploadTasks.push(
-                        uploadBase64Image(supabase, item.configuration.drawing, userId, 'drawing')
+                        getCachedUpload(item.configuration.drawing, 'drawing')
                             .then(url => { if (url) item.configuration.drawing = url; })
                     );
                 }
