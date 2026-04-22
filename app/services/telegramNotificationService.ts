@@ -175,61 +175,121 @@ export async function notifyAdminNewOrder(orderId: string): Promise<boolean> {
         const text = buildOrderMessage(order, finalLang);
         const inline_keyboard = getTelegramButtons('new', orderId, finalLang, order);
         
-        // 4. Resolve primary photo if any exists in custom items
-        let primaryPhotoUrl: string | null = null;
+        // 4. Resolve all photos from custom items
+        const allPhotoUrls: string[] = [];
         if (order.order_items && order.order_items.length > 0) {
             for (const item of order.order_items) {
                 const cfg = item.configuration || {};
-                const photoUrl = cfg.uploaded_photo_url || cfg.photo_ref || cfg.photoRef;
-                if (photoUrl && typeof photoUrl === 'string' && photoUrl.startsWith('http')) {
-                    primaryPhotoUrl = photoUrl;
-                    break;
+                
+                // Collect from new array structure
+                if (Array.isArray(cfg.photo_refs)) {
+                    cfg.photo_refs.forEach((url: any) => {
+                        if (typeof url === 'string' && url.startsWith('http')) {
+                            allPhotoUrls.push(url);
+                        }
+                    });
+                } else {
+                    // Fallback to individual keys
+                    const photoUrl = cfg.uploaded_photo_url || cfg.photo_ref || cfg.photoRef;
+                    if (photoUrl && typeof photoUrl === 'string' && photoUrl.startsWith('http')) {
+                        allPhotoUrls.push(photoUrl);
+                    }
+                }
+
+                // Also collect drawing if exists and starts with http
+                if (cfg.drawing && typeof cfg.drawing === 'string' && cfg.drawing.startsWith('http')) {
+                    allPhotoUrls.push(cfg.drawing);
                 }
             }
         }
 
-        // 5. Send to Telegram (Photo with Caption OR Text Message)
-        const endpoint = primaryPhotoUrl ? 'sendPhoto' : 'sendMessage';
-        const payload: any = {
-            chat_id: TELEGRAM_CHAT_ID,
-            parse_mode: 'Markdown',
-            reply_markup: { inline_keyboard }
-        };
+        // Deduplicate URLs just in case
+        const uniquePhotoUrls = Array.from(new Set(allPhotoUrls));
 
-        if (primaryPhotoUrl) {
-            payload.photo = primaryPhotoUrl;
-            payload.caption = text;
+        // 5. Send to Telegram
+        // Logic: 
+        // - No photos: sendMessage with text + buttons
+        // - 1 photo: sendPhoto with text caption + buttons
+        // - Multiple photos: sendMediaGroup with photos, then sendMessage with details + buttons
+        
+        const hasPhotos = uniquePhotoUrls.length > 0;
+        const multiplePhotos = uniquePhotoUrls.length > 1;
+
+        if (multiplePhotos) {
+            // First send the media group
+            const mediaGroup = uniquePhotoUrls.slice(0, 10).map((url) => ({
+                type: 'photo',
+                media: url
+            }));
+
+            await fetch(`${TELEGRAM_API}/sendMediaGroup`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: TELEGRAM_CHAT_ID,
+                    media: mediaGroup
+                })
+            });
+
+            // Then send the text with buttons
+            const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: TELEGRAM_CHAT_ID,
+                    text: text,
+                    parse_mode: 'Markdown',
+                    reply_markup: { inline_keyboard }
+                })
+            });
+            const result = await res.json();
+            if (result.ok) {
+                await serviceClient.from('orders').update({
+                    telegram_message_id: result.result.message_id,
+                    telegram_chat_id: TELEGRAM_CHAT_ID
+                }).eq('id', orderId);
+            }
+            return result.ok;
         } else {
-            payload.text = text;
-        }
+            const primaryPhotoUrl = uniquePhotoUrls[0] || null;
+            const endpoint = primaryPhotoUrl ? 'sendPhoto' : 'sendMessage';
+            const payload: any = {
+                chat_id: TELEGRAM_CHAT_ID,
+                parse_mode: 'Markdown',
+                reply_markup: { inline_keyboard }
+            };
 
-        const res = await fetch(`${TELEGRAM_API}/${endpoint}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
+            if (primaryPhotoUrl) {
+                payload.photo = primaryPhotoUrl;
+                payload.caption = text;
+            } else {
+                payload.text = text;
+            }
 
-        if (!res.ok) {
-            const errText = await res.text();
-            console.error('[notifyAdminNewOrder] Telegram HTTP error:', res.status, errText);
-            return false;
-        }
-        const result = await res.json();
-        if (result.ok) {
-            // 5. Success! Store the message_id for future edits
-            // AND persist the resolved language context so future status updates stay in the same lang
-            const updatedAddr = typeof deliveryAddr === 'string' 
-                ? { street: deliveryAddr, lang: finalLang } 
-                : { ...deliveryAddr, lang: finalLang };
+            const res = await fetch(`${TELEGRAM_API}/${endpoint}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
 
-            await serviceClient.from('orders').update({
-                telegram_message_id: result.result.message_id,
-                telegram_chat_id: TELEGRAM_CHAT_ID,
-                delivery_address: updatedAddr
-            }).eq('id', orderId);
-            return true;
-        } else {
-            console.error('[notifyAdminNewOrder] Telegram API error:', result);
+            if (!res.ok) {
+                const errText = await res.text();
+                console.error('[notifyAdminNewOrder] Telegram HTTP error:', res.status, errText);
+                return false;
+            }
+            const result = await res.json();
+            if (result.ok) {
+                const updatedAddr = typeof deliveryAddr === 'string' 
+                    ? { street: deliveryAddr, lang: finalLang } 
+                    : { ...deliveryAddr, lang: finalLang };
+
+                await serviceClient.from('orders').update({
+                    telegram_message_id: result.result.message_id,
+                    telegram_chat_id: TELEGRAM_CHAT_ID,
+                    delivery_address: updatedAddr
+                }).eq('id', orderId);
+                return true;
+            }
             return false;
         }
     } catch (err) {

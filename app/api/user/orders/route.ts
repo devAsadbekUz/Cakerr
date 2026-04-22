@@ -137,15 +137,32 @@ export async function POST(request: NextRequest) {
                 if (!item.configuration) continue;
                 
                 // Support multiple possible photo keys from different builder modes
-                const photoKey = ['uploaded_photo_url', 'photo_ref', 'photoRef'].find(k => 
-                    item.configuration[k]?.startsWith('data:image')
-                );
+                const photoKeys = ['uploaded_photo_url', 'photo_ref', 'photoRef'];
+                
+                // 1. Process individual keys
+                for (const key of photoKeys) {
+                    if (item.configuration[key]?.startsWith('data:image')) {
+                        uploadTasks.push(
+                            uploadBase64Image(supabase, item.configuration[key], userId, 'photo')
+                                .then(url => { if (url) item.configuration[key] = url; })
+                        );
+                    }
+                }
 
-                if (photoKey) {
-                    uploadTasks.push(
-                        uploadBase64Image(supabase, item.configuration[photoKey], userId, 'photo')
-                            .then(url => { if (url) item.configuration[photoKey] = url; })
-                    );
+                // 2. Process photo_refs array (New implementation)
+                if (Array.isArray(item.configuration.photo_refs)) {
+                    item.configuration.photo_refs.forEach((ref: any, idx: number) => {
+                        if (typeof ref === 'string' && ref.startsWith('data:image')) {
+                            uploadTasks.push(
+                                uploadBase64Image(supabase, ref, userId, `photo_${idx}`)
+                                    .then(url => { 
+                                        if (url && item.configuration.photo_refs) {
+                                            item.configuration.photo_refs[idx] = url;
+                                        }
+                                    })
+                            );
+                        }
+                    });
                 }
 
                 if (item.configuration.drawing?.startsWith('data:image')) {

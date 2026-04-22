@@ -8,6 +8,7 @@ export type AdminOrderItemConfiguration = {
     size?: string | null;
     sponge?: string | null;
     decorations?: string | null;
+    photo_refs?: string[] | null;
     custom_note?: string | null;
     order_note?: string | null;
     [key: string]: unknown;

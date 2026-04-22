@@ -44,15 +44,34 @@ export async function POST(req: NextRequest) {
             for (const item of items) {
                 if (!item.configuration) continue;
                 
-                const photoKey = ['uploaded_photo_url', 'photo_ref', 'photoRef'].find(k => 
-                    item.configuration[k]?.startsWith('data:image')
-                );
+                // 0. Intercept Base64 strings and upload them to Storage before saving to DB
+                // Support multiple possible photo keys from builder
+                const photoKeys = ['uploaded_photo_url', 'photo_ref', 'photoRef'];
+                
+                // 1. Process individual keys
+                for (const key of photoKeys) {
+                    if (item.configuration[key]?.startsWith('data:image')) {
+                        uploadTasks.push(
+                            uploadBase64Image(supabaseAdmin, item.configuration[key], staffIdHeader || 'staff', 'photo')
+                                .then(url => { if (url) item.configuration[key] = url; })
+                        );
+                    }
+                }
 
-                if (photoKey) {
-                    uploadTasks.push(
-                        uploadBase64Image(supabaseAdmin, item.configuration[photoKey], staffIdHeader || 'staff', 'photo')
-                            .then(url => { if (url) item.configuration[photoKey] = url; })
-                    );
+                // 2. Process photo_refs array (New implementation)
+                if (Array.isArray(item.configuration.photo_refs)) {
+                    item.configuration.photo_refs.forEach((ref: any, idx: number) => {
+                        if (typeof ref === 'string' && ref.startsWith('data:image')) {
+                            uploadTasks.push(
+                                uploadBase64Image(supabaseAdmin, ref, staffIdHeader || 'staff', `photo_${idx}`)
+                                    .then(url => { 
+                                        if (url && item.configuration.photo_refs) {
+                                            item.configuration.photo_refs[idx] = url;
+                                        }
+                                    })
+                            );
+                        }
+                    });
                 }
 
                 if (item.configuration.drawing?.startsWith('data:image')) {

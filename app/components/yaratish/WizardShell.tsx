@@ -27,7 +27,7 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
         cakeType,
         nachinka,
         size,
-        photoRef,
+        photoRefs,
         comment,
         drawingData,
         options,
@@ -105,7 +105,7 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
             name: t('customCake'),
             price: estimated_total,
             quantity: 1,
-            image: photoRef || selectedType?.image_url || '/images/custom-cake-placeholder.jpg',
+            image: photoRefs[0] || photoRefs[1] || selectedType?.image_url || '/images/custom-cake-placeholder.jpg',
             portion: lang === 'uz' ? selectedSize?.label_uz : selectedSize?.label_ru || selectedSize?.label_uz,
             flavor: lang === 'uz' ? selectedNachinka?.label_uz : selectedNachinka?.label_ru || selectedNachinka?.label_uz,
             configuration: {
@@ -116,7 +116,8 @@ export default function WizardShell({ onItemComplete, onClose }: WizardShellProp
                 nachinka_ru: selectedNachinka?.label_ru,
                 size_uz: selectedSize?.label_uz,
                 size_ru: selectedSize?.label_ru,
-                photo_ref: photoRef,
+                photo_ref: photoRefs[0] || photoRefs[1], // Backward compatibility
+                photo_refs: photoRefs.filter(Boolean),  // Modern array storage
                 custom_note: comment,
                 drawing: drawingData,
                 pricing_type: 'hybrid',

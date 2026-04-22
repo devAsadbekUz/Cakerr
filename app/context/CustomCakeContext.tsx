@@ -11,7 +11,7 @@ interface CustomCakeState {
 
     // New Wizard State
     cakeType: string | null;
-    photoRef: string | null;     // Reference photo URL/base64
+    photoRefs: (string | null)[];     // Reference photo URLs/base64 (max 2)
     comment: string;            // User's instructions
     nachinka: string | null;     // Ingredients
     size: string | null;
@@ -24,7 +24,7 @@ interface CustomCakeState {
 interface CustomCakeContextType extends CustomCakeState {
     setMode: (mode: BuilderMode) => void;
     setCakeType: (id: string | null) => void;
-    setPhotoRef: (ref: string | null) => void;
+    setPhotoRef: (index: number, ref: string | null) => void;
     setComment: (text: string) => void;
     setNachinka: (id: string | null) => void;
     setSize: (id: string | null) => void;
@@ -43,7 +43,7 @@ const initialState: CustomCakeState = {
     mode: 'wizard',
     step: 1,
     cakeType: null,
-    photoRef: null,
+    photoRefs: [null, null],
     comment: '',
     nachinka: null,
     size: null,
@@ -66,7 +66,11 @@ export function CustomCakeProvider({ children }: { children: ReactNode }) {
         size: null
     })), []);
 
-    const setPhotoRef = useCallback((photoRef: string | null) => setState(prev => ({ ...prev, photoRef })), []);
+    const setPhotoRef = useCallback((index: number, ref: string | null) => setState(prev => {
+        const newRefs = [...prev.photoRefs];
+        newRefs[index] = ref;
+        return { ...prev, photoRefs: newRefs };
+    }), []);
     const setComment = useCallback((comment: string) => setState(prev => ({ ...prev, comment })), []);
     const setNachinka = useCallback((nachinka: string | null) => setState(prev => ({ ...prev, nachinka })), []);
     const setSize = useCallback((size: string | null) => setState(prev => ({ ...prev, size })), []);

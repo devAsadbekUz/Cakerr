@@ -379,30 +379,67 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                                 {localItems.map((item: AdminOrderItem) => (
                                     <div key={item.id} className={styles.orderItemCard}>
                                         <div
-                                            style={{ position: 'relative', cursor: 'pointer' }}
-                                            onClick={() => {
-                                                const imgUrl = item.configuration?.uploaded_photo_url || item.configuration?.drawing || item.products?.image_url;
-                                                if (imgUrl) setPreviewImage(imgUrl as string);
-                                            }}
+                                            style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}
                                         >
-                                            <Image
-                                                src={((item.configuration as any)?.photo_ref || (item.configuration as any)?.uploaded_photo_url || (item.configuration as any)?.drawing || (item.products as any)?.image_url || '/placeholder.png') as string}
-                                                alt={item.name}
-                                                className={styles.itemImage}
-                                                style={{ cursor: 'pointer', borderRadius: '8px', objectFit: 'cover' }}
-                                                width={80}
-                                                height={80}
-                                            />
-                                            {(item.configuration?.photo_ref || item.configuration?.uploaded_photo_url || item.configuration?.drawing) && (
-                                                <div style={{
-                                                    position: 'absolute', bottom: '4px', right: '4px',
-                                                    width: '24px', height: '24px', borderRadius: '6px',
-                                                    background: 'rgba(0,0,0,0.6)', color: 'white',
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                                }}>
-                                                    <ZoomIn size={14} />
-                                                </div>
-                                            )}
+                                            <div
+                                                style={{ position: 'relative', display: 'flex', gap: '4px', flexWrap: 'wrap' }}
+                                            >
+                                                {item.configuration?.photo_refs && item.configuration.photo_refs.length > 1 ? (
+                                                    // Multiple Photos Gallery
+                                                    item.configuration.photo_refs.map((url, idx) => (
+                                                        <div 
+                                                            key={idx} 
+                                                            style={{ position: 'relative', cursor: 'pointer' }}
+                                                            onClick={() => setPreviewImage(url as string)}
+                                                        >
+                                                            <Image
+                                                                src={(url || '/placeholder.png') as string}
+                                                                alt={`${item.name} ${idx + 1}`}
+                                                                className={styles.itemImage}
+                                                                style={{ borderRadius: '8px', objectFit: 'cover' }}
+                                                                width={60}
+                                                                height={60}
+                                                            />
+                                                            <div style={{
+                                                                position: 'absolute', bottom: '2px', right: '2px',
+                                                                width: '18px', height: '18px', borderRadius: '4px',
+                                                                background: 'rgba(0,0,0,0.6)', color: 'white',
+                                                                display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                                            }}>
+                                                                <ZoomIn size={10} />
+                                                            </div>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    // Single Photo (Original behavior)
+                                                    <div 
+                                                        style={{ position: 'relative', cursor: 'pointer' }}
+                                                        onClick={() => {
+                                                            const imgUrl = (item.configuration as any)?.photo_ref || item.configuration?.uploaded_photo_url || item.configuration?.drawing || item.products?.image_url;
+                                                            if (imgUrl) setPreviewImage(imgUrl as string);
+                                                        }}
+                                                    >
+                                                        <Image
+                                                            src={((item.configuration as any)?.photo_ref || (item.configuration as any)?.uploaded_photo_url || (item.configuration as any)?.drawing || (item.products as any)?.image_url || '/placeholder.png') as string}
+                                                            alt={item.name}
+                                                            className={styles.itemImage}
+                                                            style={{ cursor: 'pointer', borderRadius: '8px', objectFit: 'cover' }}
+                                                            width={80}
+                                                            height={80}
+                                                        />
+                                                        {(item.configuration?.photo_ref || item.configuration?.uploaded_photo_url || item.configuration?.drawing) && (
+                                                            <div style={{
+                                                                position: 'absolute', bottom: '4px', right: '4px',
+                                                                width: '24px', height: '24px', borderRadius: '6px',
+                                                                background: 'rgba(0,0,0,0.6)', color: 'white',
+                                                                display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                                            }}>
+                                                                <ZoomIn size={14} />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                         <div className={styles.itemInfo}>
                                             <h3 className={styles.itemName} style={{ fontSize: '15px', fontWeight: 700 }}>{item.name || t('cake')}</h3>
