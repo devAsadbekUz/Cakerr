@@ -299,7 +299,7 @@ export function NachinkaStep({ loading }: { loading: boolean }) {
     const ingredients = options.filter(o => 
         o.type === 'nachinka' && 
         cakeType && 
-        o.parent_ids?.includes(cakeType)
+        (o.parent_ids?.includes(cakeType) ?? false)
     );
 
     return (
@@ -356,7 +356,7 @@ export function SizeStep({ loading }: { loading: boolean }) {
     // Filter sizes that belong to the selected cake type (supporting many-to-many)
     const sizes = options.filter(o => 
         o.type === 'size' && 
-        (!cakeType || o.parent_ids?.includes(cakeType))
+        (!cakeType || (o.parent_ids?.includes(cakeType) ?? false))
     );
 
     return (
