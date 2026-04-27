@@ -162,7 +162,7 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Ad
 
     const activeOrders = useMemo(() => {
         if (viewMode !== 'inbox') return [];
-        return orders.filter(o => o.status !== 'completed' && o.status !== 'cancelled');
+        return orders;
     }, [orders, viewMode]);
 
     const groupedOrders = useMemo(() => {

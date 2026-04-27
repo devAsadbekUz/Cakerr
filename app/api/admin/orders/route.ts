@@ -9,9 +9,11 @@ export async function GET(request: Request) {
         const rawLimit = searchParams.get('limit');
         const limit = rawLimit ? parseInt(rawLimit, 10) : undefined;
         const summary = searchParams.get('summary') === '1';
+        const statusGroup = searchParams.get('status') as 'active' | 'history' | null;
+
         const orders = summary
-            ? await fetchAdminOrderSummaries(Number.isNaN(days) ? null : days, Number.isNaN(limit) ? undefined : limit)
-            : await fetchAdminOrders(Number.isNaN(days) ? null : days, Number.isNaN(limit) ? undefined : limit);
+            ? await fetchAdminOrderSummaries(Number.isNaN(days) ? null : days, Number.isNaN(limit) ? undefined : limit, statusGroup)
+            : await fetchAdminOrders(Number.isNaN(days) ? null : days, Number.isNaN(limit) ? undefined : limit, statusGroup);
 
         return NextResponse.json(
             { orders },

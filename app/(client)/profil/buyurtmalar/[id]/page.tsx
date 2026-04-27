@@ -95,6 +95,7 @@ export default function TrackingPage() {
                     filteredStatuses,
                     total: data.total_price,
                     deposit_amount: data.deposit_amount ?? 0,
+                    final_payment_amount: data.final_payment_amount ?? 0,
                     delivery_time: data.delivery_time ?? null,
                     delivery_slot: typeof data.delivery_slot === 'string' ? data.delivery_slot.trim() : '',
                     address: {
@@ -387,8 +388,10 @@ export default function TrackingPage() {
                     {/* Payment Status Card — shown once order is confirmed or beyond */}
                     {['confirmed', 'preparing', 'ready', 'delivering', 'completed'].includes(order.status) && (() => {
                         const depositAmount: number = order.deposit_amount ?? 0;
+                        const finalPaymentAmount: number = order.final_payment_amount ?? 0;
+                        const totalPaid = depositAmount + finalPaymentAmount;
                         const totalPrice: number = order.total ?? 0;
-                        const remaining = Math.max(0, totalPrice - depositAmount);
+                        const remaining = Math.max(0, totalPrice - totalPaid);
                         const fullyPaid = remaining === 0;
                         const noDeposit = depositAmount === 0 && order.status !== 'completed';
 
@@ -422,13 +425,30 @@ export default function TrackingPage() {
                                                 {totalPrice.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}
                                             </span>
                                         </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-                                            <span style={{ color: '#6B7280' }}>
-                                                {t('paid')}:
-                                            </span>
-                                            <span style={{ fontWeight: 700, color: '#16A34A' }}>
-                                                {depositAmount.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}
-                                            </span>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#6B7280' }}>
+                                                <span>{lang === 'uz' ? 'Avans' : 'Аванс'}:</span>
+                                                <span style={{ fontWeight: 700, color: '#16A34A', fontVariantNumeric: 'tabular-nums' }}>
+                                                    {depositAmount.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}
+                                                </span>
+                                            </div>
+                                            {finalPaymentAmount > 0 && (
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#6B7280' }}>
+                                                    <span>{lang === 'uz' ? 'Yakuniy to\'lov' : 'Итоговый платёж'}:</span>
+                                                    <span style={{ fontWeight: 700, color: '#16A34A', fontVariantNumeric: 'tabular-nums' }}>
+                                                        {finalPaymentAmount.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            <div style={{ height: '1px', background: '#F3F4F6' }} />
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 800 }}>
+                                                <span style={{ color: '#111827' }}>
+                                                    {t('paid')}:
+                                                </span>
+                                                <span style={{ color: '#111827' }}>
+                                                    {totalPaid.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}
+                                                </span>
+                                            </div>
                                         </div>
                                         <div style={{ height: '1px', background: '#F3F4F6' }} />
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', alignItems: 'center' }}>

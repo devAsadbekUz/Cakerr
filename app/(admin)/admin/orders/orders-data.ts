@@ -40,12 +40,24 @@ function applyDaysFilter<T>(query: T, filterDays?: number | null) {
     return (query as { gte: (column: string, value: string) => T }).gte('created_at', cutoff.toISOString());
 }
 
-export async function fetchAdminOrders(filterDays?: number | null, limit = 500) {
+function applyStatusFilter<T>(query: T, statusGroup?: 'active' | 'history' | null) {
+    if (statusGroup === 'active') {
+        // Active = NOT in (completed, cancelled)
+        return (query as any).not('status', 'in', '("completed","cancelled")');
+    }
+    if (statusGroup === 'history') {
+        // History = ONLY in (completed, cancelled)
+        return (query as any).in('status', ['completed', 'cancelled']);
+    }
+    return query;
+}
+
+export async function fetchAdminOrders(filterDays?: number | null, limit = 500, statusGroup?: 'active' | 'history' | null) {
     if (!await isAdminVerified()) {
         throw new Error('Unauthorized');
     }
 
-    const query = applyDaysFilter(serviceClient
+    let finalQuery = applyDaysFilter(serviceClient
         .from('orders')
         .select(`
             id, user_id, status, total_price, delivery_time, delivery_slot, created_at, comment, delivery_address,
@@ -61,7 +73,9 @@ export async function fetchAdminOrders(filterDays?: number | null, limit = 500) 
         .order('created_at', { ascending: false })
         .limit(limit), filterDays);
 
-    const { data: orders, error } = await query;
+    finalQuery = applyStatusFilter(finalQuery, statusGroup);
+    
+    const { data: orders, error } = await finalQuery;
 
     if (error) {
         throw error;
@@ -72,12 +86,12 @@ export async function fetchAdminOrders(filterDays?: number | null, limit = 500) 
     return typedOrders.map(sanitizeAdminOrder);
 }
 
-export async function fetchAdminOrderSummaries(filterDays?: number | null, limit = 500) {
+export async function fetchAdminOrderSummaries(filterDays?: number | null, limit = 500, statusGroup?: 'active' | 'history' | null) {
     if (!await isAdminVerified()) {
         throw new Error('Unauthorized');
     }
 
-    const query = applyDaysFilter(serviceClient
+    let finalQuery = applyDaysFilter(serviceClient
         .from('orders')
         .select(`
             id, status, total_price, delivery_time, delivery_slot, created_at,
@@ -92,7 +106,9 @@ export async function fetchAdminOrderSummaries(filterDays?: number | null, limit
         .order('created_at', { ascending: false })
         .limit(limit), filterDays);
 
-    const { data: orders, error } = await query;
+    finalQuery = applyStatusFilter(finalQuery, statusGroup);
+
+    const { data: orders, error } = await finalQuery;
 
     if (error) {
         throw error;

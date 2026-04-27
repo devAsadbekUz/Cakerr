@@ -2,10 +2,12 @@ import AdminOrdersClient from './AdminOrdersClient';
 import { fetchAdminOrderSummaries } from './orders-data';
 import { ORDERS_FILTER_DAYS } from './orders-config';
 
-const INITIAL_ORDERS_LIMIT = 100;
+const INITIAL_ORDERS_LIMIT = 200;
 
 export default async function OrdersPageContent() {
-    const initialOrders = await fetchAdminOrderSummaries(ORDERS_FILTER_DAYS, INITIAL_ORDERS_LIMIT);
+    // For the Inbox, we want ONLY active orders. 
+    // We set filterDays to null (no age limit) because active orders should never be hidden by age.
+    const initialOrders = await fetchAdminOrderSummaries(null, INITIAL_ORDERS_LIMIT, 'active');
 
     return <AdminOrdersClient initialOrders={initialOrders} />;
 }

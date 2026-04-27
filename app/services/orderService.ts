@@ -1,10 +1,11 @@
 import { createClient } from '@/app/utils/supabase/client';
 
 export const orderService = {
-    async getOrderSummariesAdmin(filterDays?: number | null, limit?: number) {
+    async getOrderSummariesAdmin(filterDays?: number | null, limit?: number, statusGroup?: 'active' | 'history') {
         try {
             const params = new URLSearchParams();
             if (filterDays) params.set('days', String(filterDays));
+            if (statusGroup) params.set('status', statusGroup);
             params.set('summary', '1');
             if (limit) params.set('limit', String(limit));
             const url = `/api/admin/orders?${params.toString()}`;
@@ -26,9 +27,12 @@ export const orderService = {
         }
     },
 
-    async getAllOrdersAdmin(filterDays?: number | null) {
+    async getAllOrdersAdmin(filterDays?: number | null, statusGroup?: 'active' | 'history') {
         try {
-            const url = filterDays ? `/api/admin/orders?days=${filterDays}` : '/api/admin/orders';
+            const params = new URLSearchParams();
+            if (filterDays) params.set('days', String(filterDays));
+            if (statusGroup) params.set('status', statusGroup);
+            const url = `/api/admin/orders?${params.toString()}`;
             const response = await fetch(url, {
                 credentials: 'include',
                 cache: 'no-store'

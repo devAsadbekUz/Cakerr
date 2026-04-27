@@ -349,7 +349,8 @@ export const buildOrderMessage = (order: any, lang: 'uz' | 'ru' = 'uz') => {
                 paymentSection += ` ${depositAmount.toLocaleString()} ${t.som}`;
             }
 
-            const remaining = Math.max(0, Number(order.total_price ?? 0) - depositAmount);
+            const totalPaid = depositAmount + finalPayment;
+            const remaining = Math.max(0, Number(order.total_price ?? 0) - totalPaid);
             if (order.status === 'completed' && finalPayment > 0) {
                 const finalLabel = lang === 'uz' ? "Yakuniy to'lov" : 'Итог. оплата';
                 paymentSection += `\n💵 *${finalLabel}:* ${finalPayment.toLocaleString()} ${t.som}`;
