@@ -2,7 +2,7 @@
 Cakerr — Locust Performance Test
 =================================
 Run with:
-  locust -f locustfile.py --host https://YOUR-DOMAIN.vercel.app
+  locust -f locustfile.py --host https://cakerr.vercel.app
 
 Then open http://localhost:8089 in your browser.
 
@@ -21,9 +21,9 @@ import random
 from locust import HttpUser, task, between, tag
 
 # ─── CONFIG — replace these with real values ────────────────────────────────
-TG_INIT_DATA = os.getenv("TG_INIT_DATA", "PASTE_YOUR_TELEGRAM_INIT_DATA_HERE")
-PRODUCT_ID   = os.getenv("PRODUCT_ID",   "PASTE_A_REAL_PRODUCT_UUID_HERE")
-ADMIN_COOKIE = os.getenv("ADMIN_COOKIE", "PASTE_YOUR_ADMIN_TOKEN_COOKIE_HERE")
+TG_INIT_DATA = os.getenv("TG_INIT_DATA", "query_id=5478961112149008248~Fow5wL0D65rW3vWJ&user=%7B%22id%22%3A773451040%2C%22first_name%22%3A%22Zokirjon%22%2C%22last_name%22%3A%22Abrorov%22%2C%22username%22%3A%22zokirjonabrorov%22%2C%22language_code%22%3A%22en%22%2C%22is_premium%22%3Afalse%2C%22allows_write_to_pm%22%3Atrue%7D&auth_date=1745718271&hash=678afb57750965d9415035f614af0c0604955513d0204c282650b349180e7479")
+PRODUCT_ID   = os.getenv("PRODUCT_ID",   "8e3531fd-e62d-412d-8370-a1677148e45b")
+ADMIN_COOKIE = os.getenv("ADMIN_COOKIE", "42ad2066-9c1e-481a-93a4-7ed9501a6884")
 # ─────────────────────────────────────────────────────────────────────────────
 
 CLIENT_HEADERS = {
