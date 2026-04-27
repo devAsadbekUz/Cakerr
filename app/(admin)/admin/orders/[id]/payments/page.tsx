@@ -77,7 +77,8 @@ export default function PaymentHistoryPage({ params }: { params: Promise<{ id: s
         return t('payLog_final').replace('{amount}', log.amount.toLocaleString()).replace('{by}', log.recorded_by_name);
     };
 
-    const remaining = order ? Math.max(0, order.total_price - order.deposit_amount) : 0;
+    const totalPaid = order ? ((order.deposit_amount ?? 0) + (order.final_payment_amount ?? 0)) : 0;
+    const remaining = order ? Math.max(0, order.total_price - totalPaid) : 0;
 
     return (
         <div className={styles.container}>
@@ -145,7 +146,7 @@ export default function PaymentHistoryPage({ params }: { params: Promise<{ id: s
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px' }}>
                                     <span style={{ color: '#6B7280' }}>{t('totalPaid')}:</span>
                                     <span style={{ fontWeight: 800, color: '#16A34A', fontVariantNumeric: 'tabular-nums' }}>
-                                        {order.deposit_amount.toLocaleString('en-US')} {t('som')}
+                                        {totalPaid.toLocaleString('en-US')} {t('som')}
                                     </span>
                                 </div>
                                 <div style={{ height: '1px', background: '#F3F4F6', margin: '4px 0' }} />

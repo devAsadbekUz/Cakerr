@@ -57,8 +57,10 @@ export const OrderCard = memo(function OrderCard({ order, compact, onUpdate, onS
     const isPickup = order.delivery_type === 'pickup' || !!order.branch_id || !!order.branches;
 
     const depositAmount = order.deposit_amount ?? 0;
+    const finalPaymentAmount = order.final_payment_amount ?? 0;
+    const totalPaid = depositAmount + finalPaymentAmount;
     const totalPrice = order.total_price ?? 0;
-    const remaining = Math.max(0, totalPrice - depositAmount);
+    const remaining = Math.max(0, totalPrice - totalPaid);
     const showPaymentBadge = ['confirmed', 'preparing', 'ready', 'delivering', 'completed'].includes(order.status);
     const noDepositWarning = depositAmount === 0 && ['confirmed', 'preparing', 'ready', 'delivering'].includes(order.status);
     
@@ -191,7 +193,7 @@ export const OrderCard = memo(function OrderCard({ order, compact, onUpdate, onS
                                     padding: '2px 8px', borderRadius: '6px',
                                     fontVariantNumeric: 'tabular-nums'
                                 }}>
-                                    {depositAmount.toLocaleString()} / {totalPrice.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}
+                                    {totalPaid.toLocaleString()} / {totalPrice.toLocaleString()} {lang === 'uz' ? "so'm" : "сум"}
                                 </div>
                             )
                         )}

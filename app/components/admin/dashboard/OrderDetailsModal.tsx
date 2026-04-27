@@ -128,13 +128,15 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
     const s = { label: statusLabels[order.status as keyof typeof statusLabels] ?? order.status, ...sc };
 
     const depositAmount = order.deposit_amount ?? 0;
+    const finalPaymentAmount = order.final_payment_amount ?? 0;
+    const totalPaid = depositAmount + finalPaymentAmount;
     
     // Derive total price from local items to handle optimistic updates
     const totalPrice = useMemo(() => {
         return localItems.reduce((acc, item) => acc + (item.unit_price || 0) * item.quantity, 0);
     }, [localItems]);
 
-    const remaining = Math.max(0, totalPrice - depositAmount);
+    const remaining = Math.max(0, totalPrice - totalPaid);
     const showPaymentSection = ['confirmed', 'preparing', 'ready', 'delivering', 'completed'].includes(order.status);
     const noDepositWarning = depositAmount === 0 && ['confirmed', 'preparing', 'ready', 'delivering'].includes(order.status);
 
@@ -351,6 +353,21 @@ export function OrderDetailsModal({ order, onClose, onUpdate, loading = false, d
                                         <span>{lang === 'uz' ? 'Avans' : 'Аванс'}:</span>
                                         <span style={{ fontWeight: 700, color: '#16A34A', fontVariantNumeric: 'tabular-nums' }}>
                                             {depositAmount.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}
+                                        </span>
+                                    </div>
+                                    {finalPaymentAmount > 0 && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#6B7280' }}>
+                                            <span>{lang === 'uz' ? 'Yakuniy to\'lov' : 'Итоговый платёж'}:</span>
+                                            <span style={{ fontWeight: 700, color: '#16A34A', fontVariantNumeric: 'tabular-nums' }}>
+                                                {finalPaymentAmount.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}
+                                            </span>
+                                        </div>
+                                    )}
+                                    <div style={{ height: '1px', background: '#E5E7EB', margin: '4px 0' }} />
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#111827', fontWeight: 800 }}>
+                                        <span>{lang === 'uz' ? 'Jami to\'langan' : 'Итого оплачено'}:</span>
+                                        <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+                                            {totalPaid.toLocaleString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')} {t('som')}
                                         </span>
                                     </div>
                                     <div style={{ height: '1px', background: '#E5E7EB' }} />
