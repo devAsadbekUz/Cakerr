@@ -73,7 +73,8 @@ export default function ProductDetailsClient({ product }: { product: Product }) 
         image: product.image,
         quantity: localQuantity + 1,
         portion: portion,
-        flavor: firstFlavor
+        flavor: firstFlavor,
+        configuration: { unit_price: currentPrice }
       });
     }
     if (product?.image) flyToCart(e, product.image);
@@ -102,7 +103,8 @@ export default function ProductDetailsClient({ product }: { product: Product }) 
         image: product.image,
         quantity: localQuantity,
         portion: portion,
-        flavor: firstFlavor
+        flavor: firstFlavor,
+        configuration: { unit_price: currentPrice }
       });
       if (product?.image) flyToCart(e, product.image);
     }

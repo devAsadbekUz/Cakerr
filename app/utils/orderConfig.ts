@@ -351,9 +351,9 @@ export const buildOrderMessage = (order: any, lang: 'uz' | 'ru' = 'uz') => {
 
             const totalPaid = depositAmount + finalPayment;
             const remaining = Math.max(0, Number(order.total_price ?? 0) - totalPaid);
-            if (order.status === 'completed' && finalPayment > 0) {
-                const finalLabel = lang === 'uz' ? "Yakuniy to'lov" : 'Итог. оплата';
-                paymentSection += `\n💵 *${finalLabel}:* ${finalPayment.toLocaleString()} ${t.som}`;
+            if (order.status === 'completed') {
+                const totalPaidLabel = lang === 'uz' ? "Jami to'landi" : 'Всего оплачено';
+                paymentSection += `\n✅ *${totalPaidLabel}:* ${totalPaid.toLocaleString()} ${t.som}`;
             } else if (remaining > 0) {
                 paymentSection += `\n💰 *${remainingLabel}:* ${remaining.toLocaleString()} ${t.som}`;
             }
@@ -493,4 +493,39 @@ export const buildCustomerStatusMessage = (order: any, lang: 'uz' | 'ru' = 'uz')
     }
 
     return message;
+};
+
+/**
+ * Determines the correct Telegram API endpoint to use when editing an admin group message.
+ * - 1 photo: The message was sent as sendPhoto, so it has a caption -> editMessageCaption
+ * - >1 photos: The message was sent as a Media Group followed by a text message -> editMessageText
+ * - 0 photos: The message was sent as a text message -> editMessageText
+ */
+export const getAdminMessageEditEndpoint = (order: any): 'editMessageCaption' | 'editMessageText' => {
+    const allPhotoUrls: string[] = [];
+    if (order.order_items && order.order_items.length > 0) {
+        for (const item of order.order_items) {
+            const cfg = item.configuration || {};
+            
+            if (Array.isArray(cfg.photo_refs)) {
+                cfg.photo_refs.forEach((url: any) => {
+                    if (typeof url === 'string' && url.startsWith('http')) {
+                        allPhotoUrls.push(url);
+                    }
+                });
+            } else {
+                const photoUrl = cfg.uploaded_photo_url || cfg.photo_ref || cfg.photoRef;
+                if (photoUrl && typeof photoUrl === 'string' && photoUrl.startsWith('http')) {
+                    allPhotoUrls.push(photoUrl);
+                }
+            }
+
+            if (cfg.drawing && typeof cfg.drawing === 'string' && cfg.drawing.startsWith('http')) {
+                allPhotoUrls.push(cfg.drawing);
+            }
+        }
+    }
+
+    const uniquePhotoUrls = Array.from(new Set(allPhotoUrls));
+    return uniquePhotoUrls.length === 1 ? 'editMessageCaption' : 'editMessageText';
 };

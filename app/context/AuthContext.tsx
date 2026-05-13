@@ -477,6 +477,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         clearSession();
         supabase.auth.signOut();
 
+        if (!isTelegramWebApp()) {
+            setIsTelegram(false);
+        }
+
         // Revoke the refresh token server-side so it can't be used to re-authenticate
         // even if someone still has a copy of it (e.g. stolen device).
         if (session?.refreshToken) {

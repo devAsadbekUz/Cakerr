@@ -34,6 +34,7 @@ export function POSProductDetailModal({ product, onClose }: Props) {
             portion: currentPortion,
             flavor: '',
             quantity: 1,
+            configuration: { unit_price: currentPrice },
         });
         onClose();
     };

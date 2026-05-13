@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { getStatusConfig, getTelegramButtons, buildOrderMessage, resolveOrderLanguage } from '@/app/utils/orderConfig';
+import { getStatusConfig, getTelegramButtons, buildOrderMessage, resolveOrderLanguage, getAdminMessageEditEndpoint } from '@/app/utils/orderConfig';
 import { notifyCustomerStatusChange } from '@/app/services/telegramNotificationService';
 import { resolveAppUrl } from '@/app/utils/appUrl';
+import { signMagicToken } from '@/app/utils/customerToken';
 
 function resolveTgLang(code?: string | null): 'uz' | 'ru' {
     if (code?.startsWith('ru')) return 'ru';
@@ -23,14 +24,7 @@ function safeName(name: string): string {
     return escapeHtml(name || '');
 }
 
-function isPhotoOrder(order: any): boolean {
-    if (!order.order_items || order.order_items.length === 0) return false;
-    return order.order_items.some((item: any) => {
-        const cfg = item.configuration || {};
-        const photoUrl = cfg.uploaded_photo_url || cfg.photo_ref || cfg.photoRef;
-        return photoUrl && typeof photoUrl === 'string' && photoUrl.startsWith('http');
-    });
-}
+
 
 /**
  * Synchronizes the persistent blue "Menu" button for a specific user.
@@ -153,9 +147,10 @@ export async function POST(request: NextRequest) {
                 ? { inline_keyboard: [[{ text: orderBtnText, web_app: { url: appUrl } }]] }
                 : undefined;
 
-            // Handle /start command
             if (message.text?.startsWith('/start')) {
                 console.log(`[Telegram Webhook] Handling /start command (Lang: ${tgLang})`);
+                
+                const isAuthFlow = message.text.includes('auth');
 
                 // Check if user already has a profile with phone number
                 const { data: profile, error: profileError } = await supabase
@@ -176,6 +171,21 @@ export async function POST(request: NextRequest) {
                 let response;
                 if (profile?.phone_number) {
                     console.log('[Telegram Webhook] Existing user found, sending welcome back');
+                    
+                    let replyMarkup: any = webAppMarkup ? { reply_markup: webAppMarkup } : {};
+                    if (isAuthFlow && profile.id) {
+                        try {
+                            const token = await signMagicToken(profile.id);
+                            replyMarkup = {
+                                reply_markup: {
+                                    inline_keyboard: [[{ text: tgLang === 'ru' ? '🔗 Вернуться на сайт' : '🔗 Saytga qaytish', url: `${appUrl}/profil/login?magic_token=${token}` }]]
+                                }
+                            };
+                        } catch (err) {
+                            console.error('[Telegram Webhook] Error generating magic token', err);
+                        }
+                    }
+
                     response = await fetch(`${TELEGRAM_API}/sendMessage`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -183,7 +193,7 @@ export async function POST(request: NextRequest) {
                             chat_id: chatId,
                             text: i18n.welcomeBack(firstName),
                             parse_mode: 'HTML',
-                            ...(webAppMarkup ? { reply_markup: webAppMarkup } : {})
+                            ...replyMarkup
                         })
                     });
                 } else {
@@ -237,7 +247,7 @@ export async function POST(request: NextRequest) {
 
                 try {
                     // 1. Update/Create profile
-                    const { error: profileError } = await supabase
+                    const { data: profiles, error: profileError } = await supabase
                         .from('profiles')
                         .upsert({
                             telegram_id: telegramId,
@@ -247,9 +257,12 @@ export async function POST(request: NextRequest) {
                             role: 'customer',
                             tg_lang: tgLang,
                             updated_at: new Date().toISOString()
-                        }, { onConflict: 'telegram_id' });
+                        }, { onConflict: 'telegram_id' })
+                        .select('id');
 
                     if (profileError) throw profileError;
+                    
+                    const profileId = profiles?.[0]?.id;
 
                     // 2. Store phone → Telegram link
                     await supabase
@@ -261,6 +274,20 @@ export async function POST(request: NextRequest) {
                         }, { onConflict: 'phone' });
 
                     // 3. Send success message
+                    let replyMarkup: any = webAppMarkup ? { reply_markup: webAppMarkup } : {};
+                    if (profileId) {
+                        try {
+                            const token = await signMagicToken(profileId);
+                            replyMarkup = {
+                                reply_markup: {
+                                    inline_keyboard: [[{ text: tgLang === 'ru' ? '🔗 Вернуться на сайт' : '🔗 Saytga qaytish', url: `${appUrl}/profil/login?magic_token=${token}` }]]
+                                }
+                            };
+                        } catch (err) {
+                            console.error('[Telegram Webhook] Error generating magic token', err);
+                        }
+                    }
+
                     const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -268,7 +295,7 @@ export async function POST(request: NextRequest) {
                             chat_id: chatId,
                             text: i18n.registrationSuccess(firstName),
                             parse_mode: 'HTML',
-                            ...(webAppMarkup ? { reply_markup: webAppMarkup } : {})
+                            ...replyMarkup
                         })
                     });
 
@@ -394,16 +421,19 @@ export async function POST(request: NextRequest) {
                 const updatedText = buildOrderMessage(order, orderLang);
                 const inline_keyboard = getTelegramButtons(newStatus, orderId, orderLang, order);
                 
-                const hasPhoto = isPhotoOrder(order);
-                const endpoint = hasPhoto ? 'editMessageCaption' : 'editMessageText';
+                const endpoint = getAdminMessageEditEndpoint(order);
                 const payload: any = { chat_id: chatId, message_id: messageId, parse_mode: 'Markdown', reply_markup: { inline_keyboard } };
-                if (hasPhoto) payload.caption = updatedText; else payload.text = updatedText;
+                if (endpoint === 'editMessageCaption') payload.caption = updatedText; else payload.text = updatedText;
 
-                await fetch(`${TELEGRAM_API}/${endpoint}`, {
+                const res = await fetch(`${TELEGRAM_API}/${endpoint}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
+                if (!res.ok) {
+                    const errText = await res.text();
+                    console.error('[Telegram Webhook] Status update message edit error:', res.status, errText);
+                }
 
                 await notifyCustomerStatusChange(orderId, newStatus, order);
             }

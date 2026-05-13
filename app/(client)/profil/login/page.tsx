@@ -17,12 +17,14 @@ function LoginContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const redirectTo = searchParams.get('redirectTo') || '/profil';
+    const magicToken = searchParams.get('magic_token');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [step, setStep] = useState<LoginStep>('phone');
     const [phone, setPhone] = useState('');
     const [otpCode, setOtpCode] = useState('');
     const [countdown, setCountdown] = useState(0);
+    const [showMagicButton, setShowMagicButton] = useState(false);
     const { login, isTelegram } = useTelegram();
     const { t } = useLanguage();
 
@@ -33,6 +35,33 @@ function LoginContent() {
             setStep('telegram');
         }
     }, [isTelegram]);
+
+    useEffect(() => {
+        if (magicToken) {
+            const handleMagicLogin = async (token: string) => {
+                setLoading(true);
+                try {
+                    const res = await fetch('/api/auth/telegram/magic-login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ token })
+                    });
+                    const data = await res.json();
+                    if (data.session) {
+                        storeSession(data.session);
+                        window.location.href = redirectTo;
+                    } else {
+                        setError(data.message || t('invalidCode'));
+                    }
+                } catch (err: any) {
+                    setError(t('errorMessage'));
+                } finally {
+                    setLoading(false);
+                }
+            };
+            handleMagicLogin(magicToken);
+        }
+    }, [magicToken, redirectTo, t]);
 
     // Countdown timer for resend
     useEffect(() => {
@@ -88,6 +117,7 @@ function LoginContent() {
 
             if (data.error === 'not_linked') {
                 setError(t('loginErrNotLinked').replace('{bot}', TELEGRAM_CONFIG.botUsername));
+                setShowMagicButton(true);
                 return;
             }
 
@@ -258,6 +288,18 @@ function LoginContent() {
                                     </>
                                 )}
                             </button>
+
+                            {showMagicButton && (
+                                <button
+                                    type="button"
+                                    className={styles.telegramBtn}
+                                    style={{ marginTop: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                                    onClick={() => window.open(`${TELEGRAM_CONFIG.botLink}?start=auth`, '_blank')}
+                                >
+                                    <Send size={18} />
+                                    Telegram orqali tasdiqlash
+                                </button>
+                            )}
                         </form>
                     ) : (
                         <form onSubmit={handleVerifyOTP} className={styles.form}>

@@ -1,4 +1,4 @@
-import { getStatusConfig, tgEscape, buildOrderMessage, getTelegramButtons, resolveOrderLanguage, buildCustomerStatusMessage } from '@/app/utils/orderConfig';
+import { getStatusConfig, tgEscape, buildOrderMessage, getTelegramButtons, resolveOrderLanguage, buildCustomerStatusMessage, getAdminMessageEditEndpoint } from '@/app/utils/orderConfig';
 import { serviceClient } from '@/app/utils/supabase/service';
 
 function resolveTgLang(code?: string | null): 'uz' | 'ru' {
@@ -29,18 +29,7 @@ async function fetchCustomerOrderContext(orderId: string) {
     return order;
 }
 
-/**
- * Helper to determine if an order contains a reference photo, 
- * which dictates which Telegram API endpoint to use for updates.
- */
-function isPhotoOrder(order: any): boolean {
-    if (!order.order_items || order.order_items.length === 0) return false;
-    return order.order_items.some((item: any) => {
-        const cfg = item.configuration || {};
-        const photoUrl = cfg.uploaded_photo_url || cfg.photo_ref || cfg.photoRef;
-        return photoUrl && typeof photoUrl === 'string' && photoUrl.startsWith('http');
-    });
-}
+
 
 /**
  * Handles the logic of sending a status update to a customer's specific Telegram chat.
@@ -423,8 +412,7 @@ export async function updateAdminOrderMessage(orderId: string): Promise<void> {
         const text = buildOrderMessage(order, lang);
         const inline_keyboard = getTelegramButtons(order.status, orderId, lang, order);
 
-        const hasPhoto = isPhotoOrder(order);
-        const endpoint = hasPhoto ? 'editMessageCaption' : 'editMessageText';
+        const endpoint = getAdminMessageEditEndpoint(order);
         const payload: any = {
             chat_id: order.telegram_chat_id,
             message_id: order.telegram_message_id,
@@ -432,17 +420,22 @@ export async function updateAdminOrderMessage(orderId: string): Promise<void> {
             reply_markup: { inline_keyboard }
         };
 
-        if (hasPhoto) {
+        if (endpoint === 'editMessageCaption') {
             payload.caption = text;
         } else {
             payload.text = text;
         }
 
-        await fetch(`${TELEGRAM_API}/${endpoint}`, {
+        const res = await fetch(`${TELEGRAM_API}/${endpoint}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
+
+        if (!res.ok) {
+            const errText = await res.text();
+            console.error('[updateAdminOrderMessage] Telegram API Error:', res.status, errText);
+        }
     } catch (err) {
         console.error('[updateAdminOrderMessage] Error:', err);
     }

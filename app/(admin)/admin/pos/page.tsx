@@ -170,14 +170,16 @@ export default function PosPage() {
 
     // ── Handlers ──────────────────────────────────────────────────────────────
     const handleAddStandard = (product: Product) => {
+        const price = Number(product.base_price);
         addItem({
             id: product.id,
             name: getLocalized(product.title, lang),
-            price: Number(product.base_price),
+            price: price,
             image: product.image_url,
             portion: 'Standart',
             flavor: '',
-            quantity: 1
+            quantity: 1,
+            configuration: { unit_price: price }
         });
     };
 

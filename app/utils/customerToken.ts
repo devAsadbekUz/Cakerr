@@ -138,3 +138,66 @@ export function decodeTokenExpiry(token: string): number | null {
         return null;
     }
 }
+
+// ── magic token ──────────────────────────────────────────────────────────────
+
+export async function signMagicToken(profileId: string): Promise<string> {
+    const secret = getSecret();
+    const now = Math.floor(Date.now() / 1000);
+    const payload = {
+        profileId,
+        magic: true,
+        iat: now,
+        exp: now + 300, // 5 minutes
+    };
+
+    const header = b64urlEncode(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+    const body   = b64urlEncode(JSON.stringify(payload));
+    const toSign = new TextEncoder().encode(`${header}.${body}`);
+
+    const key = await crypto.subtle.importKey(
+        'raw',
+        new TextEncoder().encode(secret),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign'],
+    );
+    const sigBuffer = await crypto.subtle.sign('HMAC', key, toSign);
+    const sig = btoa(String.fromCharCode(...new Uint8Array(sigBuffer)))
+        .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+
+    return `${header}.${body}.${sig}`;
+}
+
+export async function verifyMagicToken(token: string): Promise<string | null> {
+    try {
+        const secret = process.env.CUSTOMER_JWT_SECRET;
+        if (!secret) return null;
+
+        const parts = token.split('.');
+        if (parts.length !== 3) return null;
+
+        const [headerB64, payloadB64, sigB64] = parts;
+        const toVerify  = new TextEncoder().encode(`${headerB64}.${payloadB64}`);
+        const sigBytes  = b64urlDecodeBytes(sigB64);
+
+        const key = await crypto.subtle.importKey(
+            'raw',
+            new TextEncoder().encode(secret),
+            { name: 'HMAC', hash: 'SHA-256' },
+            false,
+            ['verify'],
+        );
+        const valid = await crypto.subtle.verify('HMAC', key, sigBytes, toVerify);
+        if (!valid) return null;
+
+        const encoded = payloadB64.replace(/-/g, '+').replace(/_/g, '/');
+        const padded  = encoded + '='.repeat((4 - (encoded.length % 4)) % 4);
+        const payload = JSON.parse(atob(padded));
+
+        if (Date.now() / 1000 > payload.exp || !payload.magic) return null;
+        return payload.profileId;
+    } catch {
+        return null;
+    }
+}
