@@ -41,6 +41,8 @@ import BranchesManager from '@/app/components/admin/settings/BranchesManager';
 export default function AdminSettingsPage() {
     const { lang, t } = useAdminI18n();
     const [banners, setBanners] = useState<Banner[]>([]);
+    const [categories, setCategories] = useState<{ id: string; label: any }[]>([]);
+    const [products, setProducts] = useState<{ id: string; title: any }[]>([]);
     const [loading, setLoading] = useState(true);
     const [exportFrom, setExportFrom] = useState(format(subDays(new Date(), 100), 'yyyy-MM-dd'));
     const [exportTo, setExportTo] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -60,7 +62,7 @@ export default function AdminSettingsPage() {
 
     const fetchBanners = async () => {
         setLoading(true);
-        const { data, error } = await supabase
+        const { data } = await supabase
             .from('hero_banners')
             .select('*')
             .order('sort_order', { ascending: true });
@@ -68,6 +70,22 @@ export default function AdminSettingsPage() {
         if (data) setBanners(data);
         setOrderChanged(false);
         setLoading(false);
+    };
+
+    const fetchCategories = async () => {
+        const { data } = await supabase
+            .from('categories')
+            .select('id, label')
+            .order('sort_order', { ascending: true });
+        if (data) setCategories(data);
+    };
+
+    const fetchProducts = async () => {
+        const { data } = await supabase
+            .from('products')
+            .select('id, title')
+            .is('deleted_at', null);
+        if (data) setProducts(data);
     };
 
     const checkRole = async () => {
@@ -85,6 +103,8 @@ export default function AdminSettingsPage() {
     useEffect(() => {
         fetchBanners();
         checkRole();
+        fetchCategories();
+        fetchProducts();
     }, []);
 
     const handleDragEnd = (event: DragEndEvent) => {
@@ -134,9 +154,12 @@ export default function AdminSettingsPage() {
                 if (error) throw error;
             } else {
                 const nextOrder = banners.length > 0 ? Math.max(...banners.map(b => b.sort_order)) + 1 : 0;
+                // Generate ID on client to avoid not-null constraint errors if DB default is missing
+                const newId = crypto.randomUUID();
+                const { id, ...newBanner } = banner; // remove any undefined id
                 const { error } = await supabase
                     .from('hero_banners')
-                    .insert([{ ...banner, sort_order: nextOrder }]);
+                    .insert([{ id: newId, ...newBanner, sort_order: nextOrder }]);
                 if (error) throw error;
             }
             setEditingBanner(null);
@@ -256,6 +279,8 @@ export default function AdminSettingsPage() {
 
                 {isAdding && (
                     <BannerForm
+                        categories={categories}
+                        products={products}
                         onSave={handleSave}
                         onCancel={() => setIsAdding(false)}
                     />
@@ -343,6 +368,8 @@ export default function AdminSettingsPage() {
                 }}>
                     <BannerForm
                         banner={editingBanner}
+                        categories={categories}
+                        products={products}
                         onSave={handleSave}
                         onCancel={() => setEditingBanner(null)}
                     />
